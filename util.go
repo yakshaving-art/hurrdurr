@@ -136,7 +136,23 @@ func gitlabGetGroupMembers(groupPath string) []gitlab.GroupMember {
 }
 
 func removeMemberFromGroup(username string, groupPath string) {
-	fmt.Printf("\tWill remove user '%s' from group '%s'!\n", username, groupPath)
+	// TODO: pass this from caller instead
+	var userid int
+	for _, u := range allUsers {
+		if u.Username == username {
+			userid = u.ID
+			break
+		}
+	}
+	if userid == 0 {
+		log.Fatalf("Something very wrong! got ID zero for user '%s'!", username)
+	}
+
+	_, err := gitlabClient.GroupMembers.RemoveGroupMember(groupPath, userid)
+	if err != nil {
+		log.Fatalf("removing member '%s' from groupPath '%s': %+v\n", username, groupPath, err)
+	}
+	fmt.Printf("\tRemoved user '%s' from group '%s'!\n", username, groupPath)
 }
 
 func updateMembersACL(username string, groupPath string, acl int) {
@@ -144,8 +160,6 @@ func updateMembersACL(username string, groupPath string, acl int) {
 }
 
 func addMemberToGroup(username string, groupPath string, acl int) {
-	fmt.Printf("\tWill add user '%s' to group '%s' with ACL '%d'!\n", username, groupPath, acl)
-
 	// TODO: pass this from caller instead
 	var userid int
 	for _, u := range allUsers {
@@ -169,6 +183,7 @@ func addMemberToGroup(username string, groupPath string, acl int) {
 	if err != nil {
 		log.Fatalf("Error adding member '%s' to groupPath '%s': %+v\n", username, groupPath, err)
 	}
+	fmt.Printf("\tAdded user '%s' to group '%s' with ACL '%d'!\n", username, groupPath, acl)
 }
 
 // isRegularUser returns true if user is not admin and not blocked and is not bot
