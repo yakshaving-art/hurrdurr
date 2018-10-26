@@ -141,6 +141,27 @@ func (cPtr *config) validate() {
 	}
 }
 
+func (cPtr *config) report() {
+	// TODO: ugly warning, refactor this
+	managedGroups := []string{}
+	for _, g := range cPtr.Groups {
+		for name := range g {
+			managedGroups = append(managedGroups, name)
+			break
+		}
+	}
+	sort.Strings(managedGroups)
+
+	fmt.Println("\nGroups not managed by this tool:")
+	for _, g := range allGroups {
+		if i := sort.SearchStrings(managedGroups, g.FullPath); i < len(managedGroups) && managedGroups[i] == g.FullPath {
+			// already managed
+		} else {
+			fmt.Printf("\t%s\n", g.FullPath)
+		}
+	}
+}
+
 func (cPtr *config) apply() {
 	for _, g := range cPtr.Groups {
 		g.apply()
@@ -369,6 +390,7 @@ func main() {
 	cfg.read("config.yaml")
 	cfg.validate()
 	cfg.apply()
+	cfg.report()
 	//for _, g := range cfg.Groups {
 	//	fmt.Printf("%v\n", g)
 	//}
