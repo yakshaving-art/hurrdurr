@@ -33,7 +33,7 @@ them to a gitlab instance.
 1. **Member:** is a user, it is defined by the username and must exist in the
    instance of it to be able of handling it. If the declared user does not
    exists, hurrdurr will fail execution.
-1. **Group:** a collection of users and projects in the gitlan instance.
+1. **Group:** gitlab group whose members are managed by hurrdurr.
    Hurrdurr will only manage the groups that are declared in the configuration,
    other groups will be ignored.
 1. **Level:** a level setting in gitlab, known levels in increasing access
