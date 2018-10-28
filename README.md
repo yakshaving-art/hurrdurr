@@ -85,9 +85,13 @@ handbook:
 Queries are simple on purporse and follow strict rules.
 
 1. You can't query a group that contains a query. This will result in a runtime error.
-1. You can query for `all active regular users`, this will return the list of all the members that are not blocked or admins that exist in the remote instance.
-1. You can query for a level in a group, for example: `owners in infrastructure` would return `werewolve_1, bohf_1`
-1. You can query for `everyone` in a group, for example: `everyone in backend` would return `ninja_dev, samurai, ronin`
+1. You can query for `all active regular users`, this will return the list of
+   all the members that are not blocked or admins that exist in the remote
+   instance.
+1. You can query for a level in a group, for example: `owners in
+   infrastructure` would return `werewolve_1, bohf_1`
+1. You can query for `everyone` in a group, for example: `everyone in
+   backend` would return `ninja_dev, samurai, ronin`
 1. You can use more than one query to assign to a level.
 
 ### ACL Leveling on expansion
