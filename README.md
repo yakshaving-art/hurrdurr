@@ -63,6 +63,7 @@ backend:
 infrastructure:
   path: awesomeness/infra
   guests:
+    members:
     - ninja_ops_1
   owners:
     members:
