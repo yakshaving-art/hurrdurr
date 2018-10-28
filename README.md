@@ -122,5 +122,6 @@ handbook:
     - pointy_haired_boss
 ```
 
-This will result in `pointy_haired_boss` being an owner of the handbook, and
-`rrhh_demon` being a maintainer, and whomever else exists in the remote instance.
+This will result in `pointy_haired_boss` being an owner of the handbook,
+`rrhh_demon` being a maintainer, and whomever else is registered as an active
+regular user in the remote instance to be assigned as a developer.
