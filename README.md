@@ -25,7 +25,7 @@ Manages group acls, slowly and embarrassingly ineffectively, yet does the jerb.
 Configuration is managed through a yaml file. This file declares the
 structure of groups, levels and members for hurrdurr to colapse reality into.
 
-### Contepts
+### Concepts
 
 Hurrdurr understands N basic elements that it uses to build ACLs and apply
 them to a gitlab instance.
