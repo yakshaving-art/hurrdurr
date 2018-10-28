@@ -38,7 +38,7 @@ them to a gitlab instance.
    other groups will be ignored.
 1. **Level:** a level setting in gitlab, known levels in increasing access
    rights are guest, reporter, developer, maintainer, owner. A group can
-   declare none, or all the levels, assigning members directly or through
+   declare none, or some of the levels, assigning members directly or through
    queries.
 1. **query:** a lazy definition of a group which is expanded into members,
    these are used to define which members should belong to a level in a given
