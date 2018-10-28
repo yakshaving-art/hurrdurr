@@ -10,13 +10,15 @@ Manages group acls, slowly and embarrassingly ineffectively, yet does the jerb.
 
 - **-config** the configuration file to use, by default hurrdurr will load
   *hurrdurr.yml* in the current working directoy.
-- **-gitlab-tokeb** the token to use when contacting the gitlab instance API.
-  Can also be defined through the GITLAB_TOKEN environment variable.
 - **-gitlab-url** the gitlab instance url to talk to. Can also be defined
   through the GITLAB_URL environment variable.
 - **-dryrun** don't actually change anything, only evaluate which changes
   should happen.
 - **-debug** enabled debug level logging.
+
+### Required Environment Variables
+
+- **GITLAB_TOKEN** the token to use when contacting the gitlab instance API.
 
 ## Configuration
 
