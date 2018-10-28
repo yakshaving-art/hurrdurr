@@ -62,7 +62,7 @@ backend:
     - ronin
 infrastructure:
   path: awesomeness/infra
-  guest:
+  guests:
     - ninja_ops_1
   owners:
     members:
