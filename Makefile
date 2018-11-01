@@ -29,10 +29,10 @@ debug:	### Debug Makefile itself
 
 .PHONY: prepare
 prepare:
-	mkdir -p /go/src/gitlab.com/$(CI_PROJECT_NAMESPACE)
-	cd /go/src/gitlab.com/$(CI_PROJECT_NAMESPACE)
-	ln -s $(CI_PROJECT_DIR)
-	cd /go/src/gitlab.com/$(CI_PROJECT_PATH)
+	mkdir -p /go/src/gitlab.com/$(CI_PROJECT_NAMESPACE) && \
+	cd /go/src/gitlab.com/$(CI_PROJECT_NAMESPACE) && \
+	ln -s $(CI_PROJECT_DIR) && \
+	cd /go/src/gitlab.com/$(CI_PROJECT_PATH) && \
 	dep ensure
 
 .PHONY: check
