@@ -9,6 +9,7 @@ before_script:
   - mkdir -p /go/src/gitlab.com/yakshaving.art
   - cp -r /builds/yakshaving.art/hurrdurr /go/src/gitlab.com/yakshaving.art/
   - cd /go/src/gitlab.com/yakshaving.art/hurrdurr
+  - dep ensure
 
 test:
   stage: test
