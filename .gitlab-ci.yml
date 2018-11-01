@@ -2,7 +2,7 @@ image: golang:1.10
 stages:
   - test
   - snapshot
-  - release
+#  - release
 
 variables:
   DOCKER_HOST: tcp://docker:2375/
@@ -10,16 +10,16 @@ variables:
   GOPATH: /go
 
 before_script:
-  - go get -u github.com/golang/dep/cmd/dep
   - mkdir -p /go/src/gitlab.com/yakshaving.art
   - cp -r /builds/yakshaving.art/hurrdurr /go/src/gitlab.com/yakshaving.art/
   - cd /go/src/gitlab.com/yakshaving.art/hurrdurr
-  - dep ensure
 
 test:
   stage: test
   coverage: '/^total:\s+\(statements\)\s+(\d+.\d+)%$/'
   script:
+  - go get -u github.com/golang/dep/cmd/dep
+  - dep ensure
   - make test
 
 snapshot:
@@ -31,16 +31,18 @@ snapshot:
   stage: snapshot
   script:
   - apk --no-cache add go
+  - go get -u github.com/golang/dep/cmd/dep
+  - dep ensure
   - curl -O -L https://github.com/goreleaser/goreleaser/releases/download/v0.92.1/goreleaser_Linux_x86_64.tar.gz
   - tar xfvz goreleaser_Linux_x86_64.tar.gz
   - mv goreleaser_Linux_x86_64/goreleaser /bin
   - echo $CI_BUILD_TOKEN | docker login -u gitlab-ci-token --password-stdin gitlab.com
   - make snapshot
 
-release:
-  image: goreleaser/goreleaser:v0.92
-  only:
-  - tags
-  stage: release
-  script:
-  - make release
+# release:
+#   image: goreleaser/goreleaser:v0.92
+#   only:
+#   - tags
+#   stage: release
+#   script:
+#   - make release
