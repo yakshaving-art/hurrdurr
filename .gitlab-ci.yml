@@ -24,8 +24,8 @@ test:
 
 snapshot:
   image: docker:git
-    services:
-    - docker:dind
+  services:
+  - docker:dind
   except:
   - tags
   stage: snapshot
