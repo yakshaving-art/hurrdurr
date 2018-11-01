@@ -36,8 +36,7 @@ snapshot:
   - dep ensure
   - curl -O -L https://github.com/goreleaser/goreleaser/releases/download/v0.92.1/goreleaser_Linux_x86_64.tar.gz
   - tar xfvz goreleaser_Linux_x86_64.tar.gz
-  - mv goreleaser_Linux_x86_64/goreleaser /bin
-  - echo $CI_BUILD_TOKEN | docker login -u gitlab-ci-token --password-stdin gitlab.com
+  - mv goreleaser /bin
   - make snapshot
 
 # release:
@@ -46,4 +45,6 @@ snapshot:
 #   - tags
 #   stage: release
 #   script:
+#   - yadda yadda yadda
+#   - echo $CI_BUILD_TOKEN | docker login -u gitlab-ci-token --password-stdin gitlab.com
 #   - make release
