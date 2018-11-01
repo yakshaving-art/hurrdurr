@@ -11,7 +11,12 @@ build:
     paths:
     - hurrdurr
   script:
-  - make prepare test build
+  - mkdir -p /go/src/gitlab.com/${CI_PROJECT_NAMESPACE}
+  - cd /go/src/gitlab.com/${CI_PROJECT_NAMESPACE}
+  - ln -s ${CI_PROJECT_DIR}
+  - cd /go/src/gitlab.com/${CI_PROJECT_PATH}
+  - dep ensure
+  - make test build
 
 docker_image:
   stage: docker_image

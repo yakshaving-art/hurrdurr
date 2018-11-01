@@ -27,14 +27,6 @@ endif
 debug:	### Debug Makefile itself
 	@echo $(UNAME)
 
-.PHONY: prepare
-prepare:
-	mkdir -p /go/src/gitlab.com/$(CI_PROJECT_NAMESPACE) && \
-	cd /go/src/gitlab.com/$(CI_PROJECT_NAMESPACE) && \
-	ln -s $(CI_PROJECT_DIR) && \
-	cd /go/src/gitlab.com/$(CI_PROJECT_PATH) && \
-	dep ensure
-
 .PHONY: check
 check:	### Sanity checks
 	@find . -type f \( -name \*.yml -o -name \*yaml \) \! -path './vendor/*' | xargs -r yq '.' # >/dev/null
