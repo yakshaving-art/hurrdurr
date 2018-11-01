@@ -35,4 +35,12 @@ lint:	### run all the lints
 .PHONY: test
 test:	### run all the tests
 # test: lint
-	go test
+	go test -v -coverprofile=coverage.out $$(go list ./... | grep -v '/vendor/') && go tool cover -func=coverage.out
+
+.PHONY: snapshot
+snapshot:	### run all the tests
+	goreleaser --snapshot
+
+.PHONY: release
+release:	### run all the tests
+	goreleaser

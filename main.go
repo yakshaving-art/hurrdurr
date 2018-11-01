@@ -2,13 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"sort"
 
-	// yaml "github.com/ghodss/yaml"
+	"gitlab.com/yakshaving.art/hurrdurr/version"
 
 	yaml "github.com/ghodss/yaml"
 	gitlab "github.com/xanzy/go-gitlab"
@@ -383,6 +385,15 @@ func (mPtr *Membership) validate() {
 //}
 //
 func main() {
+	showVersion := flag.Bool("version", false, "show version and exit")
+
+	flag.Parse()
+
+	if *showVersion {
+		log.Printf("Version: %s Commit: %s Date: %s", version.Version, version.Commit, version.Date)
+		os.Exit(0)
+	}
+
 	// prefetch users and groups
 	allUsers = getAllUsers()
 	allGroups = getAllGroups()
