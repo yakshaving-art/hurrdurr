@@ -30,7 +30,7 @@ snapshot:
   - tags
   stage: snapshot
   script:
-  - apk --no-cache add go
+  - apk --no-cache add go cmake make gcc libtool musl-dev g++
   - go get -u github.com/golang/dep/cmd/dep
   - dep ensure
   - curl -O -L https://github.com/goreleaser/goreleaser/releases/download/v0.92.1/goreleaser_Linux_x86_64.tar.gz
