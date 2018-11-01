@@ -1,41 +1,31 @@
 image: registry.gitlab.com/yakshaving.art/go-builder:0.0.1
-stages:
-  - test
-  - snapshot
-#  - release
 
-variables:
-  DOCKER_HOST: tcp://docker:2375/
-  DOCKER_DRIVER: overlay2
-  GOPATH: /go
+stages:
+  - build
+  - image
 
 before_script:
   - mkdir -p /go/src/gitlab.com/$CI_PROJECT_NAMESPACE
-  - cp -r $CI_PROJECT_DIR /go/src/gitlab.com/$CI_PROJECT_NAMESPACE/
+  - cd /go/src/gitlab.com/$CI_PROJECT_NAMESPACE
+  - ln -s $CI_PROJECT_DIR 
   - cd /go/src/gitlab.com/$CI_PROJECT_PATH
   - dep ensure
 
-test:
-  stage: test
+build:
+  stage: build
   coverage: '/^total:\s+\(statements\)\s+(\d+.\d+)%$/'
+  artifacts:
+    paths:
+    - hurrdurr
   script:
   - make test
+  - make build
 
-snapshot:
-  services:
-  - docker:dind
-  except:
-  - tags
-  stage: snapshot
+image:
+  stage: image
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
   script:
-  - make snapshot
-
-# release:
-#   image: goreleaser/goreleaser:v0.92
-#   only:
-#   - tags
-#   stage: release
-#   script:
-#   - yadda yadda yadda
-#   - echo $CI_BUILD_TOKEN | docker login -u gitlab-ci-token --password-stdin gitlab.com
-#   - make release
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile.amd64 --destination $CI_REGISTRY_IMAGE:latest
