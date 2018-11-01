@@ -30,19 +30,33 @@ structure of groups, levels and members for hurrdurr to colapse reality into.
 Hurrdurr understands 4 basic elements that it uses to build ACLs and apply
 them to a gitlab instance.
 
-1. **Member:** is a user, it is defined by the username and must exist in the
-   instance. If the declared user does not exist, hurrdurr will fail the execution.
-1. **Group:** gitlab group whose members are managed by hurrdurr.
-   Hurrdurr will only manage the groups that are declared in the configuration,
-   other groups will be ignored.
-1. **Level:** A level setting in gitlab. The levels, sorted by decreasing access rights, are:
-   - Owner
-   - Maintainer
-   - Developer
-   - Reporter
-   - Guest
-1. **query:** a lazy definition of a group. It is expanded into members.
-   Read [below](#using-queries) for the details.
+#### Member
+
+A member is a user, it is defined by the username and must exist in the
+instance. If the declared user does not exist, hurrdurr will fail the
+execution.
+
+#### Group
+
+A gitlab group whose members are managed by hurrdurr. Hurrdurr will only
+manage the groups that are declared in the configuration, other groups will
+be ignored.
+
+#### Level
+
+A level setting in gitlab. The levels, sorted by decreasing access rights,
+are:
+
+- Owner
+- Maintainer
+- Developer
+- Reporter
+- Guest
+
+#### Query
+
+a lazy definition of a group. It is expanded into members. Read
+[below](#using-queries) for the details.
 
 ### Sample
 
