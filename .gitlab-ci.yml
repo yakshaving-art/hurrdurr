@@ -31,7 +31,7 @@ snapshot:
   stage: snapshot
   script:
   - export PATH="${PATH}:/go/bin"
-  - apk --no-cache add go cmake make gcc libtool musl-dev g++
+  - apk --no-cache add go cmake make gcc libtool musl-dev g++ curl ca-certificates
   - go get -u github.com/golang/dep/cmd/dep
   - dep ensure
   - curl -O -L https://github.com/goreleaser/goreleaser/releases/download/v0.92.1/goreleaser_Linux_x86_64.tar.gz
