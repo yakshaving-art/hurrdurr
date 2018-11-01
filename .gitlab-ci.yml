@@ -4,6 +4,15 @@ stages:
   - snapshot
   - release
 
+variables:
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_DRIVER: overlay2
+  GOPATH: /go
+
+image: docker:git
+  services:
+  - docker:dind
+
 before_script:
   - go get -u github.com/golang/dep/cmd/dep
   - mkdir -p /go/src/gitlab.com/yakshaving.art
@@ -18,11 +27,14 @@ test:
   - make test
 
 snapshot:
-  image: goreleaser/goreleaser:v0.92
   except:
   - tags
   stage: snapshot
   script:
+  - curl -L https://github.com/goreleaser/goreleaser/releases/download/v0.92.1/goreleaser_Linux_x86_64.tar.gz > goreleaser_Linux_x86_64.tar.gz
+  - tar xfvz goreleaser_Linux_x86_64.tar.gz
+  - mv goreleaser_Linux_x86_64/goreleaser /bin
+  - echo $CI_BUILD_TOKEN | docker login -u gitlab-ci-token --password-stdin gitlab.com
   - make snapshot
 
 release:
