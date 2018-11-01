@@ -10,9 +10,9 @@ variables:
   GOPATH: /go
 
 before_script:
-  - mkdir -p /go/src/gitlab.com/yakshaving.art
-  - cp -r /builds/yakshaving.art/hurrdurr /go/src/gitlab.com/yakshaving.art/
-  - cd /go/src/gitlab.com/yakshaving.art/hurrdurr
+  - mkdir -p /go/src/gitlab.com/$CI_PROJECT_NAMESPACE
+  - cp -r $CI_PROJECT_DIR /go/src/gitlab.com/$CI_PROJECT_NAMESPACE/
+  - cd /go/src/gitlab.com/$CI_PROJECT_PATH
   - dep ensure
 
 test:
