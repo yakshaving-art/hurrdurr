@@ -33,12 +33,6 @@ var validACL = map[string]int{
 	"owner":      50,
 }
 
-func init() {
-	gitlabToken = readFromEnv("GITLAB_TOKEN")
-	gitlabClient = gitlab.NewClient(nil, gitlabToken)
-	applyBaseURL(readFromEnv("GITLAB_BASEURL"))
-}
-
 type config struct {
 	Groups []Group `json:"groups"`
 }
@@ -393,6 +387,10 @@ func main() {
 		log.Printf("Version: %s Commit: %s Date: %s", version.Version, version.Commit, version.Date)
 		os.Exit(0)
 	}
+
+	gitlabToken = readFromEnv("GITLAB_TOKEN")
+	gitlabClient = gitlab.NewClient(nil, gitlabToken)
+	applyBaseURL(readFromEnv("GITLAB_BASEURL"))
 
 	// prefetch users and groups
 	allUsers = getAllUsers()
