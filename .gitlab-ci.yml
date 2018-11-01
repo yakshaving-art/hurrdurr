@@ -30,6 +30,7 @@ snapshot:
   - tags
   stage: snapshot
   script:
+  - export PATH="${PATH}:/go/bin"
   - apk --no-cache add go cmake make gcc libtool musl-dev g++
   - go get -u github.com/golang/dep/cmd/dep
   - dep ensure
