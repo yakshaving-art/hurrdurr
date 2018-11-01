@@ -27,22 +27,22 @@ structure of groups, levels and members for hurrdurr to colapse reality into.
 
 ### Concepts
 
-Hurrdurr understands N basic elements that it uses to build ACLs and apply
+Hurrdurr understands 4 basic elements that it uses to build ACLs and apply
 them to a gitlab instance.
 
 1. **Member:** is a user, it is defined by the username and must exist in the
-   instance of it to be able of handling it. If the declared user does not
-   exists, hurrdurr will fail execution.
+   instance. If the declared user does not exist, hurrdurr will fail the execution.
 1. **Group:** gitlab group whose members are managed by hurrdurr.
    Hurrdurr will only manage the groups that are declared in the configuration,
    other groups will be ignored.
-1. **Level:** a level setting in gitlab, known levels in increasing access
-   rights are guest, reporter, developer, maintainer, owner. A group can
-   declare none, or some of the levels, assigning members directly or through
-   queries.
-1. **query:** a lazy definition of a group which is expanded into members,
-   these are used to define which members should belong to a level in a given
-   group.
+1. **Level:** A level setting in gitlab. The levels, sorted by decreasing access rights, are:
+   - Owner
+   - Maintainer
+   - Developer
+   - Reporter
+   - Guest
+1. **query:** a lazy definition of a group. It is expanded into members.
+   Read [below](#using-queries) for the details.
 
 ### Sample
 
@@ -68,7 +68,7 @@ infrastructure:
   owners:
     members:
     - werewolve_1
-    - bohf_1
+    - bofh_1
 handbook:
   path: awesomeness/handbook
   reporters:
@@ -82,16 +82,16 @@ handbook:
 
 ### Using Queries
 
-Queries are simple on purporse and follow strict rules.
+Queries are simple on purporse, and follow strict rules.
 
 1. You can't query a group that contains a query. This will result in a runtime error.
-1. You can query for `all active regular users`, this will return the list of
+1. You can query for `all active regular users`. This will return the list of
    all the members that are not blocked or admins that exist in the remote
    instance.
-1. You can query for a level in a group, for example: `owners in
-   infrastructure` would return `werewolve_1, bohf_1`
-1. You can query for `everyone` in a group, for example: `everyone in
-   backend` would return `ninja_dev, samurai, ronin`
+1. You can query for a level in a group. For example: `owners in
+   infrastructure` would return `werewolve_1, bofh_1`.
+1. You can query for `everyone` in a group. For example: `everyone in
+   backend` would return `ninja_dev, samurai, ronin`.
 1. You can use more than one query to assign to a level.
 
 ### ACL Leveling on expansion
@@ -128,5 +128,5 @@ handbook:
 ```
 
 This will result in `pointy_haired_boss` being an owner of the handbook,
-`rrhh_demon` being a maintainer, and whomever else is registered as an active
+`rrhh_demon` being a maintainer, and whoever else is registered as an active
 regular user in the remote instance to be assigned as a developer.
