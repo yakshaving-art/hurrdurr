@@ -30,7 +30,8 @@ snapshot:
   - tags
   stage: snapshot
   script:
-  - curl -L https://github.com/goreleaser/goreleaser/releases/download/v0.92.1/goreleaser_Linux_x86_64.tar.gz > goreleaser_Linux_x86_64.tar.gz
+  - apk --no-cache add go
+  - curl -O -L https://github.com/goreleaser/goreleaser/releases/download/v0.92.1/goreleaser_Linux_x86_64.tar.gz
   - tar xfvz goreleaser_Linux_x86_64.tar.gz
   - mv goreleaser_Linux_x86_64/goreleaser /bin
   - echo $CI_BUILD_TOKEN | docker login -u gitlab-ci-token --password-stdin gitlab.com
