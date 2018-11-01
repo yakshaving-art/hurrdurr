@@ -1,4 +1,4 @@
-image: golang:1.10
+image: registry.gitlab.com/yakshaving.art/go-builder
 stages:
   - test
   - snapshot
@@ -13,30 +13,21 @@ before_script:
   - mkdir -p /go/src/gitlab.com/yakshaving.art
   - cp -r /builds/yakshaving.art/hurrdurr /go/src/gitlab.com/yakshaving.art/
   - cd /go/src/gitlab.com/yakshaving.art/hurrdurr
+  - dep ensure
 
 test:
   stage: test
   coverage: '/^total:\s+\(statements\)\s+(\d+.\d+)%$/'
   script:
-  - go get -u github.com/golang/dep/cmd/dep
-  - dep ensure
   - make test
 
 snapshot:
-  image: docker:git
   services:
   - docker:dind
   except:
   - tags
   stage: snapshot
   script:
-  - export PATH="${PATH}:/go/bin"
-  - apk --no-cache add go cmake make gcc libtool musl-dev g++ curl ca-certificates build-base
-  - go get -u github.com/golang/dep/cmd/dep
-  - dep ensure
-  - curl -O -L https://github.com/goreleaser/goreleaser/releases/download/v0.92.1/goreleaser_Linux_x86_64.tar.gz
-  - tar xfvz goreleaser_Linux_x86_64.tar.gz
-  - mv goreleaser /bin
   - make snapshot
 
 # release:
