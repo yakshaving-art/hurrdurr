@@ -2,13 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"sort"
 
-	// yaml "github.com/ghodss/yaml"
+	"gitlab.com/yakshaving.art/hurrdurr/version"
 
 	yaml "github.com/ghodss/yaml"
 	gitlab "github.com/xanzy/go-gitlab"
@@ -29,12 +31,6 @@ var validACL = map[string]int{
 	"developer":  30,
 	"maintainer": 40,
 	"owner":      50,
-}
-
-func init() {
-	gitlabToken = readFromEnv("GITLAB_TOKEN")
-	gitlabClient = gitlab.NewClient(nil, gitlabToken)
-	applyBaseURL(readFromEnv("GITLAB_BASEURL"))
 }
 
 type config struct {
@@ -383,6 +379,19 @@ func (mPtr *Membership) validate() {
 //}
 //
 func main() {
+	showVersion := flag.Bool("version", false, "show version and exit")
+
+	flag.Parse()
+
+	if *showVersion {
+		log.Printf("Version: %s Commit: %s Date: %s", version.Version, version.Commit, version.Date)
+		os.Exit(0)
+	}
+
+	gitlabToken = readFromEnv("GITLAB_TOKEN")
+	gitlabClient = gitlab.NewClient(nil, gitlabToken)
+	applyBaseURL(readFromEnv("GITLAB_BASEURL"))
+
 	// prefetch users and groups
 	allUsers = getAllUsers()
 	allGroups = getAllGroups()

@@ -6,6 +6,10 @@
 # Variables
 # UNAME		:= $(shell uname -s)
 
+COMMIT_ID := `git log -1 --format=%H`
+COMMIT_DATE := `git log -1 --format=%aI`
+VERSION := $${CI_COMMIT_TAG:-SNAPSHOT-$(COMMIT_ID)}
+
 # this is godly
 # https://news.ycombinator.com/item?id=11939200
 .PHONY: help
@@ -35,4 +39,11 @@ lint:	### run all the lints
 .PHONY: test
 test:	### run all the tests
 # test: lint
-	go test
+	go test -v -coverprofile=coverage.out $$(go list ./... | grep -v '/vendor/') && go tool cover -func=coverage.out
+
+
+.PHONY: build
+build:
+	@go build -ldflags "-X gitlab.com/yakshaving.art/hurrdurr/version.Version=$(VERSION) -X gitlab.com/yakshaving.art/hurrdurr/version.Commit=$(COMMIT_ID) -X gitlab.com/yakshaving.art/hurrdurr/version.Date=$(COMMIT_DATE)"
+
+
