@@ -223,9 +223,21 @@ func (gPtr *Group) apply() {
 	//fmt.Printf("current: %s\n", currentUL)
 	//fmt.Printf("desired: %s\n", desiredUL)
 
+	// hack: add root user explicitly if not exist
+	addRoot := true
+	for _, m := range currentMembers {
+		if "root" == m.Username {
+			addRoot = false
+			break
+		}
+	}
+	if addRoot {
+		addMemberToGroup("root", fullPath, 50)
+	}
+
 	// cleanup/update first
 	for _, m := range currentMembers {
-		// skip admins by default
+		// hack: skip admins by default
 		if !isRegularUserByName(m.Username) {
 			continue
 		}
@@ -237,7 +249,6 @@ func (gPtr *Group) apply() {
 		} else {
 			removeMemberFromGroup(m.Username, fullPath)
 		}
-
 	}
 
 	// next, add users which are in config but not in current members
