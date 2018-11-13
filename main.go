@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+
 	"path/filepath"
 	"sort"
 
@@ -251,7 +252,7 @@ func (gPtr *Group) apply() {
 type Membership struct {
 	Username    string `json:"username"`
 	AccessLevel string `json:"access_level"`
-	Query       string `json:"query", omitempty` // to allow unmarshalling as different type
+	Query       string `json:"query,omitempty"` // to allow unmarshalling as different type
 	//Expiration  *gitlab.ISOTime `json:"expiration",omitempty`
 }
 
