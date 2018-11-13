@@ -219,3 +219,13 @@ func isRegularUser(uPtr *gitlab.User) bool {
 	}
 	return true
 }
+
+func isRegularUserByName(user string) bool {
+	for _, u := range allUsers {
+		if u.Username == user {
+			return isRegularUser(&u)
+		}
+	}
+	log.Fatalf("User '%s' is not found among all users!")
+	return false
+}

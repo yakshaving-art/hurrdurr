@@ -225,13 +225,16 @@ func (gPtr *Group) apply() {
 
 	// cleanup/update first
 	for _, m := range currentMembers {
+		// skip admins by default
+		if !isRegularUserByName(m.Username) {
+			continue
+		}
 		if i := sort.SearchStrings(desiredUL, m.Username); i < len(desiredUL) && desiredUL[i] == m.Username {
 			//already member, check if access level update needed
 			if int(m.AccessLevel) != desiredACL[m.Username] {
 				updateMembersACL(m.Username, fullPath, desiredACL[m.Username])
 			}
 		} else {
-			// needs to be removed
 			removeMemberFromGroup(m.Username, fullPath)
 		}
 
