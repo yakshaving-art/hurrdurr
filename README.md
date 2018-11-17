@@ -99,12 +99,13 @@ handbook:
 Queries are simple on purporse, and follow strict rules.
 
 1. You can't query a group that contains a query. This will result in a runtime error.
-1. You can query for `all active regular users`. This will return the list of
-   all the members that are not blocked or admins that exist in the remote
-   instance.
+1. You can query for `remote users`. This will return the list of all the
+   members that are not blocked or admins that exist in the remote instance.
+1. You can query for `remote admins`. This will return the list of all the
+   members that are not blocked admins that exist in the remote instance.
 1. You can query for a level in a group. For example: `owners in
    infrastructure` would return `werewolve_1, bofh_1`.
-1. You can query for `everyone` in a group. For example: `everyone in
+1. You can query for `users` in a group. For example: `users in
    backend` would return `ninja_dev, samurai, ronin`.
 1. You can use more than one query to assign to a level.
 
@@ -132,10 +133,10 @@ handbook:
   path: awesomeness/handbook
   developers:
     queries:
-    - all active regular users
+    - query: remote users
   maintainers:
     queries:
-    - everyone in managers
+    - query: users in managers
   owners:
     members:
     - pointy_haired_boss
