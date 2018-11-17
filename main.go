@@ -218,18 +218,32 @@ func (gPtr *Group) apply() {
 	//fmt.Printf("current: %s\n", currentUL)
 	//fmt.Printf("desired: %s\n", desiredUL)
 
+	// hack: add root user explicitly if not exist
+	addRoot := true
+	for _, m := range currentMembers {
+		if "root" == m.Username {
+			addRoot = false
+			break
+		}
+	}
+	if addRoot {
+		addMemberToGroup("root", fullPath, 50)
+	}
+
 	// cleanup/update first
 	for _, m := range currentMembers {
+		// hack: skip admins by default
+		if !isRegularUserByName(m.Username) {
+			continue
+		}
 		if i := sort.SearchStrings(desiredUL, m.Username); i < len(desiredUL) && desiredUL[i] == m.Username {
 			//already member, check if access level update needed
 			if int(m.AccessLevel) != desiredACL[m.Username] {
 				updateMembersACL(m.Username, fullPath, desiredACL[m.Username])
 			}
 		} else {
-			// needs to be removed
 			removeMemberFromGroup(m.Username, fullPath)
 		}
-
 	}
 
 	// next, add users which are in config but not in current members
@@ -247,7 +261,7 @@ func (gPtr *Group) apply() {
 type Membership struct {
 	Username    string `json:"username"`
 	AccessLevel string `json:"access_level"`
-	Query       string `json:"query", omitempty` // to allow unmarshalling as different type
+	Query       string `json:"query,omitempty"` // to allow unmarshalling as different type
 	//Expiration  *gitlab.ISOTime `json:"expiration",omitempty`
 }
 

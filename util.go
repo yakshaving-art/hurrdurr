@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+
 	"os"
 	"strings"
 
@@ -156,7 +157,29 @@ func removeMemberFromGroup(username string, groupPath string) {
 }
 
 func updateMembersACL(username string, groupPath string, acl int) {
-	fmt.Printf("\tWill update user '%s' from group '%s' with acl '%d', but not now!\n", username, groupPath, acl)
+	// TODO: pass this from caller instead
+	var userid int
+	for _, u := range allUsers {
+		if u.Username == username {
+			userid = u.ID
+			break
+		}
+	}
+	if userid == 0 {
+		log.Fatalf("Something very wrong! got ID zero for user '%s'!", username)
+	}
+
+	aclv := gitlab.AccessLevelValue(acl)
+
+	opt := &gitlab.EditGroupMemberOptions{
+		AccessLevel: &aclv,
+	}
+
+	_, _, err := gitlabClient.GroupMembers.EditGroupMember(groupPath, userid, opt)
+	if err != nil {
+		log.Fatalf("Error updating member '%s' in group '%s' with acl '%d': %+v\n", username, groupPath, acl, err)
+	}
+	fmt.Printf("\tUpdated user '%s' from group '%s' with acl '%d'\n", username, groupPath, acl)
 }
 
 func addMemberToGroup(username string, groupPath string, acl int) {
@@ -195,4 +218,14 @@ func isRegularUser(uPtr *gitlab.User) bool {
 		return false
 	}
 	return true
+}
+
+func isRegularUserByName(user string) bool {
+	for _, u := range allUsers {
+		if u.Username == user {
+			return isRegularUser(&u)
+		}
+	}
+	log.Fatalf("User '%s' is not found among all users!")
+	return false
 }
