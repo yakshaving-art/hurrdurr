@@ -129,5 +129,5 @@ func (s state) toLocalState() (localState, error) {
 		l.groups[n] = group
 	}
 
-	return l, nil // fmt.Errorf("acls: %#v see: %#v", s, l)
+	return l, nil
 }
