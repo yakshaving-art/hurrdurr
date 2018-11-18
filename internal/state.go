@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
+
 	yaml "github.com/ghodss/yaml"
 )
 
@@ -105,6 +107,8 @@ func (s state) toLocalState() (localState, error) {
 		groups: make(map[string]Group, 0),
 	}
 
+	errs := errors.New() // This object aggregates all the errors to dump them all at the end
+
 	for n, g := range s.Groups {
 		group := Group{
 			Fullpath: n,
@@ -129,5 +133,5 @@ func (s state) toLocalState() (localState, error) {
 		l.groups[n] = group
 	}
 
-	return l, nil
+	return l, errs.ErrorOrNil()
 }
