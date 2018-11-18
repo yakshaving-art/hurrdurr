@@ -99,10 +99,10 @@ handbook:
 Queries are simple on purporse, and follow strict rules.
 
 1. You can't query a group that contains a query. This will result in a runtime error.
-1. You can query for `remote users`. This will return the list of all the
-   members that are not blocked or admins that exist in the remote instance.
-1. You can query for `remote admins`. This will return the list of all the
-   members that are not blocked admins that exist in the remote instance.
+1. You can query for `live users`. This will return the list of all the
+   members that are not blocked or admins that exist in the gitlab instance.
+1. You can query for `live admins`. This will return the list of all the
+   members that are not blocked admins that exist in the gitlab instance.
 1. You can query for a level in a group. For example: `owners in
    infrastructure` would return `werewolve_1, bofh_1`.
 1. You can query for `users` in a group. For example: `users in
@@ -133,7 +133,7 @@ handbook:
   path: awesomeness/handbook
   developers:
     queries:
-    - query: remote users
+    - query: live users
   maintainers:
     queries:
     - query: users in managers
@@ -144,4 +144,4 @@ handbook:
 
 This will result in `pointy_haired_boss` being an owner of the handbook,
 `rrhh_demon` being a maintainer, and whoever else is registered as an active
-regular user in the remote instance to be assigned as a developer.
+regular user in the gitlab instance to be assigned as a developer.
