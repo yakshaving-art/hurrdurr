@@ -9,6 +9,15 @@ import (
 )
 
 func TestLoadingState(t *testing.T) {
+	querier := querierMock{
+		users: map[string]bool{
+			"admin": true,
+			"user1": true,
+		},
+		groups: map[string]bool{
+			"root_group": true,
+		},
+	}
 	tt := []struct {
 		name          string
 		stateFile     string
@@ -19,6 +28,12 @@ func TestLoadingState(t *testing.T) {
 			"non existing file",
 			"",
 			"failed to load state file : open : no such file or directory",
+			nil,
+		},
+		{
+			"non existing user and group",
+			"fixtures/non_existing.yaml",
+			"failed to build local state from file fixtures/non_existing.yaml: 2 errors: Group non_existing_group does not exist; User non_exiting does not exists for group root_group",
 			nil,
 		},
 		{
@@ -47,7 +62,7 @@ func TestLoadingState(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			s, err := hurrdurr.LoadStateFromFile(tc.stateFile)
+			s, err := hurrdurr.LoadStateFromFile(tc.stateFile, querier)
 			if tc.expectedError != "" {
 				a.EqualErrorf(err, tc.expectedError, "Wrong error, expected %s, got %s", tc.expectedError, err)
 				return
@@ -59,4 +74,19 @@ func TestLoadingState(t *testing.T) {
 			a.Equalf(tc.expected, s.Groups(), "Wrong state, groups are not as expected")
 		})
 	}
+}
+
+type querierMock struct {
+	users  map[string]bool
+	groups map[string]bool
+}
+
+func (q querierMock) UserExists(u string) bool {
+	_, ok := q.users[u]
+	return ok
+}
+
+func (q querierMock) GroupExists(g string) bool {
+	_, ok := q.groups[g]
+	return ok
 }

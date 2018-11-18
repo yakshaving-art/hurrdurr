@@ -53,8 +53,14 @@ type State interface {
 	Group(name string) (Group, bool)
 }
 
+// Querier represents an object which can be used to query a live instance to validate data
+type Querier interface {
+	UserExists(string) bool
+	GroupExists(string) bool
+}
+
 // LoadStateFromFile loads the desired state from a file
-func LoadStateFromFile(filename string) (State, error) {
+func LoadStateFromFile(filename string, q Querier) (State, error) {
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load state file %s: %s", filename, err)
@@ -65,7 +71,7 @@ func LoadStateFromFile(filename string) (State, error) {
 		return nil, fmt.Errorf("failed to unmarshal state file %s: %s", filename, err)
 	}
 
-	l, err := s.toLocalState()
+	l, err := s.toLocalState(q)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build local state from file %s: %s", filename, err)
 	}
@@ -102,7 +108,7 @@ type state struct {
 	Groups map[string]acls `yaml:"groups"`
 }
 
-func (s state) toLocalState() (localState, error) {
+func (s state) toLocalState(q Querier) (localState, error) {
 	l := localState{
 		groups: make(map[string]Group, 0),
 	}
@@ -110,6 +116,11 @@ func (s state) toLocalState() (localState, error) {
 	errs := errors.New() // This object aggregates all the errors to dump them all at the end
 
 	for n, g := range s.Groups {
+		if !q.GroupExists(n) {
+			errs.Append(fmt.Errorf("Group %s does not exist", n))
+			continue
+		}
+
 		group := Group{
 			Fullpath: n,
 			Members:  make([]Membership, 0),
@@ -117,6 +128,11 @@ func (s state) toLocalState() (localState, error) {
 
 		addMembers := func(members []string, level Level) {
 			for _, username := range members {
+				if !q.UserExists(username) {
+					errs.Append(fmt.Errorf("User %s does not exists for group %s", username, n))
+					continue
+				}
+
 				group.Members = append(group.Members, Membership{
 					Username: username,
 					Level:    level,
