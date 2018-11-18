@@ -10,17 +10,18 @@ import (
 
 func main() {
 	showVersion := flag.Bool("version", false, "show version and exit")
+	configFile := flag.String("config", "config.yaml", "configuration file to load")
 
 	flag.Parse()
 
 	if *showVersion {
-		log.Printf("Version: %s Commit: %s Date: %s", version.Version, version.Commit, version.Date)
+		log.Printf(version.GetVersion())
 		os.Exit(0)
 	}
 
 	load()
 
-	cfg.read("config.yaml")
+	cfg.read(*configFile)
 	cfg.validate()
 	cfg.apply()
 	cfg.report()
