@@ -36,7 +36,6 @@ func (l Level) String() string {
 // Group represents a group with a name, namespace and it's members
 type Group struct {
 	Namespace string
-	Name      string
 	Members   []Membership
 }
 
@@ -64,7 +63,7 @@ func LoadStateFromFile(filename string) (State, error) {
 		return nil, fmt.Errorf("failed to unmarshal state file %s: %s", filename, err)
 	}
 
-	l, err := s.ToLocalState()
+	l, err := s.toLocalState()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build local state from file %s: %s", filename, err)
 	}
@@ -98,13 +97,37 @@ type acls struct {
 }
 
 type state struct {
-	Groups map[string]acls
+	Groups map[string]acls `yaml:"groups"`
 }
 
-func (s state) ToLocalState() (localState, error) {
+func (s state) toLocalState() (localState, error) {
 	l := localState{
 		groups: make(map[string]Group, 0),
 	}
 
-	return l, nil
+	for n, g := range s.Groups {
+		group := Group{
+			Namespace: n,
+			Members:   make([]Membership, 0),
+		}
+
+		addMembers := func(members []string, level Level) {
+			for _, username := range members {
+				group.Members = append(group.Members, Membership{
+					Username: username,
+					Level:    level,
+				})
+			}
+		}
+
+		addMembers(g.Guests, Guest)
+		addMembers(g.Reporters, Reporter)
+		addMembers(g.Developers, Developer)
+		addMembers(g.Maintainers, Maintainer)
+		addMembers(g.Owners, Owner)
+
+		l.groups[n] = group
+	}
+
+	return l, nil // fmt.Errorf("acls: %#v see: %#v", s, l)
 }

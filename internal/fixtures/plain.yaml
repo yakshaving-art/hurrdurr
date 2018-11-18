@@ -1,6 +1,7 @@
 ---
-root_group:
-  owners:
-  - admin
-  developers:
-  - user1
+groups:
+  root_group:
+    owners:
+    - admin
+    developers:
+    - user1

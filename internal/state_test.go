@@ -25,7 +25,21 @@ func TestLoadingState(t *testing.T) {
 			"plain state",
 			"fixtures/plain.yaml",
 			"",
-			[]hurrdurr.Group{},
+			[]hurrdurr.Group{
+				{
+					Namespace: "root_group",
+					Members: []hurrdurr.Membership{
+						{
+							Username: "user1",
+							Level:    hurrdurr.Developer,
+						},
+						{
+							Username: "admin",
+							Level:    hurrdurr.Owner,
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -42,7 +56,7 @@ func TestLoadingState(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to read fixture file %s: %s", tc.stateFile, err)
 			}
-			a.Equalf(tc.expected, s.Groups(), "Wrong state, expected %#v, got %#v", tc.expected, s)
+			a.Equalf(tc.expected, s.Groups(), "Wrong state, groups are not as expected")
 		})
 	}
 }
