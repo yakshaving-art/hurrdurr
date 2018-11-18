@@ -30,7 +30,7 @@ func (l Level) String() string {
 	if l < Guest || l > Owner {
 		return "Unknown"
 	}
-	return levels[l/10]
+	return levels[(l-Guest)/10]
 }
 
 // Group represents a group with a fullpath and it's members
