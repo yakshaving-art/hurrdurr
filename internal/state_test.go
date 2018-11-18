@@ -27,7 +27,7 @@ func TestLoadingState(t *testing.T) {
 			"",
 			[]hurrdurr.Group{
 				{
-					Namespace: "root_group",
+					Fullpath: "root_group",
 					Members: []hurrdurr.Membership{
 						{
 							Username: "user1",

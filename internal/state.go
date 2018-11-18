@@ -33,10 +33,10 @@ func (l Level) String() string {
 	return levels[l/10]
 }
 
-// Group represents a group with a name, namespace and it's members
+// Group represents a group with a fullpath and it's members
 type Group struct {
-	Namespace string
-	Members   []Membership
+	Fullpath string
+	Members  []Membership
 }
 
 // Membership represents the membership of a single user to a given group
@@ -107,8 +107,8 @@ func (s state) toLocalState() (localState, error) {
 
 	for n, g := range s.Groups {
 		group := Group{
-			Namespace: n,
-			Members:   make([]Membership, 0),
+			Fullpath: n,
+			Members:  make([]Membership, 0),
 		}
 
 		addMembers := func(members []string, level Level) {
