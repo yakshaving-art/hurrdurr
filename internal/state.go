@@ -27,7 +27,7 @@ func (l Level) String() string {
 		"Maintainer",
 		"Owner",
 	}
-	if l < Guest || l > Reporter {
+	if l < Guest || l > Owner {
 		return "Unknown"
 	}
 	return levels[l/10]
