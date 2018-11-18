@@ -18,15 +18,15 @@ func TestLoadingState(t *testing.T) {
 		{
 			"non existing file",
 			"",
-			"Failed to load state file : open : no such file or directory",
+			"failed to load state file : open : no such file or directory",
 			nil,
 		},
-		// { Next test
-		// 	"plain state",
-		// 	"plain.yaml",
-		// 	"",
-		// 	[]hurrdurr.Group{},
-		// },
+		{
+			"plain state",
+			"fixtures/plain.yaml",
+			"",
+			[]hurrdurr.Group{},
+		},
 	}
 
 	for _, tc := range tt {
@@ -39,8 +39,9 @@ func TestLoadingState(t *testing.T) {
 				return
 			}
 
-			a.Nilf(err, "failed to read fixture file %s", tc.stateFile)
-			a.NotNilf(s, "file %s returned a nil state", tc.stateFile)
+			if err != nil {
+				t.Fatalf("failed to read fixture file %s: %s", tc.stateFile, err)
+			}
 			a.Equalf(tc.expected, s.Groups(), "Wrong state, expected %#v, got %#v", tc.expected, s)
 		})
 	}
