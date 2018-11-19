@@ -1,0 +1,9 @@
+---
+groups:
+  root_group:
+    owners:
+    - non_exiting
+  non_existing_group:
+    owners:
+    - admin
+
