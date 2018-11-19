@@ -74,7 +74,8 @@ func TestLoadingState(t *testing.T) {
 					},
 				},
 				{
-					Fullpath: "skrrty",
+					Fullpath:    "skrrty",
+					HasSubquery: true,
 					Members: []hurrdurr.Membership{
 						{
 							Username: "user1",

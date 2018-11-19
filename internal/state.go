@@ -39,8 +39,9 @@ func (l Level) String() string {
 
 // Group represents a group with a fullpath and it's members
 type Group struct {
-	Fullpath string
-	Members  []Membership
+	Fullpath    string
+	Members     []Membership
+	HasSubquery bool
 }
 
 // Membership represents the membership of a single user to a given group
@@ -141,6 +142,7 @@ func (s state) toLocalState(q Querier) (localState, error) {
 						level:    level,
 						fullpath: fullpath,
 					})
+					group.HasSubquery = true
 					continue
 				}
 				if !q.IsUser(member) && !q.IsAdmin(member) {
@@ -193,10 +195,6 @@ func (q query) Execute(state localState, querier Querier) error {
 
 	addMembers := func(members []string) error {
 		for _, member := range members {
-			if strings.HasPrefix(member, "query:") { // Explicitly forbid subquerying
-				return fmt.Errorf("subquery '%s' found in the context of %s/%s", member, q.fullpath, q.level)
-			}
-
 			group.Members = append(group.Members, Membership{
 				Username: member,
 				Level:    q.level,
@@ -225,6 +223,10 @@ func (q query) Execute(state localState, querier Querier) error {
 		if !ok {
 			return fmt.Errorf("could not find group %s to resolve query '%s' from %s/%s",
 				queriedGroupName, q.query, q.fullpath, q.level)
+		}
+		if queriedGroup.HasSubquery {
+			return fmt.Errorf("group %s pointed at from %s/%s contains a query '%s'. This is not allowed",
+				queriedGroupName, q.fullpath, q.level, q.query)
 		}
 
 		filterByLevel := func(members []Membership, level Level) []string {
