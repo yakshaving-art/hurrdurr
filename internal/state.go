@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 
@@ -57,6 +58,9 @@ type State interface {
 type Querier interface {
 	UserExists(string) bool
 	GroupExists(string) bool
+
+	Users() []string
+	Admins() []string
 }
 
 // LoadStateFromFile loads the desired state from a file
@@ -80,20 +84,20 @@ func LoadStateFromFile(filename string, q Querier) (State, error) {
 }
 
 type localState struct {
-	groups map[string]Group
+	groups map[string]*Group
 }
 
 func (s localState) Groups() []Group {
 	groups := make([]Group, 0)
 	for _, g := range s.groups {
-		groups = append(groups, g)
+		groups = append(groups, *g)
 	}
 	return groups
 }
 
 func (s localState) Group(name string) (Group, bool) {
 	g, ok := s.groups[name]
-	return g, ok
+	return *g, ok
 }
 
 type acls struct {
@@ -110,31 +114,40 @@ type state struct {
 
 func (s state) toLocalState(q Querier) (localState, error) {
 	l := localState{
-		groups: make(map[string]Group, 0),
+		groups: make(map[string]*Group, 0),
 	}
 
 	errs := errors.New() // This object aggregates all the errors to dump them all at the end
+	queries := make([]query, 0)
 
-	for n, g := range s.Groups {
-		if !q.GroupExists(n) {
-			errs.Append(fmt.Errorf("Group %s does not exist", n))
+	for fullpath, g := range s.Groups {
+		if !q.GroupExists(fullpath) {
+			errs.Append(fmt.Errorf("Group %s does not exist", fullpath))
 			continue
 		}
 
 		group := Group{
-			Fullpath: n,
+			Fullpath: fullpath,
 			Members:  make([]Membership, 0),
 		}
 
 		addMembers := func(members []string, level Level) {
-			for _, username := range members {
-				if !q.UserExists(username) {
-					errs.Append(fmt.Errorf("User %s does not exists for group %s", username, n))
+			for _, member := range members {
+				if strings.HasPrefix(member, "query:") {
+					queries = append(queries, query{
+						query:    strings.TrimSpace(member[6:]),
+						level:    level,
+						fullpath: fullpath,
+					})
+					continue
+				}
+				if !q.UserExists(member) {
+					errs.Append(fmt.Errorf("User %s does not exists for group %s", member, fullpath))
 					continue
 				}
 
 				group.Members = append(group.Members, Membership{
-					Username: username,
+					Username: member,
 					Level:    level,
 				})
 			}
@@ -146,8 +159,53 @@ func (s state) toLocalState(q Querier) (localState, error) {
 		addMembers(g.Maintainers, Maintainer)
 		addMembers(g.Owners, Owner)
 
-		l.groups[n] = group
+		l.groups[fullpath] = &group
+	}
+
+	for _, query := range queries {
+		if err := query.Execute(l, q); err != nil {
+			errs.Append(fmt.Errorf("failed to execute query %s: %s", query, err))
+		}
 	}
 
 	return l, errs.ErrorOrNil()
+}
+
+type query struct {
+	query    string
+	level    Level
+	fullpath string
+}
+
+func (q query) String() string {
+	return fmt.Sprintf("'%s' for %s/%s", q.query, q.fullpath, q.level)
+}
+
+func (q query) Execute(state localState, querier Querier) error {
+	group, ok := state.groups[q.fullpath]
+	if !ok {
+		return fmt.Errorf("could not find group in list %s", q.fullpath)
+	}
+
+	addMembers := func(members []string) {
+		for _, member := range members {
+			group.Members = append(group.Members, Membership{
+				Username: member,
+				Level:    q.level,
+			})
+		}
+	}
+
+	switch q.query {
+	case "users":
+		addMembers(querier.Users())
+		break
+
+	case "admins":
+		addMembers(querier.Admins())
+		break
+
+	default:
+	}
+	return nil
 }

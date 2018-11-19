@@ -10,12 +10,15 @@ import (
 
 func TestLoadingState(t *testing.T) {
 	querier := querierMock{
-		users: map[string]bool{
+		admins: map[string]bool{
 			"admin": true,
+		},
+		users: map[string]bool{
 			"user1": true,
 		},
 		groups: map[string]bool{
 			"root_group": true,
+			"skrrty":     true,
 		},
 	}
 	tt := []struct {
@@ -56,6 +59,35 @@ func TestLoadingState(t *testing.T) {
 				},
 			},
 		},
+		{
+			"valid queries",
+			"fixtures/valid-queries.yaml",
+			"",
+			[]hurrdurr.Group{
+				{
+					Fullpath: "root_group",
+					Members: []hurrdurr.Membership{
+						{
+							Username: "admin",
+							Level:    hurrdurr.Owner,
+						},
+					},
+				},
+				{
+					Fullpath: "skrrty",
+					Members: []hurrdurr.Membership{
+						{
+							Username: "user1",
+							Level:    hurrdurr.Developer,
+						},
+						{
+							Username: "admin",
+							Level:    hurrdurr.Owner,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range tt {
@@ -77,16 +109,37 @@ func TestLoadingState(t *testing.T) {
 }
 
 type querierMock struct {
+	admins map[string]bool
 	users  map[string]bool
 	groups map[string]bool
 }
 
 func (q querierMock) UserExists(u string) bool {
 	_, ok := q.users[u]
+	if !ok {
+		_, ok = q.admins[u]
+	}
+
 	return ok
 }
 
 func (q querierMock) GroupExists(g string) bool {
 	_, ok := q.groups[g]
 	return ok
+}
+
+func (q querierMock) Users() []string {
+	users := make([]string, 0)
+	for u := range q.users {
+		users = append(users, u)
+	}
+	return users
+}
+
+func (q querierMock) Admins() []string {
+	admins := make([]string, 0)
+	for a := range q.admins {
+		admins = append(admins, a)
+	}
+	return admins
 }
