@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"strings"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
@@ -56,7 +57,8 @@ type State interface {
 
 // Querier represents an object which can be used to query a live instance to validate data
 type Querier interface {
-	UserExists(string) bool
+	IsUser(string) bool
+	IsAdmin(string) bool
 	GroupExists(string) bool
 
 	Users() []string
@@ -141,7 +143,7 @@ func (s state) toLocalState(q Querier) (localState, error) {
 					})
 					continue
 				}
-				if !q.UserExists(member) {
+				if !q.IsUser(member) && !q.IsAdmin(member) {
 					errs.Append(fmt.Errorf("User %s does not exists for group %s", member, fullpath))
 					continue
 				}
@@ -171,6 +173,8 @@ func (s state) toLocalState(q Querier) (localState, error) {
 	return l, errs.ErrorOrNil()
 }
 
+var queryMatch = regexp.MustCompile("^(.*?) (?:from|in) (.*?)$")
+
 type query struct {
 	query    string
 	level    Level
@@ -187,13 +191,18 @@ func (q query) Execute(state localState, querier Querier) error {
 		return fmt.Errorf("could not find group in list %s", q.fullpath)
 	}
 
-	addMembers := func(members []string) {
+	addMembers := func(members []string) error {
 		for _, member := range members {
+			if strings.HasPrefix(member, "query:") { // Explicitly forbid subquerying
+				return fmt.Errorf("subquery '%s' found in the context of %s/%s", member, q.fullpath, q.level)
+			}
+
 			group.Members = append(group.Members, Membership{
 				Username: member,
 				Level:    q.level,
 			})
 		}
+		return nil
 	}
 
 	switch q.query {
@@ -206,6 +215,67 @@ func (q query) Execute(state localState, querier Querier) error {
 		break
 
 	default:
+		matching := queryMatch.FindAllStringSubmatch(q.query, -1)
+		if len(matching) == 0 {
+			return fmt.Errorf("Invalid query '%s'", q.query)
+		}
+
+		queriedACL, queriedGroupName := matching[0][1], matching[0][2]
+		queriedGroup, ok := state.Group(queriedGroupName)
+		if !ok {
+			return fmt.Errorf("could not find group %s to resolve query '%s' from %s/%s",
+				queriedGroupName, q.query, q.fullpath, q.level)
+		}
+
+		filterByLevel := func(members []Membership, level Level) []string {
+			matched := make([]string, 0)
+			for _, m := range members {
+				if m.Level == level {
+					matched = append(matched, m.Username)
+				}
+			}
+			return matched
+		}
+		filterByAdminness := func(members []Membership, shouldBeAdmin bool) []string {
+			matched := make([]string, 0)
+			for _, m := range members {
+				switch shouldBeAdmin {
+				case true:
+					if querier.IsAdmin(m.Username) {
+						matched = append(matched, m.Username)
+					}
+				default:
+					if querier.IsUser(m.Username) {
+						matched = append(matched, m.Username)
+					}
+				}
+			}
+			return matched
+		}
+
+		switch strings.Title(queriedACL) {
+		case "Guests":
+			return addMembers(filterByLevel(queriedGroup.Members, Guest))
+
+		case "Reporters":
+			return addMembers(filterByLevel(queriedGroup.Members, Reporter))
+
+		case "Developers":
+			return addMembers(filterByLevel(queriedGroup.Members, Developer))
+
+		case "Maintainers":
+			return addMembers(filterByLevel(queriedGroup.Members, Maintainer))
+
+		case "Owners":
+			return addMembers(filterByLevel(queriedGroup.Members, Owner))
+
+		case "Admins":
+			return addMembers(filterByAdminness(queriedGroup.Members, true))
+
+		case "Users":
+			return addMembers(filterByAdminness(queriedGroup.Members, false))
+
+		}
 	}
 	return nil
 }

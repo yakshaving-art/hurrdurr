@@ -103,7 +103,7 @@ func TestLoadingState(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to read fixture file %s: %s", tc.stateFile, err)
 			}
-			a.Equalf(tc.expected, s.Groups(), "Wrong state, groups are not as expected")
+			a.EqualValuesf(tc.expected, s.Groups(), "Wrong state, groups are not as expected")
 		})
 	}
 }
@@ -114,15 +114,15 @@ type querierMock struct {
 	groups map[string]bool
 }
 
-func (q querierMock) UserExists(u string) bool {
+func (q querierMock) IsUser(u string) bool {
 	_, ok := q.users[u]
-	if !ok {
-		_, ok = q.admins[u]
-	}
-
 	return ok
 }
 
+func (q querierMock) IsAdmin(u string) bool {
+	_, ok := q.admins[u]
+	return ok
+}
 func (q querierMock) GroupExists(g string) bool {
 	_, ok := q.groups[g]
 	return ok
