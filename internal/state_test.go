@@ -43,7 +43,9 @@ func TestLoadingState(t *testing.T) {
 		{
 			"non existing user and group",
 			"fixtures/non_existing.yaml",
-			"failed to build local state from file fixtures/non_existing.yaml: 2 errors: Group non_existing_group does not exist; User non_exiting does not exists for group root_group",
+			"failed to build local state from file fixtures/non_existing.yaml: " +
+				"2 errors: Group non_existing_group does not exist; " +
+				"User non_exiting does not exists for group root_group",
 			nil,
 		},
 		{
@@ -53,6 +55,18 @@ func TestLoadingState(t *testing.T) {
 				"1 error: failed to execute query 'owners from root_group' for skrrty/Guest: " +
 				"group root_group pointed at from skrrty/Guest contains a query 'owners from root_group'. " +
 				"This is not allowed",
+			[]hurrdurr.Group{},
+		},
+		{
+			"invalid because of non existing group in query",
+			"fixtures/invalid-subquery.yaml",
+			"failed to build local state from file fixtures/invalid-subquery.yaml: " +
+				"2 errors: failed to execute query 'guests from non_existing_group' " +
+				"for root_group/Guest: could not find group non_existing_group to " +
+				"resolve query 'guests from non_existing_group' from root_group/Guest; " +
+				"failed to execute query 'whatever from root_group' for root_group/Reporter: " +
+				"group root_group pointed at from root_group/Reporter contains a query " +
+				"'whatever from root_group'. This is not allowed",
 			[]hurrdurr.Group{},
 		},
 		{

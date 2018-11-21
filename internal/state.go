@@ -2,13 +2,14 @@ package internal
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"regexp"
 	"strings"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 
-	yaml "github.com/ghodss/yaml"
+	"github.com/go-yaml/yaml"
 )
 
 // Level represents the access level granted to a user in a group
@@ -57,7 +58,7 @@ type Membership struct {
 // State represents a state which includes groups and memberships
 type State interface {
 	Groups() []Group
-	Group(name string) (Group, bool)
+	Group(name string) (*Group, bool)
 }
 
 // Querier represents an object which can be used to query a live instance to validate data
@@ -106,9 +107,9 @@ func (s localState) Groups() []Group {
 	return groups
 }
 
-func (s localState) Group(name string) (Group, bool) {
+func (s localState) Group(name string) (*Group, bool) {
 	g, ok := s.groups[name]
-	return *g, ok
+	return g, ok
 }
 
 type acls struct {
@@ -225,6 +226,7 @@ func (q query) Execute(state localState, querier Querier) error {
 		if len(matching) == 0 {
 			return fmt.Errorf("Invalid query '%s'", q.query)
 		}
+		logrus.Debugf("matching query: %#v", matching)
 
 		queriedACL, queriedGroupName := matching[0][1], matching[0][2]
 		queriedGroup, ok := state.Group(queriedGroupName)

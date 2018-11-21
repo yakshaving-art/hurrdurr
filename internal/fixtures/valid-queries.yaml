@@ -18,7 +18,7 @@ groups:
     owners:
     - "query: admins in root_group"
     developers:
-    - "query: users"
+    - "query: users from simple_group"
   yet_another_group:
     owners:
     - "query: owners from root_group"
