@@ -47,6 +47,15 @@ func TestLoadingState(t *testing.T) {
 			nil,
 		},
 		{
+			"invalid because of subqueries",
+			"fixtures/invalid-with-subqueries.yaml",
+			"failed to build local state from file fixtures/invalid-with-subqueries.yaml: " +
+				"1 error: failed to execute query 'owners from root_group' for skrrty/Guest: " +
+				"group root_group pointed at from skrrty/Guest contains a query 'owners from root_group'. " +
+				"This is not allowed",
+			[]hurrdurr.Group{},
+		},
+		{
 			"plain state",
 			"fixtures/plain.yaml",
 			"",

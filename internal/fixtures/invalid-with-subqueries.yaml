@@ -1,0 +1,8 @@
+---
+groups:
+  root_group:
+    owners:
+    - "query: admins"
+  skrrty:
+    guests:
+    - "query: owners from root_group"

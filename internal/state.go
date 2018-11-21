@@ -44,6 +44,10 @@ type Group struct {
 	HasSubquery bool
 }
 
+func (g *Group) setHasSubquery(b bool) {
+	g.HasSubquery = b
+}
+
 // Membership represents the membership of a single user to a given group
 type Membership struct {
 	Username string
@@ -90,6 +94,10 @@ type localState struct {
 	groups map[string]*Group
 }
 
+func (s localState) addGroup(g *Group) {
+	s.groups[g.Fullpath] = g
+}
+
 func (s localState) Groups() []Group {
 	groups := make([]Group, 0)
 	for _, g := range s.groups {
@@ -129,7 +137,7 @@ func (s state) toLocalState(q Querier) (localState, error) {
 			continue
 		}
 
-		group := Group{
+		group := &Group{
 			Fullpath: fullpath,
 			Members:  make([]Membership, 0),
 		}
@@ -142,7 +150,7 @@ func (s state) toLocalState(q Querier) (localState, error) {
 						level:    level,
 						fullpath: fullpath,
 					})
-					group.HasSubquery = true
+					group.setHasSubquery(true)
 					continue
 				}
 				if !q.IsUser(member) && !q.IsAdmin(member) {
@@ -163,7 +171,7 @@ func (s state) toLocalState(q Querier) (localState, error) {
 		addMembers(g.Maintainers, Maintainer)
 		addMembers(g.Owners, Owner)
 
-		l.groups[fullpath] = &group
+		l.addGroup(group)
 	}
 
 	for _, query := range queries {
