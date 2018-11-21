@@ -4,12 +4,19 @@ stages:
   - docker_image
   - release
 
+cache:
+  paths:
+  - vendor
+
 build:
   stage: build
   coverage: '/^total:\s+\(statements\)\s+(\d+.\d+)%$/'
   artifacts:
     paths:
     - hurrdurr
+  cache:
+    paths:
+    - vendor
   script:
   - mkdir -p /go/src/gitlab.com/${CI_PROJECT_NAMESPACE}
   - cd /go/src/gitlab.com/${CI_PROJECT_NAMESPACE}
