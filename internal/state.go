@@ -134,7 +134,7 @@ func (s state) toLocalState(q Querier) (localState, error) {
 
 	for fullpath, g := range s.Groups {
 		if !q.GroupExists(fullpath) {
-			errs.Append(fmt.Errorf("Group %s does not exist", fullpath))
+			errs.Append(fmt.Errorf("Group '%s' does not exist", fullpath))
 			continue
 		}
 
@@ -155,7 +155,7 @@ func (s state) toLocalState(q Querier) (localState, error) {
 					continue
 				}
 				if !q.IsUser(member) && !q.IsAdmin(member) {
-					errs.Append(fmt.Errorf("User %s does not exists for group %s", member, fullpath))
+					errs.Append(fmt.Errorf("User '%s' does not exists for group '%s'", member, fullpath))
 					continue
 				}
 
@@ -193,7 +193,7 @@ type query struct {
 }
 
 func (q query) String() string {
-	return fmt.Sprintf("'%s' for %s/%s", q.query, q.fullpath, q.level)
+	return fmt.Sprintf("'%s' for '%s/%s'", q.query, q.fullpath, q.level)
 }
 
 func (q query) Execute(state localState, querier Querier) error {
@@ -231,11 +231,11 @@ func (q query) Execute(state localState, querier Querier) error {
 		queriedACL, queriedGroupName := matching[0][1], matching[0][2]
 		queriedGroup, ok := state.Group(queriedGroupName)
 		if !ok {
-			return fmt.Errorf("could not find group %s to resolve query '%s' from %s/%s",
+			return fmt.Errorf("could not find group '%s' to resolve query '%s' in '%s/%s'",
 				queriedGroupName, q.query, q.fullpath, q.level)
 		}
 		if queriedGroup.HasSubquery {
-			return fmt.Errorf("group %s pointed at from %s/%s contains a query '%s'. This is not allowed",
+			return fmt.Errorf("group '%s' points at '%s/%s' which contains '%s'. Subquerying is not allowed",
 				queriedGroupName, q.fullpath, q.level, q.query)
 		}
 
