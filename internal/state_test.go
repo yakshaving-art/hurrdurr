@@ -18,8 +18,9 @@ func TestLoadingState(t *testing.T) {
 			"user1": true,
 		},
 		groups: map[string]bool{
-			"root_group": true,
-			"skrrty":     true,
+			"root_group":  true,
+			"skrrty":      true,
+			"other_group": true,
 		},
 	}
 	tt := []struct {
@@ -65,6 +66,20 @@ func TestLoadingState(t *testing.T) {
 			"fixtures/valid-queries.yaml",
 			"",
 			[]hurrdurr.Group{
+				{
+					Fullpath:    "other_group",
+					HasSubquery: true,
+					Members: []hurrdurr.Membership{
+						{
+							Username: "user1",
+							Level:    hurrdurr.Developer,
+						},
+						{
+							Username: "admin",
+							Level:    hurrdurr.Owner,
+						},
+					},
+				},
 				{
 					Fullpath: "root_group",
 					Members: []hurrdurr.Membership{

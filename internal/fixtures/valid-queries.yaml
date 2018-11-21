@@ -3,11 +3,11 @@ groups:
   root_group:
     owners:
     - admin
-  # other_group:
-  #   owners:
-  #   - query: admins in root_group
-  #   developers:
-  #   - query: users
+  other_group:
+    owners:
+    - "query: admins in root_group"
+    developers:
+    - "query: users"
   skrrty:
     owners:
     - "query: admins"
