@@ -1,6 +1,7 @@
 package internal_test
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -104,7 +105,15 @@ func TestLoadingState(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to read fixture file %s: %s", tc.stateFile, err)
 			}
-			a.EqualValuesf(tc.expected, s.Groups(), "Wrong state, groups are not as expected")
+
+			actual := s.Groups()
+			sort.Slice(actual, func(i, j int) bool {
+				if actual[i].Fullpath < actual[j].Fullpath {
+					return true
+				}
+				return false
+			})
+			a.EqualValuesf(tc.expected, actual, "Wrong state, groups are not as expected")
 		})
 	}
 }
