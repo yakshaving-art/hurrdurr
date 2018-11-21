@@ -16,11 +16,16 @@ func TestLoadingState(t *testing.T) {
 		},
 		users: map[string]bool{
 			"user1": true,
+			"user2": true,
+			"user3": true,
+			"user4": true,
 		},
 		groups: map[string]bool{
-			"root_group":  true,
-			"skrrty":      true,
-			"other_group": true,
+			"root_group":        true,
+			"skrrty":            true,
+			"other_group":       true,
+			"simple_group":      true,
+			"yet_another_group": true,
 		},
 	}
 	tt := []struct {
@@ -50,12 +55,12 @@ func TestLoadingState(t *testing.T) {
 					Fullpath: "root_group",
 					Members: []hurrdurr.Membership{
 						{
-							Username: "user1",
-							Level:    hurrdurr.Developer,
-						},
-						{
 							Username: "admin",
 							Level:    hurrdurr.Owner,
+						},
+						{
+							Username: "user1",
+							Level:    hurrdurr.Developer,
 						},
 					},
 				},
@@ -71,12 +76,24 @@ func TestLoadingState(t *testing.T) {
 					HasSubquery: true,
 					Members: []hurrdurr.Membership{
 						{
+							Username: "admin",
+							Level:    hurrdurr.Owner,
+						},
+						{
 							Username: "user1",
 							Level:    hurrdurr.Developer,
 						},
 						{
-							Username: "admin",
-							Level:    hurrdurr.Owner,
+							Username: "user2",
+							Level:    hurrdurr.Developer,
+						},
+						{
+							Username: "user3",
+							Level:    hurrdurr.Developer,
+						},
+						{
+							Username: "user4",
+							Level:    hurrdurr.Developer,
 						},
 					},
 				},
@@ -90,16 +107,79 @@ func TestLoadingState(t *testing.T) {
 					},
 				},
 				{
+					Fullpath: "simple_group",
+					Members: []hurrdurr.Membership{
+						{
+							Username: "admin",
+							Level:    hurrdurr.Owner,
+						},
+						{
+							Username: "user1",
+							Level:    hurrdurr.Maintainer,
+						},
+						{
+							Username: "user2",
+							Level:    hurrdurr.Developer,
+						},
+						{
+							Username: "user3",
+							Level:    hurrdurr.Reporter,
+						},
+						{
+							Username: "user4",
+							Level:    hurrdurr.Guest,
+						},
+					},
+				},
+				{
 					Fullpath:    "skrrty",
 					HasSubquery: true,
 					Members: []hurrdurr.Membership{
 						{
-							Username: "user1",
-							Level:    hurrdurr.Developer,
+							Username: "admin",
+							Level:    hurrdurr.Owner,
 						},
+						{
+							Username: "user1",
+							Level:    hurrdurr.Guest,
+						},
+						{
+							Username: "user2",
+							Level:    hurrdurr.Guest,
+						},
+						{
+							Username: "user3",
+							Level:    hurrdurr.Guest,
+						},
+						{
+							Username: "user4",
+							Level:    hurrdurr.Guest,
+						},
+					},
+				},
+				{
+					Fullpath:    "yet_another_group",
+					HasSubquery: true,
+					Members: []hurrdurr.Membership{
 						{
 							Username: "admin",
 							Level:    hurrdurr.Owner,
+						},
+						{
+							Username: "user1",
+							Level:    hurrdurr.Maintainer,
+						},
+						{
+							Username: "user2",
+							Level:    hurrdurr.Developer,
+						},
+						{
+							Username: "user3",
+							Level:    hurrdurr.Reporter,
+						},
+						{
+							Username: "user4",
+							Level:    hurrdurr.Guest,
 						},
 					},
 				},
@@ -128,6 +208,12 @@ func TestLoadingState(t *testing.T) {
 				}
 				return false
 			})
+			for _, group := range actual {
+				members := group.Members
+				sort.Slice(members, func(i, j int) bool {
+					return members[i].Username < members[j].Username
+				})
+			}
 			a.EqualValuesf(tc.expected, actual, "Wrong state, groups are not as expected")
 		})
 	}
