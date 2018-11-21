@@ -3,6 +3,7 @@ package errors
 import (
 	"bytes"
 	"fmt"
+	"sort"
 )
 
 // Errors is an error aggregator, it's useful for aggregating all the errors in
@@ -30,6 +31,10 @@ func formatErrors(errors []error) string {
 	}
 
 	buffer := bytes.NewBufferString(fmt.Sprintf("%d errors: ", len(errors)))
+
+	sort.Slice(errors, func(i, j int) bool {
+		return errors[i].Error() < errors[j].Error()
+	})
 
 	for i, e := range errors {
 		if i != 0 {

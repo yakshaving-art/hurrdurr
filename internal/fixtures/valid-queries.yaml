@@ -1,0 +1,37 @@
+---
+groups:
+  root_group:
+    owners:
+    - admin
+  simple_group:
+    owners:
+    - admin
+    maintainers:
+    - user1
+    developers:
+    - user2
+    reporters:
+    - user3
+    guests:
+    - user4
+  other_group:
+    owners:
+    - "query: admins in root_group"
+    developers:
+    - "query: users from simple_group"
+  yet_another_group:
+    owners:
+    - "query: owners from root_group"
+    developers:
+    - "query: developers in simple_group"
+    maintainers:
+    - "query: maintainers in simple_group"
+    reporters:
+    - "query: reporters in simple_group"
+    guests:
+    - "query: guests in simple_group"
+  skrrty:
+    owners:
+    - "query: admins"
+    guests:
+    - "query: users"

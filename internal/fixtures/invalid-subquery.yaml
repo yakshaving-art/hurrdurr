@@ -1,0 +1,9 @@
+---
+groups:
+  root_group:
+    owners:
+    - "query: admins"
+    reporters:
+    - "query: whatever from root_group"
+    guests:
+    - "query: guests from non_existing_group"
