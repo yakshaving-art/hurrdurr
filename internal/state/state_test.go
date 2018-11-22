@@ -6,7 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	hurrdurr "gitlab.com/yakshaving.art/hurrdurr/internal"
+	"gitlab.com/yakshaving.art/hurrdurr/internal"
+	hurrdurr "gitlab.com/yakshaving.art/hurrdurr/internal/state"
 )
 
 func TestLoadingState(t *testing.T) {
@@ -32,7 +33,7 @@ func TestLoadingState(t *testing.T) {
 		name          string
 		stateFile     string
 		expectedError string
-		expected      []hurrdurr.Group
+		expected      []hurrdurr.LocalGroup
 	}{
 		{
 			"non existing file",
@@ -55,7 +56,7 @@ func TestLoadingState(t *testing.T) {
 				"1 error: failed to execute query 'owners from root_group' for 'skrrty/Guest': " +
 				"group 'root_group' points at 'skrrty/Guest' which contains 'owners from root_group'. " +
 				"Subquerying is not allowed",
-			[]hurrdurr.Group{},
+			[]hurrdurr.LocalGroup{},
 		},
 		{
 			"invalid because of non existing group in query",
@@ -67,18 +68,18 @@ func TestLoadingState(t *testing.T) {
 				"failed to execute query 'whatever from root_group' for 'root_group/Reporter': " +
 				"group 'root_group' points at 'root_group/Reporter' which contains " +
 				"'whatever from root_group'. Subquerying is not allowed",
-			[]hurrdurr.Group{},
+			[]hurrdurr.LocalGroup{},
 		},
 		{
 			"plain state",
 			"fixtures/plain.yaml",
 			"",
-			[]hurrdurr.Group{
+			[]hurrdurr.LocalGroup{
 				{
 					Fullpath: "root_group",
-					Members: map[string]hurrdurr.Level{
-						"admin": hurrdurr.Owner,
-						"user1": hurrdurr.Developer,
+					Members: map[string]internal.Level{
+						"admin": internal.Owner,
+						"user1": internal.Developer,
 					},
 				},
 			},
@@ -87,54 +88,54 @@ func TestLoadingState(t *testing.T) {
 			"valid queries",
 			"fixtures/valid-queries.yaml",
 			"",
-			[]hurrdurr.Group{
+			[]hurrdurr.LocalGroup{
 				{
-					Fullpath:    "other_group",
-					HasSubquery: true,
-					Members: map[string]hurrdurr.Level{
-						"admin": hurrdurr.Owner,
-						"user1": hurrdurr.Developer,
-						"user2": hurrdurr.Developer,
-						"user3": hurrdurr.Developer,
-						"user4": hurrdurr.Developer,
+					Fullpath: "other_group",
+					Subquery: true,
+					Members: map[string]internal.Level{
+						"admin": internal.Owner,
+						"user1": internal.Developer,
+						"user2": internal.Developer,
+						"user3": internal.Developer,
+						"user4": internal.Developer,
 					},
 				},
 				{
 					Fullpath: "root_group",
-					Members: map[string]hurrdurr.Level{
-						"admin": hurrdurr.Owner,
+					Members: map[string]internal.Level{
+						"admin": internal.Owner,
 					},
 				},
 				{
 					Fullpath: "simple_group",
-					Members: map[string]hurrdurr.Level{
-						"admin": hurrdurr.Owner,
-						"user1": hurrdurr.Maintainer,
-						"user2": hurrdurr.Developer,
-						"user3": hurrdurr.Reporter,
-						"user4": hurrdurr.Guest,
+					Members: map[string]internal.Level{
+						"admin": internal.Owner,
+						"user1": internal.Maintainer,
+						"user2": internal.Developer,
+						"user3": internal.Reporter,
+						"user4": internal.Guest,
 					},
 				},
 				{
-					Fullpath:    "skrrty",
-					HasSubquery: true,
-					Members: map[string]hurrdurr.Level{
-						"admin": hurrdurr.Owner,
-						"user1": hurrdurr.Guest,
-						"user2": hurrdurr.Guest,
-						"user3": hurrdurr.Guest,
-						"user4": hurrdurr.Guest,
+					Fullpath: "skrrty",
+					Subquery: true,
+					Members: map[string]internal.Level{
+						"admin": internal.Owner,
+						"user1": internal.Guest,
+						"user2": internal.Guest,
+						"user3": internal.Guest,
+						"user4": internal.Guest,
 					},
 				},
 				{
-					Fullpath:    "yet_another_group",
-					HasSubquery: true,
-					Members: map[string]hurrdurr.Level{
-						"admin": hurrdurr.Owner,
-						"user1": hurrdurr.Maintainer,
-						"user2": hurrdurr.Developer,
-						"user3": hurrdurr.Reporter,
-						"user4": hurrdurr.Guest,
+					Fullpath: "yet_another_group",
+					Subquery: true,
+					Members: map[string]internal.Level{
+						"admin": internal.Owner,
+						"user1": internal.Maintainer,
+						"user2": internal.Developer,
+						"user3": internal.Reporter,
+						"user4": internal.Guest,
 					},
 				},
 			},
@@ -143,12 +144,12 @@ func TestLoadingState(t *testing.T) {
 			"multi level assignment",
 			"fixtures/multi-level-assignment.yaml",
 			"",
-			[]hurrdurr.Group{
+			[]hurrdurr.LocalGroup{
 				{
-					Fullpath:    "root_group",
-					HasSubquery: true,
-					Members: map[string]hurrdurr.Level{
-						"admin": hurrdurr.Owner,
+					Fullpath: "root_group",
+					Subquery: true,
+					Members: map[string]internal.Level{
+						"admin": internal.Owner,
 					},
 				},
 			},
@@ -169,9 +170,14 @@ func TestLoadingState(t *testing.T) {
 				t.Fatalf("failed to read fixture file %s: %s", tc.stateFile, err)
 			}
 
-			actual := s.Groups()
+			actual := make([]hurrdurr.LocalGroup, 0)
+			for _, g := range s.Groups() {
+				ag := g.(hurrdurr.LocalGroup)
+				actual = append(actual, ag)
+			}
+
 			sort.Slice(actual, func(i, j int) bool {
-				if actual[i].Fullpath < actual[j].Fullpath {
+				if actual[i].GetFullpath() < actual[j].GetFullpath() {
 					return true
 				}
 				return false
