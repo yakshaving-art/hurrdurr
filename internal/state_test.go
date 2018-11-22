@@ -76,15 +76,9 @@ func TestLoadingState(t *testing.T) {
 			[]hurrdurr.Group{
 				{
 					Fullpath: "root_group",
-					Members: []hurrdurr.Membership{
-						{
-							Username: "admin",
-							Level:    hurrdurr.Owner,
-						},
-						{
-							Username: "user1",
-							Level:    hurrdurr.Developer,
-						},
+					Members: map[string]hurrdurr.Level{
+						"admin": hurrdurr.Owner,
+						"user1": hurrdurr.Developer,
 					},
 				},
 			},
@@ -97,113 +91,64 @@ func TestLoadingState(t *testing.T) {
 				{
 					Fullpath:    "other_group",
 					HasSubquery: true,
-					Members: []hurrdurr.Membership{
-						{
-							Username: "admin",
-							Level:    hurrdurr.Owner,
-						},
-						{
-							Username: "user1",
-							Level:    hurrdurr.Developer,
-						},
-						{
-							Username: "user2",
-							Level:    hurrdurr.Developer,
-						},
-						{
-							Username: "user3",
-							Level:    hurrdurr.Developer,
-						},
-						{
-							Username: "user4",
-							Level:    hurrdurr.Developer,
-						},
+					Members: map[string]hurrdurr.Level{
+						"admin": hurrdurr.Owner,
+						"user1": hurrdurr.Developer,
+						"user2": hurrdurr.Developer,
+						"user3": hurrdurr.Developer,
+						"user4": hurrdurr.Developer,
 					},
 				},
 				{
 					Fullpath: "root_group",
-					Members: []hurrdurr.Membership{
-						{
-							Username: "admin",
-							Level:    hurrdurr.Owner,
-						},
+					Members: map[string]hurrdurr.Level{
+						"admin": hurrdurr.Owner,
 					},
 				},
 				{
 					Fullpath: "simple_group",
-					Members: []hurrdurr.Membership{
-						{
-							Username: "admin",
-							Level:    hurrdurr.Owner,
-						},
-						{
-							Username: "user1",
-							Level:    hurrdurr.Maintainer,
-						},
-						{
-							Username: "user2",
-							Level:    hurrdurr.Developer,
-						},
-						{
-							Username: "user3",
-							Level:    hurrdurr.Reporter,
-						},
-						{
-							Username: "user4",
-							Level:    hurrdurr.Guest,
-						},
+					Members: map[string]hurrdurr.Level{
+						"admin": hurrdurr.Owner,
+						"user1": hurrdurr.Maintainer,
+						"user2": hurrdurr.Developer,
+						"user3": hurrdurr.Reporter,
+						"user4": hurrdurr.Guest,
 					},
 				},
 				{
 					Fullpath:    "skrrty",
 					HasSubquery: true,
-					Members: []hurrdurr.Membership{
-						{
-							Username: "admin",
-							Level:    hurrdurr.Owner,
-						},
-						{
-							Username: "user1",
-							Level:    hurrdurr.Guest,
-						},
-						{
-							Username: "user2",
-							Level:    hurrdurr.Guest,
-						},
-						{
-							Username: "user3",
-							Level:    hurrdurr.Guest,
-						},
-						{
-							Username: "user4",
-							Level:    hurrdurr.Guest,
-						},
+					Members: map[string]hurrdurr.Level{
+						"admin": hurrdurr.Owner,
+						"user1": hurrdurr.Guest,
+						"user2": hurrdurr.Guest,
+						"user3": hurrdurr.Guest,
+						"user4": hurrdurr.Guest,
 					},
 				},
 				{
 					Fullpath:    "yet_another_group",
 					HasSubquery: true,
-					Members: []hurrdurr.Membership{
-						{
-							Username: "admin",
-							Level:    hurrdurr.Owner,
-						},
-						{
-							Username: "user1",
-							Level:    hurrdurr.Maintainer,
-						},
-						{
-							Username: "user2",
-							Level:    hurrdurr.Developer,
-						},
-						{
-							Username: "user3",
-							Level:    hurrdurr.Reporter,
-						},
-						{
-							Username: "user4",
-							Level:    hurrdurr.Guest,
-						},
+					Members: map[string]hurrdurr.Level{
+						"admin": hurrdurr.Owner,
+						"user1": hurrdurr.Maintainer,
+						"user2": hurrdurr.Developer,
+						"user3": hurrdurr.Reporter,
+						"user4": hurrdurr.Guest,
+					},
+				},
+			},
+		},
+		{
+			"multi level assignment",
+			"fixtures/multi-level-assignment.yaml",
+			"",
+			[]hurrdurr.Group{
+				{
+					Fullpath:    "root_group",
+					HasSubquery: true,
+					Members: map[string]hurrdurr.Level{
+						"admin": hurrdurr.Owner,
 					},
 				},
 			},
@@ -231,12 +176,6 @@ func TestLoadingState(t *testing.T) {
 				}
 				return false
 			})
-			for _, group := range actual {
-				members := group.Members
-				sort.Slice(members, func(i, j int) bool {
-					return members[i].Username < members[j].Username
-				})
-			}
 			a.EqualValuesf(tc.expected, actual, "Wrong state, groups are not as expected")
 		})
 	}

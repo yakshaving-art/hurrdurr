@@ -1,0 +1,9 @@
+---
+groups:
+  root_group:
+    guests:
+    - "query: admins"
+    owners:
+    - admin
+    developers:
+    - admin
