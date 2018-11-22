@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 
 	"github.com/go-yaml/yaml"
+	"github.com/sirupsen/logrus"
 )
 
 // Level represents the access level granted to a user in a group
