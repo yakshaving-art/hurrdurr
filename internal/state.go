@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 
 	"github.com/go-yaml/yaml"
+	"github.com/sirupsen/logrus"
 )
 
 // Level represents the access level granted to a user in a group
@@ -41,18 +41,20 @@ func (l Level) String() string {
 // Group represents a group with a fullpath and it's members
 type Group struct {
 	Fullpath    string
-	Members     []Membership
+	Members     map[string]Level
 	HasSubquery bool
+}
+
+func (g *Group) addMember(username string, level Level) {
+	l, ok := g.Members[username]
+	if ok && l > level {
+		return
+	}
+	g.Members[username] = level
 }
 
 func (g *Group) setHasSubquery(b bool) {
 	g.HasSubquery = b
-}
-
-// Membership represents the membership of a single user to a given group
-type Membership struct {
-	Username string
-	Level    Level
 }
 
 // State represents a state which includes groups and memberships
@@ -140,7 +142,7 @@ func (s state) toLocalState(q Querier) (localState, error) {
 
 		group := &Group{
 			Fullpath: fullpath,
-			Members:  make([]Membership, 0),
+			Members:  make(map[string]Level, 0),
 		}
 
 		addMembers := func(members []string, level Level) {
@@ -159,10 +161,7 @@ func (s state) toLocalState(q Querier) (localState, error) {
 					continue
 				}
 
-				group.Members = append(group.Members, Membership{
-					Username: member,
-					Level:    level,
-				})
+				group.addMember(member, level)
 			}
 		}
 
@@ -204,10 +203,7 @@ func (q query) Execute(state localState, querier Querier) error {
 
 	addMembers := func(members []string) error {
 		for _, member := range members {
-			group.Members = append(group.Members, Membership{
-				Username: member,
-				Level:    q.level,
-			})
+			group.addMember(member, q.level)
 		}
 		return nil
 	}
@@ -239,26 +235,26 @@ func (q query) Execute(state localState, querier Querier) error {
 				queriedGroupName, q.fullpath, q.level, q.query)
 		}
 
-		filterByLevel := func(members []Membership, level Level) []string {
+		filterByLevel := func(members map[string]Level, level Level) []string {
 			matched := make([]string, 0)
-			for _, m := range members {
-				if m.Level == level {
-					matched = append(matched, m.Username)
+			for u, l := range members {
+				if l == level {
+					matched = append(matched, u)
 				}
 			}
 			return matched
 		}
-		filterByAdminness := func(members []Membership, shouldBeAdmin bool) []string {
+		filterByAdminness := func(members map[string]Level, shouldBeAdmin bool) []string {
 			matched := make([]string, 0)
-			for _, m := range members {
+			for u := range members {
 				switch shouldBeAdmin {
 				case true:
-					if querier.IsAdmin(m.Username) {
-						matched = append(matched, m.Username)
+					if querier.IsAdmin(u) {
+						matched = append(matched, u)
 					}
 				default:
-					if querier.IsUser(m.Username) {
-						matched = append(matched, m.Username)
+					if querier.IsUser(u) {
+						matched = append(matched, u)
 					}
 				}
 			}
