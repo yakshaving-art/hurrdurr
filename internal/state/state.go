@@ -6,46 +6,36 @@ import (
 	"regexp"
 	"strings"
 
+	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 
 	"github.com/go-yaml/yaml"
 	"github.com/sirupsen/logrus"
 )
 
-// Level represents the access level granted to a user in a group
-type Level int
-
-// Levels definitions
-const (
-	Guest      = 10
-	Reporter   = 20
-	Developer  = 30
-	Maintainer = 40
-	Owner      = 50
-)
-
-func (l Level) String() string {
-	levels := [...]string{
-		"Guest",
-		"Reporter",
-		"Developer",
-		"Maintainer",
-		"Owner",
-	}
-	if l < Guest || l > Owner {
-		return "Unknown"
-	}
-	return levels[(l-Guest)/10]
+// LocalGroup represents a group with a fullpath and it's members that is loaded from a yaml file
+type LocalGroup struct {
+	Fullpath string
+	Members  map[string]internal.Level
+	Subquery bool
 }
 
-// Group represents a group with a fullpath and it's members
-type Group struct {
-	Fullpath    string
-	Members     map[string]Level
-	HasSubquery bool
+// GetFullpath implements Group interface
+func (g LocalGroup) GetFullpath() string {
+	return g.Fullpath
 }
 
-func (g *Group) addMember(username string, level Level) {
+// GetMembers implements Group interface
+func (g LocalGroup) GetMembers() map[string]internal.Level {
+	return g.Members
+}
+
+// HasSubquery implements Group interface
+func (g LocalGroup) HasSubquery() bool {
+	return g.Subquery
+}
+
+func (g *LocalGroup) addMember(username string, level internal.Level) {
 	l, ok := g.Members[username]
 	if ok && l > level {
 		return
@@ -53,28 +43,12 @@ func (g *Group) addMember(username string, level Level) {
 	g.Members[username] = level
 }
 
-func (g *Group) setHasSubquery(b bool) {
-	g.HasSubquery = b
-}
-
-// State represents a state which includes groups and memberships
-type State interface {
-	Groups() []Group
-	Group(name string) (*Group, bool)
-}
-
-// Querier represents an object which can be used to query a live instance to validate data
-type Querier interface {
-	IsUser(string) bool
-	IsAdmin(string) bool
-	GroupExists(string) bool
-
-	Users() []string
-	Admins() []string
+func (g *LocalGroup) setHasSubquery(b bool) {
+	g.Subquery = b
 }
 
 // LoadStateFromFile loads the desired state from a file
-func LoadStateFromFile(filename string, q Querier) (State, error) {
+func LoadStateFromFile(filename string, q internal.Querier) (internal.State, error) {
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load state file %s: %s", filename, err)
@@ -94,22 +68,22 @@ func LoadStateFromFile(filename string, q Querier) (State, error) {
 }
 
 type localState struct {
-	groups map[string]*Group
+	groups map[string]*LocalGroup
 }
 
-func (s localState) addGroup(g *Group) {
+func (s localState) addGroup(g *LocalGroup) {
 	s.groups[g.Fullpath] = g
 }
 
-func (s localState) Groups() []Group {
-	groups := make([]Group, 0)
+func (s localState) Groups() []internal.Group {
+	groups := make([]internal.Group, 0)
 	for _, g := range s.groups {
 		groups = append(groups, *g)
 	}
 	return groups
 }
 
-func (s localState) Group(name string) (*Group, bool) {
+func (s localState) Group(name string) (internal.Group, bool) {
 	g, ok := s.groups[name]
 	return g, ok
 }
@@ -119,16 +93,17 @@ type acls struct {
 	Reporters   []string `yaml:"reporters,omitempty"`
 	Developers  []string `yaml:"developers,omitempty"`
 	Maintainers []string `yaml:"maintainers,omitempty"`
-	Owners      []string `yaml:"owners,omitempty"`
+
+	Owners []string `yaml:"owners,omitempty"`
 }
 
 type state struct {
 	Groups map[string]acls `yaml:"groups"`
 }
 
-func (s state) toLocalState(q Querier) (localState, error) {
+func (s state) toLocalState(q internal.Querier) (localState, error) {
 	l := localState{
-		groups: make(map[string]*Group, 0),
+		groups: make(map[string]*LocalGroup, 0),
 	}
 
 	errs := errors.New() // This object aggregates all the errors to dump them all at the end
@@ -140,12 +115,12 @@ func (s state) toLocalState(q Querier) (localState, error) {
 			continue
 		}
 
-		group := &Group{
+		group := &LocalGroup{
 			Fullpath: fullpath,
-			Members:  make(map[string]Level, 0),
+			Members:  make(map[string]internal.Level, 0),
 		}
 
-		addMembers := func(members []string, level Level) {
+		addMembers := func(members []string, level internal.Level) {
 			for _, member := range members {
 				if strings.HasPrefix(member, "query:") {
 					queries = append(queries, query{
@@ -165,11 +140,11 @@ func (s state) toLocalState(q Querier) (localState, error) {
 			}
 		}
 
-		addMembers(g.Guests, Guest)
-		addMembers(g.Reporters, Reporter)
-		addMembers(g.Developers, Developer)
-		addMembers(g.Maintainers, Maintainer)
-		addMembers(g.Owners, Owner)
+		addMembers(g.Guests, internal.Guest)
+		addMembers(g.Reporters, internal.Reporter)
+		addMembers(g.Developers, internal.Developer)
+		addMembers(g.Maintainers, internal.Maintainer)
+		addMembers(g.Owners, internal.Owner)
 
 		l.addGroup(group)
 	}
@@ -187,7 +162,7 @@ var queryMatch = regexp.MustCompile("^(.*?) (?:from|in) (.*?)$")
 
 type query struct {
 	query    string
-	level    Level
+	level    internal.Level
 	fullpath string
 }
 
@@ -195,7 +170,7 @@ func (q query) String() string {
 	return fmt.Sprintf("'%s' for '%s/%s'", q.query, q.fullpath, q.level)
 }
 
-func (q query) Execute(state localState, querier Querier) error {
+func (q query) Execute(state localState, querier internal.Querier) error {
 	group, ok := state.groups[q.fullpath]
 	if !ok {
 		return fmt.Errorf("could not find group in list %s", q.fullpath)
@@ -230,12 +205,12 @@ func (q query) Execute(state localState, querier Querier) error {
 			return fmt.Errorf("could not find group '%s' to resolve query '%s' in '%s/%s'",
 				queriedGroupName, q.query, q.fullpath, q.level)
 		}
-		if queriedGroup.HasSubquery {
+		if queriedGroup.HasSubquery() {
 			return fmt.Errorf("group '%s' points at '%s/%s' which contains '%s'. Subquerying is not allowed",
 				queriedGroupName, q.fullpath, q.level, q.query)
 		}
 
-		filterByLevel := func(members map[string]Level, level Level) []string {
+		filterByLevel := func(members map[string]internal.Level, level internal.Level) []string {
 			matched := make([]string, 0)
 			for u, l := range members {
 				if l == level {
@@ -244,7 +219,7 @@ func (q query) Execute(state localState, querier Querier) error {
 			}
 			return matched
 		}
-		filterByAdminness := func(members map[string]Level, shouldBeAdmin bool) []string {
+		filterByAdminness := func(members map[string]internal.Level, shouldBeAdmin bool) []string {
 			matched := make([]string, 0)
 			for u := range members {
 				switch shouldBeAdmin {
@@ -263,25 +238,25 @@ func (q query) Execute(state localState, querier Querier) error {
 
 		switch strings.Title(queriedACL) {
 		case "Guests":
-			return addMembers(filterByLevel(queriedGroup.Members, Guest))
+			return addMembers(filterByLevel(queriedGroup.GetMembers(), internal.Guest))
 
 		case "Reporters":
-			return addMembers(filterByLevel(queriedGroup.Members, Reporter))
+			return addMembers(filterByLevel(queriedGroup.GetMembers(), internal.Reporter))
 
 		case "Developers":
-			return addMembers(filterByLevel(queriedGroup.Members, Developer))
+			return addMembers(filterByLevel(queriedGroup.GetMembers(), internal.Developer))
 
 		case "Maintainers":
-			return addMembers(filterByLevel(queriedGroup.Members, Maintainer))
+			return addMembers(filterByLevel(queriedGroup.GetMembers(), internal.Maintainer))
 
 		case "Owners":
-			return addMembers(filterByLevel(queriedGroup.Members, Owner))
+			return addMembers(filterByLevel(queriedGroup.GetMembers(), internal.Owner))
 
 		case "Admins":
-			return addMembers(filterByAdminness(queriedGroup.Members, true))
+			return addMembers(filterByAdminness(queriedGroup.GetMembers(), true))
 
 		case "Users":
-			return addMembers(filterByAdminness(queriedGroup.Members, false))
+			return addMembers(filterByAdminness(queriedGroup.GetMembers(), false))
 
 		}
 	}
