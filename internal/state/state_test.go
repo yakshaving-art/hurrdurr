@@ -1,4 +1,4 @@
-package internal_test
+package state_test
 
 import (
 	"sort"

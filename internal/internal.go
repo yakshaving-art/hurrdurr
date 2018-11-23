@@ -48,3 +48,14 @@ type Querier interface {
 	Users() []string
 	Admins() []string
 }
+
+// Action is an action to execute using the APIClient
+type Action interface {
+	Execute(APIClient)
+}
+
+// APIClient is the tool used to reach the remote instance and perform actions on it
+type APIClient interface {
+	AddMembership(username, group string, level int)
+	RemoveMembership(username, group string)
+}
