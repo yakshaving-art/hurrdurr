@@ -48,3 +48,12 @@ type Querier interface {
 	Users() []string
 	Admins() []string
 }
+
+type Action interface {
+	Execute(APIClient)
+}
+
+type APIClient interface {
+	AddMembership(username, group string, level int)
+	RemoveMembership(username, group string)
+}

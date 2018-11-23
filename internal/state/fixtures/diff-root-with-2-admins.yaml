@@ -1,0 +1,6 @@
+---
+groups:
+  root_group:
+    owners:
+    - admin
+    - user1

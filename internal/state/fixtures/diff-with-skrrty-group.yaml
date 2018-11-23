@@ -1,0 +1,11 @@
+---
+groups:
+  root_group:
+    owners:
+    - user1
+  skrrty:
+    owners:
+    - admin
+    developers:
+    - user1
+    - user2
