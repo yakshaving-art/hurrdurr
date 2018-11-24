@@ -29,10 +29,9 @@ var validACL = map[string]int{
 	"owner":      50,
 }
 
-func load() {
-	gitlabToken = readFromEnv("GITLAB_TOKEN")
+func load(gitlabToken, baseURL string) {
 	gitlabClient = gitlab.NewClient(nil, gitlabToken)
-	applyBaseURL(readFromEnv("GITLAB_BASEURL"))
+	applyBaseURL(baseURL)
 
 	// prefetch users and groups
 	allUsers = getAllUsers()

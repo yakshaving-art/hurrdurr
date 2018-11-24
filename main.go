@@ -1,28 +1,20 @@
 package main
 
-import (
-	"flag"
-	"log"
-	"os"
-
-	"gitlab.com/yakshaving.art/hurrdurr/version"
-)
+import "github.com/sirupsen/logrus"
 
 func main() {
-	showVersion := flag.Bool("version", false, "show version and exit")
-	configFile := flag.String("config", "config.yaml", "configuration file to load")
+	args := parseArgs()
 
-	flag.Parse()
+	load(args.GitlabToken, args.GitlabBaseURL)
 
-	if *showVersion {
-		log.Printf(version.GetVersion())
-		os.Exit(0)
+	if args.DryRun {
+		// New implementation goes here
+		logrus.Infof("Not implemented yet")
+
+	} else {
+		cfg.read(args.ConfigFile)
+		cfg.validate()
+		cfg.apply()
+		cfg.report()
 	}
-
-	load()
-
-	cfg.read(*configFile)
-	cfg.validate()
-	cfg.apply()
-	cfg.report()
 }
