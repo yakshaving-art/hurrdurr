@@ -51,12 +51,11 @@ func TestDiffingStates(t *testing.T) {
 			},
 		},
 		{
-			"add skrrty group and change admin",
+			"change admins for developers",
 			"fixtures/diff-root-with-2-admins.yaml",
 			"fixtures/diff-root-with-2-developers.yaml",
 			[]string{
-				"remove 'user1' from 'root_group'",
-				"add 'user1' to 'root_group' at level '30'",
+				"change 'user1' to 'root_group' at level '30'",
 				"add 'user2' to 'root_group' at level '30'",
 			},
 		},
@@ -106,8 +105,12 @@ type mockAPIClient struct {
 
 func (m mockAPIClient) AddMembership(username, group string, level int) {
 	m.Append(fmt.Sprintf("add '%s' to '%s' at level '%d'", username, group, level))
-
 }
+
+func (m mockAPIClient) ChangeMembership(username, group string, level int) {
+	m.Append(fmt.Sprintf("change '%s' to '%s' at level '%d'", username, group, level))
+}
+
 func (m mockAPIClient) RemoveMembership(username, group string) {
 	m.Append(fmt.Sprintf("remove '%s' from '%s'", username, group))
 
