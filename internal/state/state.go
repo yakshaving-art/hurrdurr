@@ -155,6 +155,16 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 		}
 	}
 
+Loop:
+	for _, localGroup := range l.groups {
+		for _, level := range localGroup.Members {
+			if level == internal.Owner {
+				continue Loop
+			}
+		}
+		errs.Append(fmt.Errorf("no owner in group '%s'", localGroup.Fullpath))
+	}
+
 	return l, errs.ErrorOrNil()
 }
 

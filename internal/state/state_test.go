@@ -42,11 +42,24 @@ func TestLoadingState(t *testing.T) {
 			nil,
 		},
 		{
+			"group without owner fails",
+			"fixtures/group-without-owner.yaml",
+			"failed to build local state from file fixtures/group-without-owner.yaml: 1 error: no owner in group 'root_group'",
+			nil,
+		},
+		{
+			"query for owner returns nothing",
+			"fixtures/no-owner-in-query.yaml",
+			"failed to build local state from file fixtures/no-owner-in-query.yaml: 1 error: no owner in group 'skrrty'",
+			nil,
+		},
+		{
 			"non existing user and group",
 			"fixtures/non_existing.yaml",
 			"failed to build local state from file fixtures/non_existing.yaml: " +
-				"2 errors: Group 'non_existing_group' does not exist; " +
-				"User 'non_exiting' does not exists for group 'root_group'",
+				"3 errors: Group 'non_existing_group' does not exist; " +
+				"User 'non_exiting' does not exists for group 'root_group'; " +
+				"no owner in group 'root_group'",
 			nil,
 		},
 		{
