@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"sort"
 
 	yaml "github.com/ghodss/yaml"
+	log "github.com/sirupsen/logrus"
 	gitlab "github.com/xanzy/go-gitlab"
 )
 
