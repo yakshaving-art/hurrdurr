@@ -1,9 +1,9 @@
 package state_test
 
 import (
-	"fmt"
 	"testing"
 
+	"gitlab.com/yakshaving.art/hurrdurr/internal/api"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/state"
 
 	"github.com/stretchr/testify/assert"
@@ -76,7 +76,7 @@ func TestDiffingStates(t *testing.T) {
 			a.NotNil(actions, "actions")
 
 			executedActions := make([]string, 0)
-			c := mockAPIClient{
+			c := api.DryRunAPIClient{
 				Append: func(action string) {
 					executedActions = append(executedActions, action)
 				},
@@ -97,21 +97,4 @@ func TestDiffingStates(t *testing.T) {
 
 		})
 	}
-}
-
-type mockAPIClient struct {
-	Append func(string)
-}
-
-func (m mockAPIClient) AddMembership(username, group string, level int) {
-	m.Append(fmt.Sprintf("add '%s' to '%s' at level '%d'", username, group, level))
-}
-
-func (m mockAPIClient) ChangeMembership(username, group string, level int) {
-	m.Append(fmt.Sprintf("change '%s' to '%s' at level '%d'", username, group, level))
-}
-
-func (m mockAPIClient) RemoveMembership(username, group string) {
-	m.Append(fmt.Sprintf("remove '%s' from '%s'", username, group))
-
 }
