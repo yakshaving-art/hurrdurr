@@ -1,28 +1,32 @@
 package main
 
 import (
-	"flag"
-	"log"
-	"os"
-
-	"gitlab.com/yakshaving.art/hurrdurr/version"
+	"github.com/onrik/logrus/filename"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	showVersion := flag.Bool("version", false, "show version and exit")
-	configFile := flag.String("config", "config.yaml", "configuration file to load")
+	setupLogger()
 
-	flag.Parse()
+	args := parseArgs()
 
-	if *showVersion {
-		log.Printf(version.GetVersion())
-		os.Exit(0)
+	load(args.GitlabToken, args.GitlabBaseURL)
+
+	if args.DryRun {
+		// New implementation goes here
+		logrus.Infof("Not implemented yet")
+
+	} else {
+		cfg.read(args.ConfigFile)
+		cfg.validate()
+		cfg.apply()
+		cfg.report()
 	}
+}
 
-	load()
-
-	cfg.read(*configFile)
-	cfg.validate()
-	cfg.apply()
-	cfg.report()
+func setupLogger() {
+	logrus.AddHook(filename.NewHook())
+	logrus.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
 }

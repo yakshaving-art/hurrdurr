@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	gitlab "github.com/xanzy/go-gitlab"
 )
 

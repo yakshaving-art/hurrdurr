@@ -1,0 +1,49 @@
+package main
+
+import (
+	"flag"
+	"os"
+
+	"github.com/sirupsen/logrus"
+	"gitlab.com/yakshaving.art/hurrdurr/version"
+)
+
+// Args is used to load all the flags and arguments provided by the user
+type Args struct {
+	ConfigFile string
+
+	GitlabToken   string
+	GitlabBaseURL string
+
+	DryRun      bool
+	ShowVersion bool
+}
+
+func parseArgs() Args {
+	args := Args{}
+
+	flag.BoolVar(&args.ShowVersion, "version", false, "show version and exit")
+	flag.BoolVar(&args.DryRun, "drurun", false, "executes in dryrun mode. Avoids making any change")
+
+	flag.StringVar(&args.ConfigFile, "config", "config.yaml", "configuration file to load")
+
+	flag.Parse()
+
+	args.GitlabToken = os.Getenv("GITLAB_TOKEN")
+	args.GitlabBaseURL = os.Getenv("GITLAB_BASEURL")
+
+	if args.ShowVersion {
+		logrus.Printf(version.GetVersion())
+		os.Exit(0)
+	}
+
+	if args.GitlabToken == "" {
+		logrus.Fatalf("GITLAB_TOKEN is a required environment variable")
+	}
+
+	if args.GitlabBaseURL == "" {
+		logrus.Fatalf("GITLAB_BASEURL is a required environment variable")
+	}
+
+	return args
+}

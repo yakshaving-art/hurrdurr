@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"sort"
 
 	yaml "github.com/ghodss/yaml"
+	log "github.com/sirupsen/logrus"
 	gitlab "github.com/xanzy/go-gitlab"
 )
 
@@ -29,10 +29,9 @@ var validACL = map[string]int{
 	"owner":      50,
 }
 
-func load() {
-	gitlabToken = readFromEnv("GITLAB_TOKEN")
+func load(gitlabToken, baseURL string) {
 	gitlabClient = gitlab.NewClient(nil, gitlabToken)
-	applyBaseURL(readFromEnv("GITLAB_BASEURL"))
+	applyBaseURL(baseURL)
 
 	// prefetch users and groups
 	allUsers = getAllUsers()
