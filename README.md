@@ -10,15 +10,14 @@ Manages group acls, slowly and embarrassingly ineffectively, yet does the jerb.
 
 - **-config** the configuration file to use, by default hurrdurr will load
   *hurrdurr.yml* in the current working directoy.
-- **-gitlab-url** the gitlab instance url to talk to. Can also be defined
-  through the GITLAB_URL environment variable.
 - **-dryrun** don't actually change anything, only evaluate which changes
   should happen.
-- **-debug** enabled debug level logging.
+- **-version** prints the version and exits without error
 
 ### Required Environment Variables
 
 - **GITLAB_TOKEN** the token to use when contacting the gitlab instance API.
+- **GITLAB_BASEURL** the gitlab instance url to talk to.
 
 ## Configuration
 
@@ -62,36 +61,28 @@ them to a gitlab instance.
 
 ```yaml
 ---
-root:
-  path: awesomeness
-  developers:
-    queries:
-    - all active regular users
-backend:
-  path: awesomeness/backend
-  owners:
-    members:
+groups:
+  root:
+    developers:
+    - "query: users"
+  backend:
+    owners:
     - ninja_dev
     - samurai
     - ronin
-infrastructure:
-  path: awesomeness/infra
-  guests:
-    members:
-    - ninja_ops_1
-  owners:
-    members:
+  infrastructure:
+    owners:
     - werewolve_1
     - bofh_1
-handbook:
-  path: awesomeness/handbook
-  reporters:
-    queries:
-    - everyone
-  owners:
-    members:
+    guests:
+    - ninja_ops_1
+  handbook:
+    owners:
     - manager_1
     - manager_2
+    reporters:
+    - "query: users"
+    - "query: owners from backend"
 ```
 
 ### Using Queries
@@ -99,9 +90,9 @@ handbook:
 Queries are simple on purporse, and follow strict rules.
 
 1. You can't query a group that contains a query. This will result in a runtime error.
-1. You can query for `live users`. This will return the list of all the
+1. You can query for `users`. This will return the list of all the
    members that are not blocked or admins that exist in the gitlab instance.
-1. You can query for `live admins`. This will return the list of all the
+1. You can query for `admins`. This will return the list of all the
    members that are not blocked admins that exist in the gitlab instance.
 1. You can query for a level in a group. For example: `owners in
    infrastructure` would return `werewolve_1, bofh_1`.
@@ -118,28 +109,22 @@ owner and as a developer, the user will only be defined as an owner.
 This can be useful for defining things like this:
 
 ```yaml
-developers:
-  owners:
-    members:
-    - awsum_dev
-managers:
-  reporters:
-    members:
-      - rrhh_demon
-  owners:
-    members:
-      - pointy_haired_boss
-handbook:
-  path: awesomeness/handbook
+groups:
   developers:
-    queries:
-    - query: live users
-  maintainers:
-    queries:
-    - query: users in managers
-  owners:
-    members:
-    - pointy_haired_boss
+    owners:
+    - awsum_dev
+  managers:
+    reporters:
+    - rrhh_demon
+    owners:
+      - pointy_haired_boss
+  handbook:
+    developers:
+    - "query: users"
+    maintainers:
+    - "query: users in managers"
+    owners:
+    - "query: owners in managers"
 ```
 
 This will result in `pointy_haired_boss` being an owner of the handbook,
