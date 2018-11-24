@@ -81,8 +81,7 @@ type changeUserLevelAction struct {
 }
 
 func (s changeUserLevelAction) Execute(c internal.APIClient) {
-	c.RemoveMembership(s.Username, s.Group)
-	c.AddMembership(s.Username, s.Group, int(s.Level))
+	c.ChangeMembership(s.Username, s.Group, int(s.Level))
 }
 
 type addUserMembershipAction struct {

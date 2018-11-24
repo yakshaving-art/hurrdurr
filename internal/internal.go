@@ -57,5 +57,6 @@ type Action interface {
 // APIClient is the tool used to reach the remote instance and perform actions on it
 type APIClient interface {
 	AddMembership(username, group string, level int)
+	ChangeMembership(username, group string, level int)
 	RemoveMembership(username, group string)
 }
