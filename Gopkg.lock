@@ -50,6 +50,14 @@
   version = "v1.0.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:7b00688590bccf501dc8b1f43f5948a80bc72494c501d9c995abb68be1e766f2"
+  name = "github.com/onrik/logrus"
+  packages = ["filename"]
+  pruneopts = "UT"
+  revision = "c9849815bc7c2abf20d58e4bc06c242198ebb741"
+
+[[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -152,6 +160,7 @@
   input-imports = [
     "github.com/ghodss/yaml",
     "github.com/go-yaml/yaml",
+    "github.com/onrik/logrus/filename",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/assert",
     "github.com/xanzy/go-gitlab",

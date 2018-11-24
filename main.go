@@ -1,8 +1,13 @@
 package main
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/onrik/logrus/filename"
+	"github.com/sirupsen/logrus"
+)
 
 func main() {
+	setupLogger()
+
 	args := parseArgs()
 
 	load(args.GitlabToken, args.GitlabBaseURL)
@@ -17,4 +22,11 @@ func main() {
 		cfg.apply()
 		cfg.report()
 	}
+}
+
+func setupLogger() {
+	logrus.AddHook(filename.NewHook())
+	logrus.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
 }
