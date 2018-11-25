@@ -93,10 +93,36 @@ func (m GitlabAPIClient) buildQuerier() (internal.Querier, error) {
 	}, errs.ErrorOrNil()
 }
 
+func (m GitlabAPIClient) buildLiveState() (internal.State, error) {
+	errs := errors.New()
+
+	groups := make(map[string]internal.Group, 0)
+
+	groupsCh := make(chan gitlab.Group)
+	go m.getGroups(groupsCh, &errs)
+
+	for group := range groupsCh {
+		members, err := m.getGroupMembers(group.FullPath)
+		if err != nil {
+			errs.Append(err)
+			continue
+		}
+
+		groups[group.FullPath] = GitlabGroup{
+			fullpath: group.FullPath,
+			members:  members,
+		}
+	}
+
+	return GitlabState{
+		groups: groups,
+	}, errs.ErrorOrNil()
+}
+
 func (m GitlabAPIClient) getUsers(ch chan gitlab.User, errs *errors.Errors) {
 	defer close(ch)
-	t := true // yeah baby... talking about bad interfaces, I need a pointer to true...
-	f := false
+	t := true  // yeah baby... talking about bad interfaces, I need a pointer to true...
+	f := false // and another one to false... sadness.
 
 	page := 1
 	for {
@@ -154,11 +180,10 @@ func (m GitlabAPIClient) getGroups(ch chan gitlab.Group, errs *errors.Errors) {
 		}
 		page++
 	}
-
 }
 
-func (m GitlabAPIClient) buildLiveState() (internal.State, error) {
-	return GitlabState{}, nil
+func (m GitlabAPIClient) getGroupMembers(fullpath string) (map[string]internal.Level, error) {
+	return nil, fmt.Errorf("not implemented yet")
 }
 
 // GitlabQuerier implements the internal.Querier interface
