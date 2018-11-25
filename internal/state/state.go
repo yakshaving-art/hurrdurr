@@ -210,11 +210,12 @@ func (q query) Execute(state localState, querier internal.Querier) error {
 		logrus.Debugf("matching query: %#v", matching)
 
 		queriedACL, queriedGroupName := matching[0][1], matching[0][2]
-		queriedGroup, ok := state.Group(queriedGroupName)
+		grp, ok := state.Group(queriedGroupName)
 		if !ok {
 			return fmt.Errorf("could not find group '%s' to resolve query '%s' in '%s/%s'",
 				queriedGroupName, q.query, q.fullpath, q.level)
 		}
+		queriedGroup := grp.(*LocalGroup)
 		if queriedGroup.HasSubquery() {
 			return fmt.Errorf("group '%s' points at '%s/%s' which contains '%s'. Subquerying is not allowed",
 				queriedGroupName, q.fullpath, q.level, q.query)

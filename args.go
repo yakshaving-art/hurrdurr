@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/yakshaving.art/hurrdurr/version"
@@ -43,6 +44,13 @@ func parseArgs() Args {
 
 	if args.GitlabBaseURL == "" {
 		logrus.Fatalf("GITLAB_BASEURL is a required environment variable")
+	}
+
+	if !strings.HasPrefix(args.GitlabBaseURL, "https://") {
+		logrus.Fatalf("Validate error: base_url should use https:// scheme")
+	}
+	if !strings.HasSuffix(args.GitlabBaseURL, "/api/v4/") {
+		logrus.Fatalf("Validate error: base_url should end with '/api/v4/'")
 	}
 
 	return args

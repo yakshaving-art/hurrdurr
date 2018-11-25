@@ -30,7 +30,6 @@ func (l Level) String() string {
 type Group interface {
 	GetFullpath() string
 	GetMembers() map[string]Level
-	HasSubquery() bool
 }
 
 // State represents a state which includes groups and memberships
