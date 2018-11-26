@@ -83,7 +83,7 @@ func TestDiffingStates(t *testing.T) {
 			}
 
 			for _, action := range actions {
-				action.Execute(c)
+				a.NoError(action.Execute(c))
 			}
 
 			a.Equal(len(tc.actions), len(executedActions), "actions length is not as expected")

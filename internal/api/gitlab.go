@@ -16,6 +16,8 @@ import (
 type GitlabAPIClient struct {
 	client  *gitlab.Client
 	PerPage int
+
+	querier GitlabQuerier
 }
 
 // NewGitlabAPIClient create a new Gitlab API Client
@@ -32,23 +34,44 @@ func NewGitlabAPIClient(gitlabToken, gitlabBaseURL string) GitlabAPIClient {
 }
 
 // AddMembership implements the APIClient interface
-func (m GitlabAPIClient) AddMembership(username, group string, level int) {
-	logrus.Infof("add '%s' to '%s' at level '%d'", username, group, level)
+func (m GitlabAPIClient) AddMembership(username, group string, level int) error {
+	userID := m.querier.getUserID(username)
+	acl := gitlab.AccessLevelValue(level)
+
+	opt := &gitlab.AddGroupMemberOptions{
+		UserID:      &userID,
+		AccessLevel: &acl,
+	}
+
+	_, _, err := m.client.GroupMembers.AddGroupMember(group, opt)
+	if err != nil {
+		return fmt.Errorf("failed to add user '%s' to group '%s'", username, group)
+	}
+	logrus.Debugf("added '%s' to '%s' at level '%d'", username, group, level)
+	return nil
 }
 
 // ChangeMembership implements the APIClient interface
-func (m GitlabAPIClient) ChangeMembership(username, group string, level int) {
+func (m GitlabAPIClient) ChangeMembership(username, group string, level int) error {
 	logrus.Infof("change '%s' to '%s' at level '%d'", username, group, level)
+	return fmt.Errorf("still not implemented")
 }
 
 // RemoveMembership implements the APIClient interface
-func (m GitlabAPIClient) RemoveMembership(username, group string) {
-	logrus.Infof(fmt.Sprintf("remove '%s' from '%s'", username, group))
+func (m GitlabAPIClient) RemoveMembership(username, group string) error {
+	userID := m.querier.getUserID(username)
+
+	_, err := m.client.GroupMembers.RemoveGroupMember(group, userID)
+	if err != nil {
+		return fmt.Errorf("failed to remove user '%s' from group '%s'", username, group)
+	}
+	logrus.Infof(fmt.Sprintf("removed '%s' from '%s'", username, group))
+	return nil
 }
 
 // LoadState loads all the state from a remote gitlab instance and returns
 // both a querier and a state so they can be used for diffing operations
-func (m GitlabAPIClient) LoadState() (internal.Querier, internal.State, error) {
+func (m *GitlabAPIClient) LoadState() (internal.Querier, internal.State, error) {
 	errs := errors.New()
 
 	querier, err := m.buildQuerier()
@@ -57,23 +80,25 @@ func (m GitlabAPIClient) LoadState() (internal.Querier, internal.State, error) {
 	state, err := m.buildLiveState()
 	errs.Append(err)
 
+	m.querier = querier
+
 	return querier, state, errs.ErrorOrNil()
 }
 
-func (m GitlabAPIClient) buildQuerier() (internal.Querier, error) {
+func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 	errs := errors.New()
 
-	users := make(map[string]interface{}, 0)
-	admins := make(map[string]interface{}, 0)
+	users := make(map[string]int, 0)
+	admins := make(map[string]int, 0)
 
 	usersCh := make(chan gitlab.User)
 	go m.getUsers(usersCh, &errs)
 
 	for u := range usersCh {
 		if u.IsAdmin {
-			admins[u.Username] = true
+			admins[u.Username] = u.ID
 		} else {
-			users[u.Username] = true
+			users[u.Username] = u.ID
 		}
 	}
 
@@ -102,6 +127,7 @@ func (m GitlabAPIClient) buildLiveState() (internal.State, error) {
 	go m.getGroups(groupsCh, &errs)
 
 	for group := range groupsCh {
+
 		members, err := m.getGroupMembers(group.FullPath)
 		if err != nil {
 			errs.Append(err)
@@ -213,9 +239,20 @@ func (m GitlabAPIClient) getGroupMembers(fullpath string) (map[string]internal.L
 
 // GitlabQuerier implements the internal.Querier interface
 type GitlabQuerier struct {
-	users  map[string]interface{}
-	admins map[string]interface{}
+	users  map[string]int
+	admins map[string]int
 	groups map[string]interface{}
+}
+
+func (m GitlabQuerier) getUserID(username string) int {
+	id, ok := m.users[username]
+	if !ok {
+		id, ok = m.admins[username]
+	}
+	if !ok {
+		logrus.Fatalf("could not find user '%s' in the lists of users and admins", username)
+	}
+	return id
 }
 
 // IsUser implements Querier interface
@@ -282,7 +319,7 @@ func (g GitlabGroup) GetMembers() map[string]internal.Level {
 	return g.members
 }
 
-func toStringSlice(m map[string]interface{}) []string {
+func toStringSlice(m map[string]int) []string {
 	slice := make([]string, 0)
 	for v := range m {
 		slice = append(slice, v)

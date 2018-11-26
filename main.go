@@ -42,7 +42,9 @@ func main() {
 		}
 
 		for _, action := range actions {
-			action.Execute(dryrunClient)
+			if err := action.Execute(dryrunClient); err != nil {
+				logrus.Fatalf("Faile to run action: %s", err)
+			}
 		}
 
 	} else {
