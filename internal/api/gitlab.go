@@ -183,7 +183,32 @@ func (m GitlabAPIClient) getGroups(ch chan gitlab.Group, errs *errors.Errors) {
 }
 
 func (m GitlabAPIClient) getGroupMembers(fullpath string) (map[string]internal.Level, error) {
-	return nil, fmt.Errorf("not implemented yet")
+	groupMembers := make(map[string]internal.Level)
+
+	page := 1
+	for {
+		opt := &gitlab.ListGroupMembersOptions{
+			ListOptions: gitlab.ListOptions{
+				PerPage: m.PerPage,
+				Page:    page,
+			},
+		}
+
+		members, resp, err := m.client.Groups.ListGroupMembers(fullpath, opt)
+		if err == nil {
+			return nil, fmt.Errorf("failed to fetch group members for %s: %s", fullpath, err)
+		}
+
+		for _, member := range members {
+			groupMembers[member.Username] = internal.Level(member.AccessLevel)
+		}
+
+		if page == resp.TotalPages {
+			break
+		}
+		page++
+	}
+	return groupMembers, nil
 }
 
 // GitlabQuerier implements the internal.Querier interface
