@@ -29,7 +29,7 @@ func NewGitlabAPIClient(gitlabToken, gitlabBaseURL string) GitlabAPIClient {
 
 	return GitlabAPIClient{
 		client:  gitlabClient,
-		PerPage: 50,
+		PerPage: 100,
 	}
 }
 
