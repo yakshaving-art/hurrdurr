@@ -14,6 +14,14 @@ func TestNoErrors(t *testing.T) {
 	assert.Nil(t, errs.ErrorOrNil())
 	assert.EqualError(t, errs, "Formatting 0 errors shouldn't happen, this is clearly a programming failure")
 }
+
+func TestNilErrorsAreNoErrors(t *testing.T) {
+	errs := errors.New()
+	errs.Append(nil)
+
+	assert.Nil(t, errs.ErrorOrNil())
+	assert.EqualError(t, errs, "Formatting 0 errors shouldn't happen, this is clearly a programming failure")
+}
 func TestSingleError(t *testing.T) {
 	errs := errors.New()
 	errs.Append(fmt.Errorf("my error"))

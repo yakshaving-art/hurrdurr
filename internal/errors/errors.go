@@ -45,9 +45,11 @@ func formatErrors(errors []error) string {
 	return buffer.String()
 }
 
-// Append adds a new error to the list
+// Append adds a new error to the list, it doesn't if the passed in error is nil
 func (e *Errors) Append(err error) {
-	e.errors = append(e.errors, err)
+	if err != nil {
+		e.errors = append(e.errors, err)
+	}
 }
 
 func (e Errors) Error() string {

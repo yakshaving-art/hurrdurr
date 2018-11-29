@@ -80,8 +80,8 @@ type changeUserLevelAction struct {
 	Level    internal.Level
 }
 
-func (s changeUserLevelAction) Execute(c internal.APIClient) {
-	c.ChangeMembership(s.Username, s.Group, int(s.Level))
+func (s changeUserLevelAction) Execute(c internal.APIClient) error {
+	return c.ChangeMembership(s.Username, s.Group, int(s.Level))
 }
 
 type addUserMembershipAction struct {
@@ -90,8 +90,8 @@ type addUserMembershipAction struct {
 	Level    internal.Level
 }
 
-func (s addUserMembershipAction) Execute(c internal.APIClient) {
-	c.AddMembership(s.Username, s.Group, int(s.Level))
+func (s addUserMembershipAction) Execute(c internal.APIClient) error {
+	return c.AddMembership(s.Username, s.Group, int(s.Level))
 }
 
 type removeUserAction struct {
@@ -99,6 +99,6 @@ type removeUserAction struct {
 	Group    string
 }
 
-func (r removeUserAction) Execute(c internal.APIClient) {
-	c.RemoveMembership(r.Username, r.Group)
+func (r removeUserAction) Execute(c internal.APIClient) error {
+	return c.RemoveMembership(r.Username, r.Group)
 }

@@ -30,7 +30,6 @@ func (l Level) String() string {
 type Group interface {
 	GetFullpath() string
 	GetMembers() map[string]Level
-	HasSubquery() bool
 }
 
 // State represents a state which includes groups and memberships
@@ -51,12 +50,12 @@ type Querier interface {
 
 // Action is an action to execute using the APIClient
 type Action interface {
-	Execute(APIClient)
+	Execute(APIClient) error
 }
 
 // APIClient is the tool used to reach the remote instance and perform actions on it
 type APIClient interface {
-	AddMembership(username, group string, level int)
-	ChangeMembership(username, group string, level int)
-	RemoveMembership(username, group string)
+	AddMembership(username, group string, level int) error
+	ChangeMembership(username, group string, level int) error
+	RemoveMembership(username, group string) error
 }
