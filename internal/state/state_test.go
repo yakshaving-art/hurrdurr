@@ -120,7 +120,14 @@ func TestLoadingState(t *testing.T) {
 				},
 			},
 			[]string{"simple_group", "skrrty", "yet_another_group"},
-			nil,
+			[]hurrdurr.LocalProject{
+				{
+					Fullpath: "root_group/a_project",
+					SharedGroups: map[string]internal.Level{
+						"other_group": internal.Developer,
+					},
+				},
+			},
 		},
 		{
 			"valid queries",
@@ -178,7 +185,7 @@ func TestLoadingState(t *testing.T) {
 				},
 			},
 			[]string{},
-			nil,
+			[]hurrdurr.LocalProject{},
 		},
 		{
 			"multi level assignment",
@@ -194,7 +201,7 @@ func TestLoadingState(t *testing.T) {
 				},
 			},
 			[]string{"other_group", "simple_group", "skrrty", "yet_another_group"},
-			nil,
+			[]hurrdurr.LocalProject{},
 		},
 	}
 
@@ -212,17 +219,26 @@ func TestLoadingState(t *testing.T) {
 				t.Fatalf("failed to read fixture file %s: %s", tc.stateFile, err)
 			}
 
-			actual := make([]hurrdurr.LocalGroup, 0)
+			actualGroups := make([]hurrdurr.LocalGroup, 0)
 			for _, g := range s.Groups() {
 				ag := g.(hurrdurr.LocalGroup)
-				actual = append(actual, ag)
+				actualGroups = append(actualGroups, ag)
 			}
 
-			sort.Slice(actual, func(i, j int) bool {
-				return actual[i].GetFullpath() < actual[j].GetFullpath()
+			sort.Slice(actualGroups, func(i, j int) bool {
+				if actualGroups[i].GetFullpath() < actualGroups[j].GetFullpath() {
+					return true
+				}
+				return false
 			})
-			a.EqualValuesf(tc.expected, actual, "Wrong state, groups are not as expected")
-			a.Equalf(tc.expectedUnhandledGroups, s.UnhandledGroups(), "Wrong state, unhandled groups are not as expected")
+			a.EqualValuesf(tc.expected, actualGroups, "Wrong state, groups are not as expected")
+
+			actualProjects := make([]hurrdurr.LocalProject, 0)
+			for _, p := range s.Projects() {
+				pj := p.(hurrdurr.LocalProject)
+				actualProjects = append(actualProjects, pj)
+			}
+			a.EqualValues(tc.expectedProjects, actualProjects, "Wrong state, projects are not as expected")
 		})
 	}
 }

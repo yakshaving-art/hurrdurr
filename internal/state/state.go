@@ -50,22 +50,22 @@ func (g *LocalGroup) setHasSubquery(b bool) {
 
 // LocalProject is a local implementation of projects loaded from a file
 type LocalProject struct {
-	fullpath     string
-	sharedGroups map[string]internal.Level
+	Fullpath     string
+	SharedGroups map[string]internal.Level
 }
 
 // GetFullpath implements internal.Project interface
 func (l LocalProject) GetFullpath() string {
-	return ""
+	return l.Fullpath
 }
 
 // GetSharedGroups implements internal.Project interface
 func (l LocalProject) GetSharedGroups() map[string]internal.Level {
-	return l.sharedGroups
+	return l.SharedGroups
 }
 
 func (l *LocalProject) addGroupSharing(group string, level internal.Level) {
-	l.sharedGroups[group] = level
+	l.SharedGroups[group] = level
 }
 
 // LoadStateFromFile loads the desired state from a file
@@ -116,13 +116,13 @@ func (s localState) UnhandledGroups() []string {
 }
 
 func (s localState) addProject(p *LocalProject) {
-	s.projects[p.fullpath] = p
+	s.projects[p.GetFullpath()] = p
 }
 
 func (s localState) Projects() []internal.Project {
 	projects := make([]internal.Project, 0)
 	for _, p := range s.projects {
-		projects = append(projects, p)
+		projects = append(projects, *p)
 	}
 	return projects
 }
@@ -221,8 +221,8 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 		}
 
 		project := &LocalProject{
-			fullpath:     projectPath,
-			sharedGroups: make(map[string]internal.Level, 0),
+			Fullpath:     projectPath,
+			SharedGroups: make(map[string]internal.Level, 0),
 		}
 
 		addSharedGroups := func(groups []string, level internal.Level) {
