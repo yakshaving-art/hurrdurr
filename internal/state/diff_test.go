@@ -65,17 +65,35 @@ func TestDiffingStates(t *testing.T) {
 		{
 			"share root with skrrty",
 			"fixtures/diff-with-skrrty-group.yaml",
-			"fixtures/diff-share-root-with-skrrty-group.yaml",
+			"fixtures/diff-share-root-with-skrrty-group-as-maintainers.yaml",
 			[]string{
 				"share project 'root_group/myawesomeproject' with group 'skrrty' at level 'Maintainer'",
 			},
 		},
 		{
 			"unshare root with skrrty",
-			"fixtures/diff-share-root-with-skrrty-group.yaml",
+			"fixtures/diff-share-root-with-skrrty-group-as-maintainers.yaml",
 			"fixtures/diff-with-skrrty-group.yaml",
 			[]string{
 				"remove project sharing from 'root_group/myawesomeproject' with group 'skrrty'",
+			},
+		},
+		{
+			"change root sharing with skrrty",
+			"fixtures/diff-share-root-with-skrrty-group-as-maintainers.yaml",
+			"fixtures/diff-share-root-with-skrrty-group-as-developers.yaml",
+			[]string{
+				"remove project sharing from 'root_group/myawesomeproject' with group 'skrrty'",
+				"share project 'root_group/myawesomeproject' with group 'skrrty' at level 'Developer'",
+			},
+		},
+		{
+			"change root sharing with skrrty",
+			"fixtures/diff-share-root-with-skrrty-group-as-developers.yaml",
+			"fixtures/diff-share-root-with-skrrty-group-as-maintainers.yaml",
+			[]string{
+				"remove project sharing from 'root_group/myawesomeproject' with group 'skrrty'",
+				"share project 'root_group/myawesomeproject' with group 'skrrty' at level 'Maintainer'",
 			},
 		},
 	}

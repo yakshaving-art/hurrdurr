@@ -1,0 +1,15 @@
+---
+groups:
+  root_group:
+    owners:
+    - user1
+  skrrty:
+    owners:
+    - admin
+    developers:
+    - user1
+    - user2
+projects:
+  root_group/myawesomeproject:
+    developers:
+    - skrrty
