@@ -88,6 +88,8 @@ func (m *GitlabAPIClient) LoadState() (internal.Querier, internal.State, error) 
 func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 	errs := errors.New()
 
+	logrus.Debugf("building querier...")
+
 	users := make(map[string]int, 0)
 	admins := make(map[string]int, 0)
 
@@ -96,8 +98,10 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 
 	for u := range usersCh {
 		if u.IsAdmin {
+			logrus.Debugf("appending admin %s", u.Username)
 			admins[u.Username] = u.ID
 		} else {
+			logrus.Debugf("appending user %s", u.Username)
 			users[u.Username] = u.ID
 		}
 	}
@@ -108,6 +112,7 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 	groups := make(map[string]interface{}, 0)
 
 	for group := range groupsCh {
+		logrus.Debugf("appending group %s", group.FullPath)
 		groups[group.FullPath] = true
 	}
 
@@ -161,8 +166,8 @@ func (m GitlabAPIClient) getUsers(ch chan gitlab.User, errs *errors.Errors) {
 			},
 		}
 		users, resp, err := m.client.Users.ListUsers(opt)
-		if err == nil {
-			errs.Append(err)
+		if err != nil {
+			errs.Append(fmt.Errorf("failed to fetch users: %s", err))
 			break
 		}
 
@@ -192,8 +197,8 @@ func (m GitlabAPIClient) getGroups(ch chan gitlab.Group, errs *errors.Errors) {
 		}
 
 		groups, resp, err := m.client.Groups.ListGroups(opt)
-		if err == nil {
-			errs.Append(err)
+		if err != nil {
+			errs.Append(fmt.Errorf("failed to fetch groups: %s", err))
 			break
 		}
 
@@ -221,7 +226,7 @@ func (m GitlabAPIClient) getGroupMembers(fullpath string) (map[string]internal.L
 		}
 
 		members, resp, err := m.client.Groups.ListGroupMembers(fullpath, opt)
-		if err == nil {
+		if err != nil {
 			return nil, fmt.Errorf("failed to fetch group members for %s: %s", fullpath, err)
 		}
 

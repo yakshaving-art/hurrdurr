@@ -13,6 +13,10 @@ func main() {
 
 	args := parseArgs()
 
+	if args.Debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+
 	if args.DryRun {
 		// When we're comfortable that it works ok, we can move this logic out of the
 		// if so it happens all the time (it's the core algorithm) then all the change
