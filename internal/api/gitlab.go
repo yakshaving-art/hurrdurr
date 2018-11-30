@@ -120,11 +120,11 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 	groupsCh := make(chan gitlab.Group)
 	go m.getGroups(groupsCh, &errs)
 
-	groups := make(map[string]interface{}, 0)
+	groups := make(map[string]int, 0)
 
 	for group := range groupsCh {
 		logrus.Debugf("appending group %s", group.FullPath)
-		groups[group.FullPath] = true
+		groups[group.FullPath] = 1
 	}
 
 	if len(admins) == 0 {
@@ -261,7 +261,7 @@ func (m GitlabAPIClient) getGroupMembers(fullpath string) (map[string]internal.L
 type GitlabQuerier struct {
 	users  map[string]int
 	admins map[string]int
-	groups map[string]interface{}
+	groups map[string]int
 }
 
 func (m GitlabQuerier) getUserID(username string) int {
@@ -293,6 +293,10 @@ func (m GitlabQuerier) GroupExists(g string) bool {
 	return ok
 }
 
+func (m GitlabQuerier) Groups() []string {
+	return toStringSlice(m.groups)
+}
+
 // Users returns the list of users that are regular users and are not blocked
 func (m GitlabQuerier) Users() []string {
 	return toStringSlice(m.users)
@@ -321,6 +325,11 @@ func (s GitlabState) Groups() []internal.Group {
 func (s GitlabState) Group(name string) (internal.Group, bool) {
 	g, ok := s.groups[name]
 	return g, ok
+}
+
+// UnhandledGroups implements internal.State interface
+func (s GitlabState) UnhandledGroups() []string {
+	return []string{}
 }
 
 // GitlabGroup represents a group in a live instance with it's members

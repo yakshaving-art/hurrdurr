@@ -30,15 +30,17 @@ func TestLoadingState(t *testing.T) {
 		},
 	}
 	tt := []struct {
-		name          string
-		stateFile     string
-		expectedError string
-		expected      []hurrdurr.LocalGroup
+		name                    string
+		stateFile               string
+		expectedError           string
+		expected                []hurrdurr.LocalGroup
+		expectedUnhandledGroups []string
 	}{
 		{
 			"non existing file",
 			"",
 			"failed to load state file : open : no such file or directory",
+			nil,
 			nil,
 		},
 		{
@@ -46,11 +48,13 @@ func TestLoadingState(t *testing.T) {
 			"fixtures/group-without-owner.yaml",
 			"failed to build local state from file fixtures/group-without-owner.yaml: 1 error: no owner in group 'root_group'",
 			nil,
+			nil,
 		},
 		{
 			"query for owner returns nothing",
 			"fixtures/no-owner-in-query.yaml",
 			"failed to build local state from file fixtures/no-owner-in-query.yaml: 1 error: no owner in group 'skrrty'",
+			nil,
 			nil,
 		},
 		{
@@ -61,6 +65,7 @@ func TestLoadingState(t *testing.T) {
 				"User 'non_exiting' does not exists for group 'root_group'; " +
 				"no owner in group 'root_group'",
 			nil,
+			nil,
 		},
 		{
 			"invalid because of subqueries",
@@ -70,6 +75,7 @@ func TestLoadingState(t *testing.T) {
 				"group 'root_group' points at 'skrrty/Guest' which contains 'owners from root_group'. " +
 				"Subquerying is not allowed",
 			[]hurrdurr.LocalGroup{},
+			nil,
 		},
 		{
 			"invalid because of non existing group in query",
@@ -82,6 +88,7 @@ func TestLoadingState(t *testing.T) {
 				"group 'root_group' points at 'root_group/Reporter' which contains " +
 				"'whatever from root_group'. Subquerying is not allowed",
 			[]hurrdurr.LocalGroup{},
+			nil,
 		},
 		{
 			"plain state",
@@ -96,6 +103,7 @@ func TestLoadingState(t *testing.T) {
 					},
 				},
 			},
+			[]string{"other_group", "simple_group", "skrrty", "yet_another_group"},
 		},
 		{
 			"valid queries",
@@ -152,6 +160,7 @@ func TestLoadingState(t *testing.T) {
 					},
 				},
 			},
+			[]string{},
 		},
 		{
 			"multi level assignment",
@@ -166,6 +175,7 @@ func TestLoadingState(t *testing.T) {
 					},
 				},
 			},
+			[]string{"other_group", "simple_group", "skrrty", "yet_another_group"},
 		},
 	}
 
@@ -190,12 +200,10 @@ func TestLoadingState(t *testing.T) {
 			}
 
 			sort.Slice(actual, func(i, j int) bool {
-				if actual[i].GetFullpath() < actual[j].GetFullpath() {
-					return true
-				}
-				return false
+				return actual[i].GetFullpath() < actual[j].GetFullpath()
 			})
 			a.EqualValuesf(tc.expected, actual, "Wrong state, groups are not as expected")
+			a.Equalf(tc.expectedUnhandledGroups, s.UnhandledGroups(), "Wrong state, unhandled groups are not as expected")
 		})
 	}
 }
@@ -218,6 +226,13 @@ func (q querierMock) IsAdmin(u string) bool {
 func (q querierMock) GroupExists(g string) bool {
 	_, ok := q.groups[g]
 	return ok
+}
+func (q querierMock) Groups() []string {
+	groups := make([]string, 0)
+	for g := range q.groups {
+		groups = append(groups, g)
+	}
+	return groups
 }
 
 func (q querierMock) Users() []string {
