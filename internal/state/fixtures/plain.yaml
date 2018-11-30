@@ -5,3 +5,10 @@ groups:
     - admin
     developers:
     - user1
+  other_group:
+    owners:
+    - user2
+projects:
+  root_group/a_project:
+    developers:
+    - other_group

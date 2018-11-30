@@ -28,6 +28,9 @@ func TestLoadingState(t *testing.T) {
 			"simple_group":      true,
 			"yet_another_group": true,
 		},
+		projects: map[string]bool{
+			"root_group/a_project": true,
+		},
 	}
 	tt := []struct {
 		name                    string
@@ -35,11 +38,13 @@ func TestLoadingState(t *testing.T) {
 		expectedError           string
 		expected                []hurrdurr.LocalGroup
 		expectedUnhandledGroups []string
+		expectedProjects        []hurrdurr.LocalProject
 	}{
 		{
 			"non existing file",
 			"",
 			"failed to load state file : open : no such file or directory",
+			nil,
 			nil,
 			nil,
 		},
@@ -49,11 +54,13 @@ func TestLoadingState(t *testing.T) {
 			"failed to build local state from file fixtures/group-without-owner.yaml: 1 error: no owner in group 'root_group'",
 			nil,
 			nil,
+			nil,
 		},
 		{
 			"query for owner returns nothing",
 			"fixtures/no-owner-in-query.yaml",
 			"failed to build local state from file fixtures/no-owner-in-query.yaml: 1 error: no owner in group 'skrrty'",
+			nil,
 			nil,
 			nil,
 		},
@@ -66,6 +73,7 @@ func TestLoadingState(t *testing.T) {
 				"no owner in group 'root_group'",
 			nil,
 			nil,
+			nil,
 		},
 		{
 			"invalid because of subqueries",
@@ -75,6 +83,7 @@ func TestLoadingState(t *testing.T) {
 				"group 'root_group' points at 'skrrty/Guest' which contains 'owners from root_group'. " +
 				"Subquerying is not allowed",
 			[]hurrdurr.LocalGroup{},
+			nil,
 			nil,
 		},
 		{
@@ -89,12 +98,19 @@ func TestLoadingState(t *testing.T) {
 				"'whatever from root_group'. Subquerying is not allowed",
 			[]hurrdurr.LocalGroup{},
 			nil,
+			nil,
 		},
 		{
 			"plain state",
 			"fixtures/plain.yaml",
 			"",
 			[]hurrdurr.LocalGroup{
+				{
+					Fullpath: "other_group",
+					Members: map[string]internal.Level{
+						"user2": internal.Owner,
+					},
+				},
 				{
 					Fullpath: "root_group",
 					Members: map[string]internal.Level{
@@ -103,7 +119,8 @@ func TestLoadingState(t *testing.T) {
 					},
 				},
 			},
-			[]string{"other_group", "simple_group", "skrrty", "yet_another_group"},
+			[]string{"simple_group", "skrrty", "yet_another_group"},
+			nil,
 		},
 		{
 			"valid queries",
@@ -161,6 +178,7 @@ func TestLoadingState(t *testing.T) {
 				},
 			},
 			[]string{},
+			nil,
 		},
 		{
 			"multi level assignment",
@@ -176,6 +194,7 @@ func TestLoadingState(t *testing.T) {
 				},
 			},
 			[]string{"other_group", "simple_group", "skrrty", "yet_another_group"},
+			nil,
 		},
 	}
 
@@ -209,9 +228,10 @@ func TestLoadingState(t *testing.T) {
 }
 
 type querierMock struct {
-	admins map[string]bool
-	users  map[string]bool
-	groups map[string]bool
+	admins   map[string]bool
+	users    map[string]bool
+	groups   map[string]bool
+	projects map[string]bool
 }
 
 func (q querierMock) IsUser(u string) bool {
@@ -233,6 +253,11 @@ func (q querierMock) Groups() []string {
 		groups = append(groups, g)
 	}
 	return groups
+}
+
+func (q querierMock) ProjectExists(p string) bool {
+	_, ok := q.projects[p]
+	return ok
 }
 
 func (q querierMock) Users() []string {

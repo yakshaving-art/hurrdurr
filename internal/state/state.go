@@ -48,6 +48,26 @@ func (g *LocalGroup) setHasSubquery(b bool) {
 	g.Subquery = b
 }
 
+// LocalProject is a local implementation of projects loaded from a file
+type LocalProject struct {
+	fullpath     string
+	sharedGroups map[string]internal.Level
+}
+
+// GetFullpath implements internal.Project interface
+func (l LocalProject) GetFullpath() string {
+	return ""
+}
+
+// GetSharedGroups implements internal.Project interface
+func (l LocalProject) GetSharedGroups() map[string]internal.Level {
+	return l.sharedGroups
+}
+
+func (l *LocalProject) addGroupSharing(group string, level internal.Level) {
+	l.sharedGroups[group] = level
+}
+
 // LoadStateFromFile loads the desired state from a file
 func LoadStateFromFile(filename string, q internal.Querier) (internal.State, error) {
 	content, err := ioutil.ReadFile(filename)
@@ -71,6 +91,7 @@ func LoadStateFromFile(filename string, q internal.Querier) (internal.State, err
 type localState struct {
 	groups          map[string]*LocalGroup
 	unhandledGroups []string
+	projects        map[string]*LocalProject
 }
 
 func (s localState) addGroup(g *LocalGroup) {
@@ -94,6 +115,23 @@ func (s localState) UnhandledGroups() []string {
 	return s.unhandledGroups
 }
 
+func (s localState) addProject(p *LocalProject) {
+	s.projects[p.fullpath] = p
+}
+
+func (s localState) Projects() []internal.Project {
+	projects := make([]internal.Project, 0)
+	for _, p := range s.projects {
+		projects = append(projects, p)
+	}
+	return projects
+}
+
+func (s localState) Project(fullpath string) (internal.Project, bool) {
+	p, ok := s.projects[fullpath]
+	return p, ok
+}
+
 type acls struct {
 	Guests      []string `yaml:"guests,omitempty"`
 	Reporters   []string `yaml:"reporters,omitempty"`
@@ -104,12 +142,14 @@ type acls struct {
 }
 
 type state struct {
-	Groups map[string]acls `yaml:"groups"`
+	Groups   map[string]acls `yaml:"groups"`
+	Projects map[string]acls `yaml:"projects"`
 }
 
 func (s state) toLocalState(q internal.Querier) (localState, error) {
 	l := localState{
-		groups: make(map[string]*LocalGroup, 0),
+		groups:   make(map[string]*LocalGroup, 0),
+		projects: make(map[string]*LocalProject, 0),
 	}
 
 	errs := errors.New() // This object aggregates all the errors to dump them all at the end
@@ -173,6 +213,36 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 	})
 
 	l.unhandledGroups = unhandledGroups
+
+	for projectPath, acls := range s.Projects {
+		if !q.ProjectExists(projectPath) {
+			errs.Append(fmt.Errorf("project '%s' does not exist", projectPath))
+			continue
+		}
+
+		project := &LocalProject{
+			fullpath:     projectPath,
+			sharedGroups: make(map[string]internal.Level, 0),
+		}
+
+		addSharedGroups := func(groups []string, level internal.Level) {
+			for _, group := range groups {
+				if !q.GroupExists(group) {
+					errs.Append(fmt.Errorf("can't share project '%s' with non-existing group '%s'", projectPath, group))
+					continue
+				}
+				project.addGroupSharing(group, level)
+			}
+		}
+
+		addSharedGroups(acls.Owners, internal.Owner)
+		addSharedGroups(acls.Maintainers, internal.Maintainer)
+		addSharedGroups(acls.Developers, internal.Developer)
+		addSharedGroups(acls.Reporters, internal.Reporter)
+		addSharedGroups(acls.Guests, internal.Guest)
+
+		l.addProject(project)
+	}
 
 Loop:
 	for _, localGroup := range l.groups {

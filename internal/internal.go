@@ -32,11 +32,20 @@ type Group interface {
 	GetMembers() map[string]Level
 }
 
+// Project represents a gitlab project
+type Project interface {
+	GetFullpath() string
+	GetSharedGroups() map[string]Level
+}
+
 // State represents a state which includes groups and memberships
 type State interface {
 	Groups() []Group
 	Group(name string) (Group, bool)
 	UnhandledGroups() []string
+
+	Projects() []Project
+	Project(string) (Project, bool)
 }
 
 // Querier represents an object which can be used to query a live instance to validate data
@@ -44,6 +53,7 @@ type Querier interface {
 	IsUser(string) bool
 	IsAdmin(string) bool
 	GroupExists(string) bool
+	ProjectExists(string) bool
 
 	Users() []string
 	Groups() []string
@@ -57,7 +67,10 @@ type Action interface {
 
 // APIClient is the tool used to reach the remote instance and perform actions on it
 type APIClient interface {
-	AddMembership(username, group string, level int) error
-	ChangeMembership(username, group string, level int) error
+	AddMembership(username, group string, level Level) error
+	ChangeMembership(username, group string, level Level) error
 	RemoveMembership(username, group string) error
+
+	AddProjectSharing(project, group string, level Level) error
+	RemoveProjectSharing(project, group string) error
 }
