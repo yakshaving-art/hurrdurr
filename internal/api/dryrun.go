@@ -16,7 +16,7 @@ func (m DryRunAPIClient) AddMembership(username, group string, level int) error 
 
 // ChangeMembership implements the APIClient interface
 func (m DryRunAPIClient) ChangeMembership(username, group string, level int) error {
-	m.Append(fmt.Sprintf("change '%s' to '%s' at level '%d'", username, group, level))
+	m.Append(fmt.Sprintf("change '%s' in '%s' at level '%d'", username, group, level))
 	return nil
 }
 

@@ -51,11 +51,11 @@ func TestDiffingStates(t *testing.T) {
 			},
 		},
 		{
-			"change admins for developers",
+			"change admins in developers",
 			"fixtures/diff-root-with-2-admins.yaml",
 			"fixtures/diff-root-with-2-developers.yaml",
 			[]string{
-				"change 'user1' to 'root_group' at level '30'",
+				"change 'user1' in 'root_group' at level '30'",
 				"add 'user2' to 'root_group' at level '30'",
 			},
 		},

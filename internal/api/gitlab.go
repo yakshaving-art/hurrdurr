@@ -47,14 +47,25 @@ func (m GitlabAPIClient) AddMembership(username, group string, level int) error 
 	if err != nil {
 		return fmt.Errorf("failed to add user '%s' to group '%s'", username, group)
 	}
-	logrus.Debugf("added '%s' to '%s' at level '%d'", username, group, level)
+	logrus.Infof("added '%s' to '%s' at level '%d'", username, group, level)
 	return nil
 }
 
 // ChangeMembership implements the APIClient interface
 func (m GitlabAPIClient) ChangeMembership(username, group string, level int) error {
-	logrus.Infof("change '%s' to '%s' at level '%d'", username, group, level)
-	return fmt.Errorf("still not implemented")
+	userID := m.querier.getUserID(username)
+	acl := gitlab.AccessLevelValue(level)
+
+	opt := &gitlab.EditGroupMemberOptions{
+		AccessLevel: &acl,
+	}
+	_, _, err := m.client.GroupMembers.EditGroupMember(group, userID, opt)
+	if err != nil {
+		return fmt.Errorf("failed to change user '%s' in group '%s'", username, group)
+	}
+
+	logrus.Infof("changed '%s' in '%s' at level '%d'", username, group, level)
+	return nil
 }
 
 // RemoveMembership implements the APIClient interface
