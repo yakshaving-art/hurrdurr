@@ -36,6 +36,7 @@ type Group interface {
 type State interface {
 	Groups() []Group
 	Group(name string) (Group, bool)
+	UnhandledGroups() []string
 }
 
 // Querier represents an object which can be used to query a live instance to validate data
@@ -45,6 +46,7 @@ type Querier interface {
 	GroupExists(string) bool
 
 	Users() []string
+	Groups() []string
 	Admins() []string
 }
 

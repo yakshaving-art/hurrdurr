@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"regexp"
+	"sort"
 	"strings"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
@@ -68,7 +69,8 @@ func LoadStateFromFile(filename string, q internal.Querier) (internal.State, err
 }
 
 type localState struct {
-	groups map[string]*LocalGroup
+	groups          map[string]*LocalGroup
+	unhandledGroups []string
 }
 
 func (s localState) addGroup(g *LocalGroup) {
@@ -86,6 +88,10 @@ func (s localState) Groups() []internal.Group {
 func (s localState) Group(name string) (internal.Group, bool) {
 	g, ok := s.groups[name]
 	return g, ok
+}
+
+func (s localState) UnhandledGroups() []string {
+	return s.unhandledGroups
 }
 
 type acls struct {
@@ -154,6 +160,19 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 			errs.Append(fmt.Errorf("failed to execute query %s: %s", query, err))
 		}
 	}
+
+	unhandledGroups := make([]string, 0)
+	for _, g := range q.Groups() {
+		_, found := l.Group(g)
+		if !found {
+			unhandledGroups = append(unhandledGroups, g)
+		}
+	}
+	sort.Slice(unhandledGroups, func(i, j int) bool {
+		return unhandledGroups[i] < unhandledGroups[j]
+	})
+
+	l.unhandledGroups = unhandledGroups
 
 Loop:
 	for _, localGroup := range l.groups {

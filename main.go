@@ -52,6 +52,13 @@ func main() {
 			logrus.Fatalf("Faile to run action: %s", err)
 		}
 	}
+
+	if len(desiredState.UnhandledGroups()) > 0 {
+		logrus.Infof("Unhandled groups detected:")
+		for _, ug := range desiredState.UnhandledGroups() {
+			logrus.Infof("  %s", ug)
+		}
+	}
 }
 
 func setupLogger() {
