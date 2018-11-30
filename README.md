@@ -41,6 +41,10 @@ them to a gitlab instance.
   manage the groups that are declared in the configuration, other groups will
   be ignored.
 
+* #### Project
+
+  A gitlab project can be shared with a group at an ACL level.
+
 * #### Level
 
   A level setting in gitlab. The levels, sorted by decreasing access rights,
@@ -83,6 +87,10 @@ groups:
     reporters:
     - "query: users"
     - "query: owners from backend"
+projects:
+  infrastructure/myproject:
+    guests:
+    - backend
 ```
 
 ### Using Queries
@@ -125,8 +133,18 @@ groups:
     - "query: users in managers"
     owners:
     - "query: owners in managers"
+  rrhh:
+    owners:
+    - rrhh_demon
+projects:
+  rrhh/lobby:
+    guests:
+    - "developers"
 ```
 
 This will result in `pointy_haired_boss` being an owner of the handbook,
 `rrhh_demon` being a maintainer, and whoever else is registered as an active
 regular user in the gitlab instance to be assigned as a developer.
+
+And it will also share the project `rrhh/lobby` with the group `developers`
+as `guest`.
