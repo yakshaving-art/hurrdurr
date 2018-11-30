@@ -71,6 +71,70 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 
 	}
 
+Loop:
+	for _, desiredProject := range desired.Projects() {
+		currentProject, present := current.Project(desiredProject.GetFullpath())
+		for group, desiredLevel := range desiredProject.GetSharedGroups() {
+			if !present {
+				actions = append(actions, shareProjectWithGroup{
+					Project: desiredProject.GetFullpath(),
+					Group:   group,
+					Level:   desiredLevel,
+				})
+				continue Loop
+			}
+
+			currentLevel, ok := currentProject.GetSharedGroups()[group]
+			if !ok {
+				actions = append(actions, shareProjectWithGroup{
+					Project: desiredProject.GetFullpath(),
+					Group:   group,
+					Level:   desiredLevel,
+				})
+				continue Loop
+			}
+
+			if currentLevel != desiredLevel {
+				actions = append(actions, removeProjectSharing{
+					Project: desiredProject.GetFullpath(),
+					Group:   group,
+				})
+				actions = append(actions, shareProjectWithGroup{
+					Project: desiredProject.GetFullpath(),
+					Group:   group,
+					Level:   desiredLevel,
+				})
+			}
+
+			// If they are at the same level, nothing to do
+		}
+
+		for group := range currentProject.GetSharedGroups() {
+			_, ok := desiredProject.GetSharedGroups()[group]
+			if !ok {
+				actions = append(actions, removeProjectSharing{
+					Project: desiredProject.GetFullpath(),
+					Group:   group,
+				})
+			}
+		}
+	}
+
+	for _, currentProject := range current.Projects() {
+		_, present := desired.Project(currentProject.GetFullpath())
+		if present {
+			continue
+		}
+
+		for group := range currentProject.GetSharedGroups() {
+			actions = append(actions, removeProjectSharing{
+				Project: currentProject.GetFullpath(),
+				Group:   group,
+			})
+
+		}
+	}
+
 	return actions, errs.ErrorOrNil()
 }
 
@@ -101,4 +165,23 @@ type removeUserAction struct {
 
 func (r removeUserAction) Execute(c internal.APIClient) error {
 	return c.RemoveMembership(r.Username, r.Group)
+}
+
+type shareProjectWithGroup struct {
+	Project string
+	Group   string
+	Level   internal.Level
+}
+
+func (r shareProjectWithGroup) Execute(c internal.APIClient) error {
+	return c.AddProjectSharing(r.Project, r.Group, r.Level)
+}
+
+type removeProjectSharing struct {
+	Project string
+	Group   string
+}
+
+func (r removeProjectSharing) Execute(c internal.APIClient) error {
+	return c.RemoveProjectSharing(r.Project, r.Group)
 }

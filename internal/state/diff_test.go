@@ -24,6 +24,9 @@ func TestDiffingStates(t *testing.T) {
 			"skrrty":      true,
 			"other_group": true,
 		},
+		projects: map[string]bool{
+			"root_group/myawesomeproject": true,
+		},
 	}
 
 	tt := []struct {
@@ -57,6 +60,22 @@ func TestDiffingStates(t *testing.T) {
 			[]string{
 				"change 'user1' in 'root_group' at level 'Developer'",
 				"add 'user2' to 'root_group' at level 'Developer'",
+			},
+		},
+		{
+			"share root with skrrty",
+			"fixtures/diff-with-skrrty-group.yaml",
+			"fixtures/diff-share-root-with-skrrty-group.yaml",
+			[]string{
+				"share project 'root_group/myawesomeproject' with group 'skrrty' at level 'Maintainer'",
+			},
+		},
+		{
+			"unshare root with skrrty",
+			"fixtures/diff-share-root-with-skrrty-group.yaml",
+			"fixtures/diff-with-skrrty-group.yaml",
+			[]string{
+				"remove project sharing from 'root_group/myawesomeproject' with group 'skrrty'",
 			},
 		},
 	}

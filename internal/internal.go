@@ -36,6 +36,7 @@ type Group interface {
 type Project interface {
 	GetFullpath() string
 	GetSharedGroups() map[string]Level
+	GetGroupLevel(string) (Level, bool)
 }
 
 // State represents a state which includes groups and memberships

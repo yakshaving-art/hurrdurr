@@ -471,6 +471,12 @@ func (g GitlabProject) GetSharedGroups() map[string]internal.Level {
 	return g.sharedWith
 }
 
+// GetGroupLevel implements internal.Project interface
+func (g GitlabProject) GetGroupLevel(group string) (internal.Level, bool) {
+	level, ok := g.sharedWith[group]
+	return level, ok
+}
+
 func toStringSlice(m map[string]int) []string {
 	slice := make([]string, 0)
 	for v := range m {
