@@ -18,13 +18,15 @@ type Args struct {
 
 	DryRun      bool
 	ShowVersion bool
+	Debug       bool
 }
 
 func parseArgs() Args {
 	args := Args{}
 
 	flag.BoolVar(&args.ShowVersion, "version", false, "show version and exit")
-	flag.BoolVar(&args.DryRun, "drurun", false, "executes in dryrun mode. Avoids making any change")
+	flag.BoolVar(&args.DryRun, "dryrun", false, "executes in dryrun mode. Avoids making any change")
+	flag.BoolVar(&args.Debug, "debug", false, "executes with logging in debug mode")
 
 	flag.StringVar(&args.ConfigFile, "config", "config.yaml", "configuration file to load")
 
