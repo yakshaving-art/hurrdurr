@@ -116,6 +116,10 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 		groups[group.FullPath] = true
 	}
 
+	if len(admins) == 0 {
+		errs.Append(fmt.Errorf("no admin was detected, are you using an admin token?"))
+	}
+
 	return GitlabQuerier{
 		users:  users,
 		admins: admins,
