@@ -34,7 +34,7 @@ func NewGitlabAPIClient(gitlabToken, gitlabBaseURL string) GitlabAPIClient {
 }
 
 // AddMembership implements the APIClient interface
-func (m GitlabAPIClient) AddMembership(username, group string, level int) error {
+func (m GitlabAPIClient) AddMembership(username, group string, level internal.Level) error {
 	userID := m.querier.getUserID(username)
 	acl := gitlab.AccessLevelValue(level)
 
@@ -52,7 +52,7 @@ func (m GitlabAPIClient) AddMembership(username, group string, level int) error 
 }
 
 // ChangeMembership implements the APIClient interface
-func (m GitlabAPIClient) ChangeMembership(username, group string, level int) error {
+func (m GitlabAPIClient) ChangeMembership(username, group string, level internal.Level) error {
 	userID := m.querier.getUserID(username)
 	acl := gitlab.AccessLevelValue(level)
 
@@ -81,7 +81,7 @@ func (m GitlabAPIClient) RemoveMembership(username, group string) error {
 }
 
 // AddProjectSharing implements the APIClient interface
-func (m GitlabAPIClient) AddProjectSharing(project, group string, level int) error {
+func (m GitlabAPIClient) AddProjectSharing(project, group string, level internal.Level) error {
 	id := m.querier.getGroupID(group)
 	acl := gitlab.AccessLevelValue(level)
 
