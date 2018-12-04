@@ -74,4 +74,8 @@ type APIClient interface {
 
 	AddProjectSharing(project, group string, level Level) error
 	RemoveProjectSharing(project, group string) error
+
+	AddProjectMembership(username, project string, level Level) error
+	ChangeProjectMembership(username, project string, level Level) error
+	RemoveProjectMembership(username, project string) error
 }

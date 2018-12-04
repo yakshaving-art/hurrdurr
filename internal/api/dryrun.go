@@ -41,3 +41,21 @@ func (m DryRunAPIClient) RemoveProjectSharing(project, group string) error {
 	m.Append(fmt.Sprintf("remove project sharing from '%s' with group '%s'", project, group))
 	return nil
 }
+
+// AddProjectMembership implements the APIClient interface
+func (m DryRunAPIClient) AddProjectMembership(username, project string, level internal.Level) error {
+	m.Append(fmt.Sprintf("add '%s' to '%s' at level '%s'", username, project, level))
+	return nil
+}
+
+// ChangeProjectMembership implements the APIClient interface
+func (m DryRunAPIClient) ChangeProjectMembership(username, project string, level internal.Level) error {
+	m.Append(fmt.Sprintf("change '%s' in '%s' at level '%s'", username, project, level))
+	return nil
+}
+
+// RemoveProjectMembership implements the APIClient interface
+func (m DryRunAPIClient) RemoveProjectMembership(username, project string) error {
+	m.Append(fmt.Sprintf("remove '%s' from '%s'", username, project))
+	return nil
+}

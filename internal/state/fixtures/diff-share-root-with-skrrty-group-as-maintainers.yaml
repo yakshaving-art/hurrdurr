@@ -13,3 +13,5 @@ projects:
   root_group/myawesomeproject:
     maintainers:
     - 'share_with: skrrty'
+    developers:
+    - 'query: owners in root_group'

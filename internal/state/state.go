@@ -56,6 +56,7 @@ func (g *LocalGroup) setHasSubquery(b bool) {
 type LocalProject struct {
 	Fullpath     string
 	SharedGroups map[string]internal.Level
+	Members      map[string]internal.Level
 }
 
 // GetFullpath implements internal.Project interface
@@ -76,6 +77,18 @@ func (l LocalProject) GetGroupLevel(group string) (internal.Level, bool) {
 
 func (l *LocalProject) addGroupSharing(group string, level internal.Level) {
 	l.SharedGroups[group] = level
+}
+
+func (l LocalProject) String() string {
+	return l.GetFullpath()
+}
+
+func (l LocalProject) addMember(username string, level internal.Level) {
+	lvl, ok := l.Members[username]
+	if ok && lvl > level {
+		return
+	}
+	l.Members[username] = level
 }
 
 // LoadStateFromFile loads the desired state from a file
@@ -235,18 +248,33 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 			SharedGroups: make(map[string]internal.Level, 0),
 		}
 
-		addSharedGroups := func(groups []string, level internal.Level) {
-			for _, group := range groups {
-				if strings.HasPrefix(group, "share_with:") {
-					group = strings.TrimSpace(group[11:])
-					if !q.GroupExists(group) {
-						errs.Append(fmt.Errorf("can't share project '%s' with non-existing group '%s'", projectPath, group))
+		addSharedGroups := func(members []string, level internal.Level) {
+			for _, member := range members {
+				if strings.HasPrefix(member, "share_with:") {
+					member = strings.TrimSpace(member[11:])
+					if !q.GroupExists(member) {
+						errs.Append(fmt.Errorf("can't share project '%s' with non-existing group '%s'", projectPath, member))
 						continue
 					}
-					project.addGroupSharing(group, level)
+					project.addGroupSharing(member, level)
 					continue
 				}
-				errs.Append(fmt.Errorf("don't know what to do with '%s'", group))
+
+				if strings.HasPrefix(member, "query:") {
+					queries = append(queries, query{
+						query:       strings.TrimSpace(member[6:]),
+						level:       level,
+						memberAdder: project,
+					})
+					continue
+				}
+
+				if !q.IsUser(member) && !q.IsAdmin(member) {
+					errs.Append(fmt.Errorf("User '%s' does not exists for project '%s'", member, project))
+					continue
+				}
+
+				project.addMember(member, level)
 			}
 		}
 

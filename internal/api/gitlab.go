@@ -108,6 +108,53 @@ func (m GitlabAPIClient) RemoveProjectSharing(project, group string) error {
 	return nil
 }
 
+// AddProjectMembership implements the APIClient interface
+func (m GitlabAPIClient) AddProjectMembership(username, project string, level internal.Level) error {
+	userID := m.querier.getUserID(username)
+	acl := gitlab.AccessLevelValue(level)
+
+	opt := &gitlab.AddProjectMemberOptions{
+		UserID:      &userID,
+		AccessLevel: &acl,
+	}
+
+	_, _, err := m.client.ProjectMembers.AddProjectMember(project, opt)
+	if err != nil {
+		return fmt.Errorf("failed to add user '%s' to project '%s'", username, project)
+	}
+	logrus.Infof("added '%s' to '%s' at level '%d'", username, project, level)
+	return nil
+}
+
+// ChangeProjectMembership implements the APIClient interface
+func (m GitlabAPIClient) ChangeProjectMembership(username, project string, level internal.Level) error {
+	userID := m.querier.getUserID(username)
+	acl := gitlab.AccessLevelValue(level)
+
+	opt := &gitlab.EditProjectMemberOptions{
+		AccessLevel: &acl,
+	}
+	_, _, err := m.client.ProjectMembers.EditProjectMember(project, userID, opt)
+	if err != nil {
+		return fmt.Errorf("failed to change user '%s' in project '%s'", username, project)
+	}
+
+	logrus.Infof("changed '%s' in '%s' at level '%d'", username, project, level)
+	return nil
+}
+
+// RemoveProjectMembership implements the APIClient interface
+func (m GitlabAPIClient) RemoveProjectMembership(username, project string) error {
+	userID := m.querier.getUserID(username)
+
+	_, err := m.client.ProjectMembers.DeleteProjectMember(project, userID)
+	if err != nil {
+		return fmt.Errorf("failed to remove user '%s' from project '%s'", username, project)
+	}
+	logrus.Infof(fmt.Sprintf("removed '%s' from '%s'", username, project))
+	return nil
+}
+
 // LoadState loads all the state from a remote gitlab instance and returns
 // both a querier and a state so they can be used for diffing operations
 func (m *GitlabAPIClient) LoadState() (internal.Querier, internal.State, error) {
