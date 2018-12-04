@@ -145,7 +145,7 @@ type changeUserLevelAction struct {
 }
 
 func (s changeUserLevelAction) Execute(c internal.APIClient) error {
-	return c.ChangeMembership(s.Username, s.Group, s.Level)
+	return c.ChangeGroupMembership(s.Username, s.Group, s.Level)
 }
 
 type addUserMembershipAction struct {
@@ -155,7 +155,7 @@ type addUserMembershipAction struct {
 }
 
 func (s addUserMembershipAction) Execute(c internal.APIClient) error {
-	return c.AddMembership(s.Username, s.Group, s.Level)
+	return c.AddGroupMembership(s.Username, s.Group, s.Level)
 }
 
 type removeUserAction struct {
@@ -164,7 +164,7 @@ type removeUserAction struct {
 }
 
 func (r removeUserAction) Execute(c internal.APIClient) error {
-	return c.RemoveMembership(r.Username, r.Group)
+	return c.RemoveGroupMembership(r.Username, r.Group)
 }
 
 type shareProjectWithGroup struct {

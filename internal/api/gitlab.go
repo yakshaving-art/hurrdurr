@@ -33,8 +33,8 @@ func NewGitlabAPIClient(gitlabToken, gitlabBaseURL string) GitlabAPIClient {
 	}
 }
 
-// AddMembership implements the APIClient interface
-func (m GitlabAPIClient) AddMembership(username, group string, level internal.Level) error {
+// AddGroupMembership implements the APIClient interface
+func (m GitlabAPIClient) AddGroupMembership(username, group string, level internal.Level) error {
 	userID := m.querier.getUserID(username)
 	acl := gitlab.AccessLevelValue(level)
 
@@ -51,8 +51,8 @@ func (m GitlabAPIClient) AddMembership(username, group string, level internal.Le
 	return nil
 }
 
-// ChangeMembership implements the APIClient interface
-func (m GitlabAPIClient) ChangeMembership(username, group string, level internal.Level) error {
+// ChangeGroupMembership implements the APIClient interface
+func (m GitlabAPIClient) ChangeGroupMembership(username, group string, level internal.Level) error {
 	userID := m.querier.getUserID(username)
 	acl := gitlab.AccessLevelValue(level)
 
@@ -68,8 +68,8 @@ func (m GitlabAPIClient) ChangeMembership(username, group string, level internal
 	return nil
 }
 
-// RemoveMembership implements the APIClient interface
-func (m GitlabAPIClient) RemoveMembership(username, group string) error {
+// RemoveGroupMembership implements the APIClient interface
+func (m GitlabAPIClient) RemoveGroupMembership(username, group string) error {
 	userID := m.querier.getUserID(username)
 
 	_, err := m.client.GroupMembers.RemoveGroupMember(group, userID)

@@ -68,9 +68,9 @@ type Action interface {
 
 // APIClient is the tool used to reach the remote instance and perform actions on it
 type APIClient interface {
-	AddMembership(username, group string, level Level) error
-	ChangeMembership(username, group string, level Level) error
-	RemoveMembership(username, group string) error
+	AddGroupMembership(username, group string, level Level) error
+	ChangeGroupMembership(username, group string, level Level) error
+	RemoveGroupMembership(username, group string) error
 
 	AddProjectSharing(project, group string, level Level) error
 	RemoveProjectSharing(project, group string) error

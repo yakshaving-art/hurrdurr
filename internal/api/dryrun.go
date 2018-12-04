@@ -12,20 +12,20 @@ type DryRunAPIClient struct {
 	Append func(string)
 }
 
-// AddMembership implements the APIClient interface
-func (m DryRunAPIClient) AddMembership(username, group string, level internal.Level) error {
+// AddGroupMembership implements the APIClient interface
+func (m DryRunAPIClient) AddGroupMembership(username, group string, level internal.Level) error {
 	m.Append(fmt.Sprintf("add '%s' to '%s' at level '%s'", username, group, level))
 	return nil
 }
 
-// ChangeMembership implements the APIClient interface
-func (m DryRunAPIClient) ChangeMembership(username, group string, level internal.Level) error {
+// ChangeGroupMembership implements the APIClient interface
+func (m DryRunAPIClient) ChangeGroupMembership(username, group string, level internal.Level) error {
 	m.Append(fmt.Sprintf("change '%s' in '%s' at level '%s'", username, group, level))
 	return nil
 }
 
-// RemoveMembership implements the APIClient interface
-func (m DryRunAPIClient) RemoveMembership(username, group string) error {
+// RemoveGroupMembership implements the APIClient interface
+func (m DryRunAPIClient) RemoveGroupMembership(username, group string) error {
 	m.Append(fmt.Sprintf("remove '%s' from '%s'", username, group))
 	return nil
 }
