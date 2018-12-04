@@ -36,12 +36,16 @@ func (g LocalGroup) HasSubquery() bool {
 	return g.Subquery
 }
 
-func (g *LocalGroup) addMember(username string, level internal.Level) {
+func (g LocalGroup) addMember(username string, level internal.Level) {
 	l, ok := g.Members[username]
 	if ok && l > level {
 		return
 	}
 	g.Members[username] = level
+}
+
+func (g LocalGroup) String() string {
+	return g.GetFullpath()
 }
 
 func (g *LocalGroup) setHasSubquery(b bool) {
@@ -176,9 +180,9 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 			for _, member := range members {
 				if strings.HasPrefix(member, "query:") {
 					queries = append(queries, query{
-						query:    strings.TrimSpace(member[6:]),
-						level:    level,
-						fullpath: fullpath,
+						query:       strings.TrimSpace(member[6:]),
+						level:       level,
+						memberAdder: group,
 					})
 					group.setHasSubquery(true)
 					continue
@@ -266,24 +270,24 @@ Loop:
 var queryMatch = regexp.MustCompile("^(.*?) (?:from|in) (.*?)$")
 
 type query struct {
-	query    string
-	level    internal.Level
-	fullpath string
+	query       string
+	level       internal.Level
+	memberAdder memberAdder
+}
+
+type memberAdder interface {
+	addMember(member string, level internal.Level)
+	String() string
 }
 
 func (q query) String() string {
-	return fmt.Sprintf("'%s' for '%s/%s'", q.query, q.fullpath, q.level)
+	return fmt.Sprintf("'%s' for '%s/%s'", q.query, q.memberAdder, q.level)
 }
 
 func (q query) Execute(state localState, querier internal.Querier) error {
-	group, ok := state.groups[q.fullpath]
-	if !ok {
-		return fmt.Errorf("could not find group in list %s", q.fullpath)
-	}
-
 	addMembers := func(members []string) error {
 		for _, member := range members {
-			group.addMember(member, q.level)
+			q.memberAdder.addMember(member, q.level)
 		}
 		return nil
 	}
@@ -308,12 +312,12 @@ func (q query) Execute(state localState, querier internal.Querier) error {
 		grp, ok := state.Group(queriedGroupName)
 		if !ok {
 			return fmt.Errorf("could not find group '%s' to resolve query '%s' in '%s/%s'",
-				queriedGroupName, q.query, q.fullpath, q.level)
+				queriedGroupName, q.query, q.memberAdder, q.level)
 		}
 		queriedGroup := grp.(*LocalGroup)
 		if queriedGroup.HasSubquery() {
 			return fmt.Errorf("group '%s' points at '%s/%s' which contains '%s'. Subquerying is not allowed",
-				queriedGroupName, q.fullpath, q.level, q.query)
+				queriedGroupName, q.memberAdder, q.level, q.query)
 		}
 
 		filterByLevel := func(members map[string]internal.Level, level internal.Level) []string {
