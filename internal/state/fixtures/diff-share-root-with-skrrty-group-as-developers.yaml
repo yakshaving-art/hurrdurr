@@ -12,4 +12,4 @@ groups:
 projects:
   root_group/myawesomeproject:
     developers:
-    - skrrty
+    - 'share_with: skrrty'

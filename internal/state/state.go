@@ -237,11 +237,16 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 
 		addSharedGroups := func(groups []string, level internal.Level) {
 			for _, group := range groups {
-				if !q.GroupExists(group) {
-					errs.Append(fmt.Errorf("can't share project '%s' with non-existing group '%s'", projectPath, group))
+				if strings.HasPrefix(group, "share_with:") {
+					group = strings.TrimSpace(group[11:])
+					if !q.GroupExists(group) {
+						errs.Append(fmt.Errorf("can't share project '%s' with non-existing group '%s'", projectPath, group))
+						continue
+					}
+					project.addGroupSharing(group, level)
 					continue
 				}
-				project.addGroupSharing(group, level)
+				errs.Append(fmt.Errorf("don't know what to do with '%s'", group))
 			}
 		}
 

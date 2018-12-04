@@ -11,4 +11,4 @@ groups:
 projects:
   root_group/a_project:
     developers:
-    - other_group
+    - 'share_with: other_group'
