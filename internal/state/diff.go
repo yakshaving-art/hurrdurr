@@ -71,17 +71,16 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 
 	}
 
-Loop:
 	for _, desiredProject := range desired.Projects() {
-		currentProject, present := current.Project(desiredProject.GetFullpath())
+		currentProject, currentProjectPresent := current.Project(desiredProject.GetFullpath())
 		for group, desiredLevel := range desiredProject.GetSharedGroups() {
-			if !present {
+			if !currentProjectPresent {
 				actions = append(actions, shareProjectWithGroup{
 					Project: desiredProject.GetFullpath(),
 					Group:   group,
 					Level:   desiredLevel,
 				})
-				continue Loop
+				break
 			}
 
 			currentLevel, ok := currentProject.GetSharedGroups()[group]
@@ -91,7 +90,7 @@ Loop:
 					Group:   group,
 					Level:   desiredLevel,
 				})
-				continue Loop
+				break
 			}
 
 			if currentLevel != desiredLevel {
@@ -109,6 +108,41 @@ Loop:
 			// If they are at the same level, nothing to do
 		}
 
+		desiredMembers := desiredProject.GetMembers()
+
+		if currentProjectPresent {
+			currentMembers := currentProject.GetMembers()
+
+			for desiredName, desiredLevel := range desiredMembers {
+				currentLevel, present := currentMembers[desiredName]
+				if !present {
+					actions = append(actions, addProjectMembership{
+						Project:  desiredProject.GetFullpath(),
+						Username: desiredName,
+						Level:    desiredLevel})
+					continue
+				}
+
+				if currentLevel != desiredLevel {
+					actions = append(actions, changeProjectMembership{
+						Project:  desiredProject.GetFullpath(),
+						Username: desiredName,
+						Level:    desiredLevel})
+					continue
+				}
+
+				// Do nothing, there's no change
+			}
+		} else {
+			for member, level := range desiredMembers {
+				actions = append(actions, addProjectMembership{
+					Username: member,
+					Project:  desiredProject.GetFullpath(),
+					Level:    level,
+				})
+			}
+		}
+
 		for group := range currentProject.GetSharedGroups() {
 			_, ok := desiredProject.GetSharedGroups()[group]
 			if !ok {
@@ -118,6 +152,7 @@ Loop:
 				})
 			}
 		}
+
 	}
 
 	for _, currentProject := range current.Projects() {
@@ -184,4 +219,33 @@ type removeProjectSharing struct {
 
 func (r removeProjectSharing) Execute(c internal.APIClient) error {
 	return c.RemoveProjectSharing(r.Project, r.Group)
+}
+
+type addProjectMembership struct {
+	Project  string
+	Username string
+	Level    internal.Level
+}
+
+func (r addProjectMembership) Execute(c internal.APIClient) error {
+	return c.AddProjectMembership(r.Username, r.Project, r.Level)
+}
+
+type changeProjectMembership struct {
+	Project  string
+	Username string
+	Level    internal.Level
+}
+
+func (r changeProjectMembership) Execute(c internal.APIClient) error {
+	return c.ChangeProjectMembership(r.Username, r.Project, r.Level)
+}
+
+type removeProjectMembership struct {
+	Project  string
+	Username string
+}
+
+func (r removeProjectMembership) Execute(c internal.APIClient) error {
+	return c.RemoveProjectMembership(r.Username, r.Project)
 }

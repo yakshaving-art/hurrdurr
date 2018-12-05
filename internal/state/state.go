@@ -79,6 +79,11 @@ func (l *LocalProject) addGroupSharing(group string, level internal.Level) {
 	l.SharedGroups[group] = level
 }
 
+// GetMembers implements internal.Project interface
+func (l LocalProject) GetMembers() map[string]internal.Level {
+	return l.Members
+}
+
 func (l LocalProject) String() string {
 	return l.GetFullpath()
 }

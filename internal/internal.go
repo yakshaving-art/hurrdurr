@@ -35,8 +35,10 @@ type Group interface {
 // Project represents a gitlab project
 type Project interface {
 	GetFullpath() string
-	GetSharedGroups() map[string]Level
 	GetGroupLevel(string) (Level, bool)
+
+	GetSharedGroups() map[string]Level
+	GetMembers() map[string]Level
 }
 
 // State represents a state which includes groups and memberships
