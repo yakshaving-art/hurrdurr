@@ -506,6 +506,7 @@ func (g GitlabGroup) GetMembers() map[string]internal.Level {
 type GitlabProject struct {
 	fullpath   string
 	sharedWith map[string]internal.Level
+	members    map[string]internal.Level
 }
 
 // GetFullpath implements internal.Project interface
@@ -522,6 +523,11 @@ func (g GitlabProject) GetSharedGroups() map[string]internal.Level {
 func (g GitlabProject) GetGroupLevel(group string) (internal.Level, bool) {
 	level, ok := g.sharedWith[group]
 	return level, ok
+}
+
+// GetMembers implements internal.Project interface
+func (g GitlabProject) GetMembers() map[string]internal.Level {
+	return g.members
 }
 
 func toStringSlice(m map[string]int) []string {

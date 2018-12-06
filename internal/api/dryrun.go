@@ -50,7 +50,7 @@ func (m DryRunAPIClient) AddProjectMembership(username, project string, level in
 
 // ChangeProjectMembership implements the APIClient interface
 func (m DryRunAPIClient) ChangeProjectMembership(username, project string, level internal.Level) error {
-	m.Append(fmt.Sprintf("change '%s' in '%s' at level '%s'", username, project, level))
+	m.Append(fmt.Sprintf("change '%s' in '%s' to level '%s'", username, project, level))
 	return nil
 }
 

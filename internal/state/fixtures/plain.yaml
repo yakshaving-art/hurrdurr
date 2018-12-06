@@ -8,7 +8,3 @@ groups:
   other_group:
     owners:
     - user2
-projects:
-  root_group/a_project:
-    developers:
-    - 'share_with: other_group'

@@ -170,8 +170,8 @@ type acls struct {
 }
 
 type state struct {
-	Groups   map[string]acls `yaml:"groups"`
-	Projects map[string]acls `yaml:"projects"`
+	Groups   map[string]acls `yaml:"groups,omitempty"`
+	Projects map[string]acls `yaml:"projects,omitempty"`
 }
 
 func (s state) toLocalState(q internal.Querier) (localState, error) {
@@ -223,12 +223,6 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 		l.addGroup(group)
 	}
 
-	for _, query := range queries {
-		if err := query.Execute(l, q); err != nil {
-			errs.Append(fmt.Errorf("failed to execute query %s: %s", query, err))
-		}
-	}
-
 	unhandledGroups := make([]string, 0)
 	for _, g := range q.Groups() {
 		_, found := l.Group(g)
@@ -251,6 +245,7 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 		project := &LocalProject{
 			Fullpath:     projectPath,
 			SharedGroups: make(map[string]internal.Level, 0),
+			Members:      make(map[string]internal.Level, 0),
 		}
 
 		addSharedGroups := func(members []string, level internal.Level) {
@@ -290,6 +285,12 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 		addSharedGroups(acls.Guests, internal.Guest)
 
 		l.addProject(project)
+	}
+
+	for _, query := range queries {
+		if err := query.Execute(l, q); err != nil {
+			errs.Append(fmt.Errorf("failed to execute query %s: %s", query, err))
+		}
 	}
 
 Loop:

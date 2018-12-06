@@ -120,11 +120,37 @@ func TestLoadingState(t *testing.T) {
 				},
 			},
 			[]string{"simple_group", "skrrty", "yet_another_group"},
+			[]hurrdurr.LocalProject{},
+		},
+		{
+			"plain state with project",
+			"fixtures/plain-with-project.yaml",
+			"",
+			[]hurrdurr.LocalGroup{
+				{
+					Fullpath: "other_group",
+					Members: map[string]internal.Level{
+						"user2": internal.Owner,
+					},
+				},
+				{
+					Fullpath: "root_group",
+					Members: map[string]internal.Level{
+						"admin": internal.Owner,
+						"user1": internal.Developer,
+					},
+				},
+			},
+			[]string{"simple_group", "skrrty", "yet_another_group"},
 			[]hurrdurr.LocalProject{
 				{
 					Fullpath: "root_group/a_project",
 					SharedGroups: map[string]internal.Level{
 						"other_group": internal.Developer,
+					},
+					Members: map[string]internal.Level{
+						"admin": internal.Owner,
+						"user2": internal.Maintainer,
 					},
 				},
 			},
