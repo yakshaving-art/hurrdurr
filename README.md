@@ -108,6 +108,15 @@ Queries are simple on purporse, and follow strict rules.
    backend` would return `ninja_dev, samurai, ronin`.
 1. You can use more than one query to assign to a level.
 
+### Project ACL management
+
+Project specific ALCs can be managed in 2 ways:
+
+1. By applying specific ACLs the same way we do with groups. By both
+   declaring specific people at specific levels, or using query expansions.
+1. By sharing the project with a given group at a specific level. This will
+   result in the whole group having access to the project at the shared level.
+
 ### ACL Leveling on expansion
 
 Every member that is defined in a group will get the higher level it could
@@ -139,12 +148,9 @@ groups:
 projects:
   rrhh/lobby:
     guests:
-    - "developers"
+    - "share_with: developers"
+    reporters:
+    - "query: reporters in managers"
+    owners:
+    - pointy_haired_boss
 ```
-
-This will result in `pointy_haired_boss` being an owner of the handbook,
-`rrhh_demon` being a maintainer, and whoever else is registered as an active
-regular user in the gitlab instance to be assigned as a developer.
-
-And it will also share the project `rrhh/lobby` with the group `developers`
-as `guest`.
