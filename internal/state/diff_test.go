@@ -9,26 +9,40 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var querier = querierMock{
+	admins: map[string]bool{
+		"admin": true,
+	},
+	users: map[string]bool{
+		"user1": true,
+		"user2": true,
+		"user3": true,
+	},
+	groups: map[string]bool{
+		"root_group":  true,
+		"skrrty":      true,
+		"other_group": true,
+	},
+	projects: map[string]bool{
+		"root_group/a_project":        true,
+		"root_group/myawesomeproject": true,
+	},
+}
+
+func TestDiffWithoutOneStateFails(t *testing.T) {
+	a := assert.New(t)
+
+	s, err := state.LoadStateFromFile("fixtures/plain.yaml", querier)
+	a.NoError(err)
+
+	_, err = state.Diff(nil, s)
+	a.EqualError(err, "invalid current state: nil")
+
+	_, err = state.Diff(s, nil)
+	a.EqualError(err, "invalid desired state: nil")
+}
+
 func TestDiffingStates(t *testing.T) {
-	querier := querierMock{
-		admins: map[string]bool{
-			"admin": true,
-		},
-		users: map[string]bool{
-			"user1": true,
-			"user2": true,
-			"user3": true,
-		},
-		groups: map[string]bool{
-			"root_group":  true,
-			"skrrty":      true,
-			"other_group": true,
-		},
-		projects: map[string]bool{
-			"root_group/a_project":        true,
-			"root_group/myawesomeproject": true,
-		},
-	}
 
 	tt := []struct {
 		name           string
@@ -123,6 +137,23 @@ func TestDiffingStates(t *testing.T) {
 				"add 'user3' to 'root_group/a_project' at level 'Reporter'",
 				"remove project sharing from 'root_group/a_project' with group 'other_group'",
 			},
+		},
+		{
+			"change project permissions the other way",
+			"fixtures/plain-with-other-levels-project.yaml",
+			"fixtures/plain-with-project.yaml",
+			[]string{
+				"remove 'user1' from 'root_group/a_project'",
+				"remove 'user3' from 'root_group/a_project'",
+				"change 'user2' in 'root_group/a_project' to level 'Maintainer'",
+				"share project 'root_group/a_project' with group 'other_group' at level 'Developer'",
+			},
+		},
+		{
+			"project permissions withour changes",
+			"fixtures/plain-with-project.yaml",
+			"fixtures/plain-with-project.yaml",
+			[]string{},
 		},
 	}
 
