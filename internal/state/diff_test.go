@@ -150,7 +150,7 @@ func TestDiffingStates(t *testing.T) {
 			},
 		},
 		{
-			"project permissions withour changes",
+			"plain project permissions without changes",
 			"fixtures/plain-with-project.yaml",
 			"fixtures/plain-with-project.yaml",
 			[]string{},
@@ -186,10 +186,10 @@ func TestDiffingStates(t *testing.T) {
 			// a.Equal(tc.desiredActions, executedActions, "actions are not as expected")
 
 			for _, action := range tc.desiredActions {
-				a.Contains(executedActions, action, "more executed actions than desired")
+				a.Contains(executedActions, action, "more desired actions than executed")
 			}
 			for _, action := range executedActions {
-				a.Contains(tc.desiredActions, action, "more desired actions than executed")
+				a.Contains(tc.desiredActions, action, "more executed actions than desired")
 			}
 
 		})
