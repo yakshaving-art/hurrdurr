@@ -41,6 +41,10 @@ them to a gitlab instance.
   manage the groups that are declared in the configuration, other groups will
   be ignored.
 
+* #### Project
+
+  A gitlab project can be shared with a group at an ACL level.
+
 * #### Level
 
   A level setting in gitlab. The levels, sorted by decreasing access rights,
@@ -83,6 +87,10 @@ groups:
     reporters:
     - "query: users"
     - "query: owners from backend"
+projects:
+  infrastructure/myproject:
+    guests:
+    - backend
 ```
 
 ### Using Queries
@@ -99,6 +107,15 @@ Queries are simple on purporse, and follow strict rules.
 1. You can query for `users` in a group. For example: `users in
    backend` would return `ninja_dev, samurai, ronin`.
 1. You can use more than one query to assign to a level.
+
+### Project ACL management
+
+Project specific ALCs can be managed in 2 ways:
+
+1. By applying specific ACLs the same way we do with groups. By both
+   declaring specific people at specific levels, or using query expansions.
+1. By sharing the project with a given group at a specific level. This will
+   result in the whole group having access to the project at the shared level.
 
 ### ACL Leveling on expansion
 
@@ -125,8 +142,15 @@ groups:
     - "query: users in managers"
     owners:
     - "query: owners in managers"
+  rrhh:
+    owners:
+    - rrhh_demon
+projects:
+  rrhh/lobby:
+    guests:
+    - "share_with: developers"
+    reporters:
+    - "query: reporters in managers"
+    owners:
+    - pointy_haired_boss
 ```
-
-This will result in `pointy_haired_boss` being an owner of the handbook,
-`rrhh_demon` being a maintainer, and whoever else is registered as an active
-regular user in the gitlab instance to be assigned as a developer.
