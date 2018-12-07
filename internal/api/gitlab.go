@@ -45,7 +45,7 @@ func (m GitlabAPIClient) AddGroupMembership(username, group string, level intern
 
 	_, _, err := m.client.GroupMembers.AddGroupMember(group, opt)
 	if err != nil {
-		return fmt.Errorf("failed to add user '%s' to group '%s'", username, group)
+		return fmt.Errorf("failed to add user '%s' to group '%s': %s", username, group, err)
 	}
 	logrus.Infof("added '%s' to '%s' at level '%d'", username, group, level)
 	return nil
@@ -61,7 +61,7 @@ func (m GitlabAPIClient) ChangeGroupMembership(username, group string, level int
 	}
 	_, _, err := m.client.GroupMembers.EditGroupMember(group, userID, opt)
 	if err != nil {
-		return fmt.Errorf("failed to change user '%s' in group '%s'", username, group)
+		return fmt.Errorf("failed to change user '%s' in group '%s': %s", username, group, err)
 	}
 
 	logrus.Infof("changed '%s' in '%s' at level '%d'", username, group, level)
@@ -74,7 +74,7 @@ func (m GitlabAPIClient) RemoveGroupMembership(username, group string) error {
 
 	_, err := m.client.GroupMembers.RemoveGroupMember(group, userID)
 	if err != nil {
-		return fmt.Errorf("failed to remove user '%s' from group '%s'", username, group)
+		return fmt.Errorf("failed to remove user '%s' from group '%s': %s", username, group, err)
 	}
 	logrus.Infof(fmt.Sprintf("removed '%s' from '%s'", username, group))
 	return nil
@@ -120,7 +120,7 @@ func (m GitlabAPIClient) AddProjectMembership(username, project string, level in
 
 	_, _, err := m.client.ProjectMembers.AddProjectMember(project, opt)
 	if err != nil {
-		return fmt.Errorf("failed to add user '%s' to project '%s'", username, project)
+		return fmt.Errorf("failed to add user '%s' to project '%s': %s", username, project, err)
 	}
 	logrus.Infof("added '%s' to '%s' at level '%d'", username, project, level)
 	return nil
@@ -136,7 +136,7 @@ func (m GitlabAPIClient) ChangeProjectMembership(username, project string, level
 	}
 	_, _, err := m.client.ProjectMembers.EditProjectMember(project, userID, opt)
 	if err != nil {
-		return fmt.Errorf("failed to change user '%s' in project '%s'", username, project)
+		return fmt.Errorf("failed to change user '%s' in project '%s': %s", username, project, err)
 	}
 
 	logrus.Infof("changed '%s' in '%s' at level '%d'", username, project, level)
@@ -149,7 +149,7 @@ func (m GitlabAPIClient) RemoveProjectMembership(username, project string) error
 
 	_, err := m.client.ProjectMembers.DeleteProjectMember(project, userID)
 	if err != nil {
-		return fmt.Errorf("failed to remove user '%s' from project '%s'", username, project)
+		return fmt.Errorf("failed to remove user '%s' from project '%s': %s", username, project, err)
 	}
 	logrus.Infof(fmt.Sprintf("removed '%s' from '%s'", username, project))
 	return nil
