@@ -9,3 +9,7 @@ groups:
     developers:
     - user1
     - user2
+projects:
+  root_group/myawesomeproject:
+    maintainers: []
+    developers: []

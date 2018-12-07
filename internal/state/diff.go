@@ -166,8 +166,13 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 	// Compare current project state with desired to remove things
 	for _, currentProject := range current.Projects() {
 		desiredProject, desiredProjectPresent := desired.Project(currentProject.GetFullpath())
+		if !desiredProjectPresent {
+			logrus.Debugf("Skipping current project '%s' because it's not managed in desired state", currentProject.GetFullpath())
+			continue
+		}
+
 		for group := range currentProject.GetSharedGroups() {
-			if !desiredProjectPresent {
+			if _, desiredGroupPresent := desiredProject.GetGroupLevel(group); !desiredGroupPresent {
 				logrus.Debugf("  Removing project %s sharing with group %s because project is not in the desired state",
 					currentProject.GetFullpath(), group)
 
@@ -175,42 +180,19 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 					Project: currentProject.GetFullpath(),
 					Group:   group,
 				})
-			} else {
-				_, groupPresent := desiredProject.GetSharedGroups()[group]
-				if !groupPresent {
-					logrus.Debugf("  Removing project %s sharing with group %s because group is not in the desired state",
-						currentProject.GetFullpath(), group)
-
-					actions = append(actions, removeProjectGroupSharing{
-						Project: currentProject.GetFullpath(),
-						Group:   group,
-					})
-
-				}
 			}
 		}
 
 		for member := range currentProject.GetMembers() {
-			if desiredProjectPresent {
-				_, memberPresent := desiredProject.GetMembers()[member]
-				if !memberPresent {
-					logrus.Debugf("  Removing project %s membership for %s because member is not in the desired state",
-						currentProject.GetFullpath(), member)
-
-					actions = append(actions, removeProjectMembership{
-						Project:  currentProject.GetFullpath(),
-						Username: member,
-					})
-				}
-			} else {
-				logrus.Debugf("  Removing project %s membership for %s because project is not in the desired state",
+			_, memberPresent := desiredProject.GetMembers()[member]
+			if !memberPresent {
+				logrus.Debugf("  Removing project %s membership for %s because member is not in the desired state",
 					currentProject.GetFullpath(), member)
 
 				actions = append(actions, removeProjectMembership{
 					Project:  currentProject.GetFullpath(),
 					Username: member,
 				})
-
 			}
 		}
 	}

@@ -163,8 +163,12 @@ func (m *GitlabAPIClient) LoadState() (internal.Querier, internal.State, error) 
 	querier, err := m.buildQuerier()
 	errs.Append(err)
 
+	logrus.Debugf("Loaded gitlab querier: %#v", querier)
+
 	state, err := m.buildLiveState()
 	errs.Append(err)
+
+	logrus.Debugf("Loaded gitlab live state: %#v", state)
 
 	m.querier = querier
 
@@ -196,7 +200,6 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 	go m.getGroups(groupsCh, &errs)
 
 	groups := make(map[string]int, 0)
-
 	for group := range groupsCh {
 		logrus.Debugf("appending group %s", group.FullPath)
 		groups[group.FullPath] = group.ID
@@ -206,10 +209,20 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 		errs.Append(fmt.Errorf("no admin was detected, are you using an admin token?"))
 	}
 
+	projectsCh := make(chan gitlab.Project)
+	go m.getProjects(projectsCh, &errs)
+
+	projects := make(map[string]int, 0)
+	for project := range projectsCh {
+		logrus.Debugf("appending project %s", project.PathWithNamespace)
+		projects[project.PathWithNamespace] = project.ID
+	}
+
 	return GitlabQuerier{
-		users:  users,
-		admins: admins,
-		groups: groups,
+		users:    users,
+		admins:   admins,
+		groups:   groups,
+		projects: projects,
 	}, errs.ErrorOrNil()
 }
 

@@ -113,6 +113,8 @@ func LoadStateFromFile(filename string, q internal.Querier) (internal.State, err
 		return nil, fmt.Errorf("failed to build local state from file %s: %s", filename, err)
 	}
 
+	logrus.Debugf("Loaded local state: %#v", l)
+
 	return l, nil
 }
 
