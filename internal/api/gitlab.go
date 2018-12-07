@@ -163,8 +163,12 @@ func (m *GitlabAPIClient) LoadState() (internal.Querier, internal.State, error) 
 	querier, err := m.buildQuerier()
 	errs.Append(err)
 
+	logrus.Debugf("Loaded gitlab querier: %#v", querier)
+
 	state, err := m.buildLiveState()
 	errs.Append(err)
+
+	logrus.Debugf("Loaded gitlab live state: %#v", state)
 
 	m.querier = querier
 
