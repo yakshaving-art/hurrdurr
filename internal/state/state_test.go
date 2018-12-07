@@ -28,6 +28,9 @@ func TestLoadingState(t *testing.T) {
 			"simple_group":      true,
 			"yet_another_group": true,
 		},
+		projects: map[string]bool{
+			"root_group/a_project": true,
+		},
 	}
 	tt := []struct {
 		name                    string
@@ -35,11 +38,13 @@ func TestLoadingState(t *testing.T) {
 		expectedError           string
 		expected                []hurrdurr.LocalGroup
 		expectedUnhandledGroups []string
+		expectedProjects        []hurrdurr.LocalProject
 	}{
 		{
 			"non existing file",
 			"",
 			"failed to load state file : open : no such file or directory",
+			nil,
 			nil,
 			nil,
 		},
@@ -49,11 +54,13 @@ func TestLoadingState(t *testing.T) {
 			"failed to build local state from file fixtures/group-without-owner.yaml: 1 error: no owner in group 'root_group'",
 			nil,
 			nil,
+			nil,
 		},
 		{
 			"query for owner returns nothing",
 			"fixtures/no-owner-in-query.yaml",
 			"failed to build local state from file fixtures/no-owner-in-query.yaml: 1 error: no owner in group 'skrrty'",
+			nil,
 			nil,
 			nil,
 		},
@@ -66,6 +73,7 @@ func TestLoadingState(t *testing.T) {
 				"no owner in group 'root_group'",
 			nil,
 			nil,
+			nil,
 		},
 		{
 			"invalid because of subqueries",
@@ -75,6 +83,7 @@ func TestLoadingState(t *testing.T) {
 				"group 'root_group' points at 'skrrty/Guest' which contains 'owners from root_group'. " +
 				"Subquerying is not allowed",
 			[]hurrdurr.LocalGroup{},
+			nil,
 			nil,
 		},
 		{
@@ -89,12 +98,19 @@ func TestLoadingState(t *testing.T) {
 				"'whatever from root_group'. Subquerying is not allowed",
 			[]hurrdurr.LocalGroup{},
 			nil,
+			nil,
 		},
 		{
 			"plain state",
 			"fixtures/plain.yaml",
 			"",
 			[]hurrdurr.LocalGroup{
+				{
+					Fullpath: "other_group",
+					Members: map[string]internal.Level{
+						"user2": internal.Owner,
+					},
+				},
 				{
 					Fullpath: "root_group",
 					Members: map[string]internal.Level{
@@ -103,7 +119,41 @@ func TestLoadingState(t *testing.T) {
 					},
 				},
 			},
-			[]string{"other_group", "simple_group", "skrrty", "yet_another_group"},
+			[]string{"simple_group", "skrrty", "yet_another_group"},
+			[]hurrdurr.LocalProject{},
+		},
+		{
+			"plain state with project",
+			"fixtures/plain-with-project.yaml",
+			"",
+			[]hurrdurr.LocalGroup{
+				{
+					Fullpath: "other_group",
+					Members: map[string]internal.Level{
+						"user2": internal.Owner,
+					},
+				},
+				{
+					Fullpath: "root_group",
+					Members: map[string]internal.Level{
+						"admin": internal.Owner,
+						"user1": internal.Developer,
+					},
+				},
+			},
+			[]string{"simple_group", "skrrty", "yet_another_group"},
+			[]hurrdurr.LocalProject{
+				{
+					Fullpath: "root_group/a_project",
+					SharedGroups: map[string]internal.Level{
+						"other_group": internal.Developer,
+					},
+					Members: map[string]internal.Level{
+						"admin": internal.Owner,
+						"user2": internal.Maintainer,
+					},
+				},
+			},
 		},
 		{
 			"valid queries",
@@ -161,6 +211,7 @@ func TestLoadingState(t *testing.T) {
 				},
 			},
 			[]string{},
+			[]hurrdurr.LocalProject{},
 		},
 		{
 			"multi level assignment",
@@ -176,6 +227,7 @@ func TestLoadingState(t *testing.T) {
 				},
 			},
 			[]string{"other_group", "simple_group", "skrrty", "yet_another_group"},
+			[]hurrdurr.LocalProject{},
 		},
 	}
 
@@ -193,25 +245,35 @@ func TestLoadingState(t *testing.T) {
 				t.Fatalf("failed to read fixture file %s: %s", tc.stateFile, err)
 			}
 
-			actual := make([]hurrdurr.LocalGroup, 0)
+			actualGroups := make([]hurrdurr.LocalGroup, 0)
 			for _, g := range s.Groups() {
 				ag := g.(hurrdurr.LocalGroup)
-				actual = append(actual, ag)
+				actualGroups = append(actualGroups, ag)
 			}
 
-			sort.Slice(actual, func(i, j int) bool {
-				return actual[i].GetFullpath() < actual[j].GetFullpath()
+			sort.Slice(actualGroups, func(i, j int) bool {
+				if actualGroups[i].GetFullpath() < actualGroups[j].GetFullpath() {
+					return true
+				}
+				return false
 			})
-			a.EqualValuesf(tc.expected, actual, "Wrong state, groups are not as expected")
-			a.Equalf(tc.expectedUnhandledGroups, s.UnhandledGroups(), "Wrong state, unhandled groups are not as expected")
+			a.EqualValuesf(tc.expected, actualGroups, "Wrong state, groups are not as expected")
+
+			actualProjects := make([]hurrdurr.LocalProject, 0)
+			for _, p := range s.Projects() {
+				pj := p.(hurrdurr.LocalProject)
+				actualProjects = append(actualProjects, pj)
+			}
+			a.EqualValues(tc.expectedProjects, actualProjects, "Wrong state, projects are not as expected")
 		})
 	}
 }
 
 type querierMock struct {
-	admins map[string]bool
-	users  map[string]bool
-	groups map[string]bool
+	admins   map[string]bool
+	users    map[string]bool
+	groups   map[string]bool
+	projects map[string]bool
 }
 
 func (q querierMock) IsUser(u string) bool {
@@ -233,6 +295,11 @@ func (q querierMock) Groups() []string {
 		groups = append(groups, g)
 	}
 	return groups
+}
+
+func (q querierMock) ProjectExists(p string) bool {
+	_, ok := q.projects[p]
+	return ok
 }
 
 func (q querierMock) Users() []string {

@@ -36,7 +36,7 @@ func (g LocalGroup) HasSubquery() bool {
 	return g.Subquery
 }
 
-func (g *LocalGroup) addMember(username string, level internal.Level) {
+func (g LocalGroup) addMember(username string, level internal.Level) {
 	l, ok := g.Members[username]
 	if ok && l > level {
 		return
@@ -44,8 +44,56 @@ func (g *LocalGroup) addMember(username string, level internal.Level) {
 	g.Members[username] = level
 }
 
+func (g LocalGroup) String() string {
+	return g.GetFullpath()
+}
+
 func (g *LocalGroup) setHasSubquery(b bool) {
 	g.Subquery = b
+}
+
+// LocalProject is a local implementation of projects loaded from a file
+type LocalProject struct {
+	Fullpath     string
+	SharedGroups map[string]internal.Level
+	Members      map[string]internal.Level
+}
+
+// GetFullpath implements internal.Project interface
+func (l LocalProject) GetFullpath() string {
+	return l.Fullpath
+}
+
+// GetSharedGroups implements internal.Project interface
+func (l LocalProject) GetSharedGroups() map[string]internal.Level {
+	return l.SharedGroups
+}
+
+// GetGroupLevel implements internal.Project interface
+func (l LocalProject) GetGroupLevel(group string) (internal.Level, bool) {
+	level, ok := l.SharedGroups[group]
+	return level, ok
+}
+
+func (l *LocalProject) addGroupSharing(group string, level internal.Level) {
+	l.SharedGroups[group] = level
+}
+
+// GetMembers implements internal.Project interface
+func (l LocalProject) GetMembers() map[string]internal.Level {
+	return l.Members
+}
+
+func (l LocalProject) String() string {
+	return l.GetFullpath()
+}
+
+func (l LocalProject) addMember(username string, level internal.Level) {
+	lvl, ok := l.Members[username]
+	if ok && lvl > level {
+		return
+	}
+	l.Members[username] = level
 }
 
 // LoadStateFromFile loads the desired state from a file
@@ -71,6 +119,7 @@ func LoadStateFromFile(filename string, q internal.Querier) (internal.State, err
 type localState struct {
 	groups          map[string]*LocalGroup
 	unhandledGroups []string
+	projects        map[string]*LocalProject
 }
 
 func (s localState) addGroup(g *LocalGroup) {
@@ -94,6 +143,23 @@ func (s localState) UnhandledGroups() []string {
 	return s.unhandledGroups
 }
 
+func (s localState) addProject(p *LocalProject) {
+	s.projects[p.GetFullpath()] = p
+}
+
+func (s localState) Projects() []internal.Project {
+	projects := make([]internal.Project, 0)
+	for _, p := range s.projects {
+		projects = append(projects, *p)
+	}
+	return projects
+}
+
+func (s localState) Project(fullpath string) (internal.Project, bool) {
+	p, ok := s.projects[fullpath]
+	return p, ok
+}
+
 type acls struct {
 	Guests      []string `yaml:"guests,omitempty"`
 	Reporters   []string `yaml:"reporters,omitempty"`
@@ -104,12 +170,14 @@ type acls struct {
 }
 
 type state struct {
-	Groups map[string]acls `yaml:"groups"`
+	Groups   map[string]acls `yaml:"groups,omitempty"`
+	Projects map[string]acls `yaml:"projects,omitempty"`
 }
 
 func (s state) toLocalState(q internal.Querier) (localState, error) {
 	l := localState{
-		groups: make(map[string]*LocalGroup, 0),
+		groups:   make(map[string]*LocalGroup, 0),
+		projects: make(map[string]*LocalProject, 0),
 	}
 
 	errs := errors.New() // This object aggregates all the errors to dump them all at the end
@@ -130,9 +198,9 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 			for _, member := range members {
 				if strings.HasPrefix(member, "query:") {
 					queries = append(queries, query{
-						query:    strings.TrimSpace(member[6:]),
-						level:    level,
-						fullpath: fullpath,
+						query:       strings.TrimSpace(member[6:]),
+						level:       level,
+						memberAdder: group,
 					})
 					group.setHasSubquery(true)
 					continue
@@ -155,12 +223,6 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 		l.addGroup(group)
 	}
 
-	for _, query := range queries {
-		if err := query.Execute(l, q); err != nil {
-			errs.Append(fmt.Errorf("failed to execute query %s: %s", query, err))
-		}
-	}
-
 	unhandledGroups := make([]string, 0)
 	for _, g := range q.Groups() {
 		_, found := l.Group(g)
@@ -173,6 +235,63 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 	})
 
 	l.unhandledGroups = unhandledGroups
+
+	for projectPath, acls := range s.Projects {
+		if !q.ProjectExists(projectPath) {
+			errs.Append(fmt.Errorf("project '%s' does not exist", projectPath))
+			continue
+		}
+
+		project := &LocalProject{
+			Fullpath:     projectPath,
+			SharedGroups: make(map[string]internal.Level, 0),
+			Members:      make(map[string]internal.Level, 0),
+		}
+
+		addSharedGroups := func(members []string, level internal.Level) {
+			for _, member := range members {
+				if strings.HasPrefix(member, "share_with:") {
+					member = strings.TrimSpace(member[11:])
+					if !q.GroupExists(member) {
+						errs.Append(fmt.Errorf("can't share project '%s' with non-existing group '%s'", projectPath, member))
+						continue
+					}
+					project.addGroupSharing(member, level)
+					continue
+				}
+
+				if strings.HasPrefix(member, "query:") {
+					queries = append(queries, query{
+						query:       strings.TrimSpace(member[6:]),
+						level:       level,
+						memberAdder: project,
+					})
+					continue
+				}
+
+				if !q.IsUser(member) && !q.IsAdmin(member) {
+					errs.Append(fmt.Errorf("User '%s' does not exists for project '%s'", member, project))
+					continue
+				}
+
+				project.addMember(member, level)
+			}
+		}
+
+		addSharedGroups(acls.Owners, internal.Owner)
+		addSharedGroups(acls.Maintainers, internal.Maintainer)
+		addSharedGroups(acls.Developers, internal.Developer)
+		addSharedGroups(acls.Reporters, internal.Reporter)
+		addSharedGroups(acls.Guests, internal.Guest)
+
+		l.addProject(project)
+	}
+
+	for _, query := range queries {
+		if err := query.Execute(l, q); err != nil {
+			errs.Append(fmt.Errorf("failed to execute query %s: %s", query, err))
+		}
+	}
 
 Loop:
 	for _, localGroup := range l.groups {
@@ -190,24 +309,24 @@ Loop:
 var queryMatch = regexp.MustCompile("^(.*?) (?:from|in) (.*?)$")
 
 type query struct {
-	query    string
-	level    internal.Level
-	fullpath string
+	query       string
+	level       internal.Level
+	memberAdder memberAdder
+}
+
+type memberAdder interface {
+	addMember(member string, level internal.Level)
+	String() string
 }
 
 func (q query) String() string {
-	return fmt.Sprintf("'%s' for '%s/%s'", q.query, q.fullpath, q.level)
+	return fmt.Sprintf("'%s' for '%s/%s'", q.query, q.memberAdder, q.level)
 }
 
 func (q query) Execute(state localState, querier internal.Querier) error {
-	group, ok := state.groups[q.fullpath]
-	if !ok {
-		return fmt.Errorf("could not find group in list %s", q.fullpath)
-	}
-
 	addMembers := func(members []string) error {
 		for _, member := range members {
-			group.addMember(member, q.level)
+			q.memberAdder.addMember(member, q.level)
 		}
 		return nil
 	}
@@ -232,12 +351,12 @@ func (q query) Execute(state localState, querier internal.Querier) error {
 		grp, ok := state.Group(queriedGroupName)
 		if !ok {
 			return fmt.Errorf("could not find group '%s' to resolve query '%s' in '%s/%s'",
-				queriedGroupName, q.query, q.fullpath, q.level)
+				queriedGroupName, q.query, q.memberAdder, q.level)
 		}
 		queriedGroup := grp.(*LocalGroup)
 		if queriedGroup.HasSubquery() {
 			return fmt.Errorf("group '%s' points at '%s/%s' which contains '%s'. Subquerying is not allowed",
-				queriedGroupName, q.fullpath, q.level, q.query)
+				queriedGroupName, q.memberAdder, q.level, q.query)
 		}
 
 		filterByLevel := func(members map[string]internal.Level, level internal.Level) []string {

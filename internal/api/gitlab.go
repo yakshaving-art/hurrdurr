@@ -33,8 +33,8 @@ func NewGitlabAPIClient(gitlabToken, gitlabBaseURL string) GitlabAPIClient {
 	}
 }
 
-// AddMembership implements the APIClient interface
-func (m GitlabAPIClient) AddMembership(username, group string, level int) error {
+// AddGroupMembership implements the APIClient interface
+func (m GitlabAPIClient) AddGroupMembership(username, group string, level internal.Level) error {
 	userID := m.querier.getUserID(username)
 	acl := gitlab.AccessLevelValue(level)
 
@@ -51,8 +51,8 @@ func (m GitlabAPIClient) AddMembership(username, group string, level int) error 
 	return nil
 }
 
-// ChangeMembership implements the APIClient interface
-func (m GitlabAPIClient) ChangeMembership(username, group string, level int) error {
+// ChangeGroupMembership implements the APIClient interface
+func (m GitlabAPIClient) ChangeGroupMembership(username, group string, level internal.Level) error {
 	userID := m.querier.getUserID(username)
 	acl := gitlab.AccessLevelValue(level)
 
@@ -68,8 +68,8 @@ func (m GitlabAPIClient) ChangeMembership(username, group string, level int) err
 	return nil
 }
 
-// RemoveMembership implements the APIClient interface
-func (m GitlabAPIClient) RemoveMembership(username, group string) error {
+// RemoveGroupMembership implements the APIClient interface
+func (m GitlabAPIClient) RemoveGroupMembership(username, group string) error {
 	userID := m.querier.getUserID(username)
 
 	_, err := m.client.GroupMembers.RemoveGroupMember(group, userID)
@@ -77,6 +77,81 @@ func (m GitlabAPIClient) RemoveMembership(username, group string) error {
 		return fmt.Errorf("failed to remove user '%s' from group '%s'", username, group)
 	}
 	logrus.Infof(fmt.Sprintf("removed '%s' from '%s'", username, group))
+	return nil
+}
+
+// AddProjectSharing implements the APIClient interface
+func (m GitlabAPIClient) AddProjectSharing(project, group string, level internal.Level) error {
+	id := m.querier.getGroupID(group)
+	acl := gitlab.AccessLevelValue(level)
+
+	opt := gitlab.ShareWithGroupOptions{
+		GroupID:     &id,
+		GroupAccess: &acl,
+	}
+	_, err := m.client.Projects.ShareProjectWithGroup(project, &opt)
+	if err != nil {
+		return fmt.Errorf("failed to share project '%s' with group '%s': %s", project, group, err)
+	}
+	return nil
+}
+
+// RemoveProjectSharing implements the APIClient interface
+func (m GitlabAPIClient) RemoveProjectSharing(project, group string) error {
+	id := m.querier.getGroupID(group)
+
+	_, err := m.client.Projects.DeleteSharedProjectFromGroup(project, id)
+	if err != nil {
+		return fmt.Errorf("failed to remove project '%s' sharing with '%s': %s", project, group, err)
+	}
+
+	return nil
+}
+
+// AddProjectMembership implements the APIClient interface
+func (m GitlabAPIClient) AddProjectMembership(username, project string, level internal.Level) error {
+	userID := m.querier.getUserID(username)
+	acl := gitlab.AccessLevelValue(level)
+
+	opt := &gitlab.AddProjectMemberOptions{
+		UserID:      &userID,
+		AccessLevel: &acl,
+	}
+
+	_, _, err := m.client.ProjectMembers.AddProjectMember(project, opt)
+	if err != nil {
+		return fmt.Errorf("failed to add user '%s' to project '%s'", username, project)
+	}
+	logrus.Infof("added '%s' to '%s' at level '%d'", username, project, level)
+	return nil
+}
+
+// ChangeProjectMembership implements the APIClient interface
+func (m GitlabAPIClient) ChangeProjectMembership(username, project string, level internal.Level) error {
+	userID := m.querier.getUserID(username)
+	acl := gitlab.AccessLevelValue(level)
+
+	opt := &gitlab.EditProjectMemberOptions{
+		AccessLevel: &acl,
+	}
+	_, _, err := m.client.ProjectMembers.EditProjectMember(project, userID, opt)
+	if err != nil {
+		return fmt.Errorf("failed to change user '%s' in project '%s'", username, project)
+	}
+
+	logrus.Infof("changed '%s' in '%s' at level '%d'", username, project, level)
+	return nil
+}
+
+// RemoveProjectMembership implements the APIClient interface
+func (m GitlabAPIClient) RemoveProjectMembership(username, project string) error {
+	userID := m.querier.getUserID(username)
+
+	_, err := m.client.ProjectMembers.DeleteProjectMember(project, userID)
+	if err != nil {
+		return fmt.Errorf("failed to remove user '%s' from project '%s'", username, project)
+	}
+	logrus.Infof(fmt.Sprintf("removed '%s' from '%s'", username, project))
 	return nil
 }
 
@@ -124,7 +199,7 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 
 	for group := range groupsCh {
 		logrus.Debugf("appending group %s", group.FullPath)
-		groups[group.FullPath] = 1
+		groups[group.FullPath] = group.ID
 	}
 
 	if len(admins) == 0 {
@@ -142,9 +217,13 @@ func (m GitlabAPIClient) buildLiveState() (internal.State, error) {
 	errs := errors.New()
 
 	groups := make(map[string]internal.Group, 0)
+	projects := make(map[string]internal.Project)
 
 	groupsCh := make(chan gitlab.Group)
 	go m.getGroups(groupsCh, &errs)
+
+	projectsCh := make(chan gitlab.Project)
+	go m.getProjects(projectsCh, &errs)
 
 	for group := range groupsCh {
 
@@ -160,8 +239,22 @@ func (m GitlabAPIClient) buildLiveState() (internal.State, error) {
 		}
 	}
 
+	for project := range projectsCh {
+		groups := make(map[string]internal.Level, 0)
+
+		for _, g := range project.SharedWithGroups {
+			groups[g.GroupName] = internal.Level(g.GroupAccessLevel)
+		}
+
+		projects[project.PathWithNamespace] = GitlabProject{
+			fullpath:   project.PathWithNamespace,
+			sharedWith: groups,
+		}
+	}
+
 	return GitlabState{
-		groups: groups,
+		groups:   groups,
+		projects: projects,
 	}, errs.ErrorOrNil()
 }
 
@@ -257,11 +350,41 @@ func (m GitlabAPIClient) getGroupMembers(fullpath string) (map[string]internal.L
 	return groupMembers, nil
 }
 
+func (m GitlabAPIClient) getProjects(ch chan gitlab.Project, errs *errors.Errors) {
+	defer close(ch)
+
+	page := 1
+	for {
+		opt := &gitlab.ListProjectsOptions{
+			ListOptions: gitlab.ListOptions{
+				PerPage: m.PerPage,
+				Page:    page,
+			},
+		}
+
+		prjs, resp, err := m.client.Projects.ListProjects(opt)
+		if err != nil {
+			errs.Append(fmt.Errorf("failed to fetch the list of projects: %s", err))
+			return
+		}
+
+		for _, p := range prjs {
+			ch <- *p
+		}
+
+		if page == resp.TotalPages {
+			break
+		}
+		page++
+	}
+}
+
 // GitlabQuerier implements the internal.Querier interface
 type GitlabQuerier struct {
-	users  map[string]int
-	admins map[string]int
-	groups map[string]int
+	users    map[string]int
+	admins   map[string]int
+	groups   map[string]int
+	projects map[string]int
 }
 
 func (m GitlabQuerier) getUserID(username string) int {
@@ -271,6 +394,14 @@ func (m GitlabQuerier) getUserID(username string) int {
 	}
 	if !ok {
 		logrus.Fatalf("could not find user '%s' in the lists of users and admins", username)
+	}
+	return id
+}
+
+func (m GitlabQuerier) getGroupID(group string) int {
+	id, ok := m.groups[group]
+	if !ok {
+		logrus.Fatalf("could not find group '%s' in the list of groups", group)
 	}
 	return id
 }
@@ -293,8 +424,15 @@ func (m GitlabQuerier) GroupExists(g string) bool {
 	return ok
 }
 
+// Groups implements Querier interface
 func (m GitlabQuerier) Groups() []string {
 	return toStringSlice(m.groups)
+}
+
+// ProjectExists implements Querier interface
+func (m GitlabQuerier) ProjectExists(p string) bool {
+	_, ok := m.projects[p]
+	return ok
 }
 
 // Users returns the list of users that are regular users and are not blocked
@@ -309,7 +447,8 @@ func (m GitlabQuerier) Admins() []string {
 
 // GitlabState represents the state of a gitlab instance
 type GitlabState struct {
-	groups map[string]internal.Group
+	groups   map[string]internal.Group
+	projects map[string]internal.Project
 }
 
 // Groups implements internal.State interface
@@ -332,6 +471,21 @@ func (s GitlabState) UnhandledGroups() []string {
 	return []string{}
 }
 
+// Project implements internal.State interface
+func (s GitlabState) Project(fullpath string) (internal.Project, bool) {
+	p, ok := s.projects[fullpath]
+	return p, ok
+}
+
+// Projects implements internal.State interface
+func (s GitlabState) Projects() []internal.Project {
+	projects := make([]internal.Project, 0)
+	for _, p := range s.projects {
+		projects = append(projects, p)
+	}
+	return projects
+}
+
 // GitlabGroup represents a group in a live instance with it's members
 type GitlabGroup struct {
 	fullpath string
@@ -345,6 +499,34 @@ func (g GitlabGroup) GetFullpath() string {
 
 // GetMembers implements the internal.Group interface
 func (g GitlabGroup) GetMembers() map[string]internal.Level {
+	return g.members
+}
+
+// GitlabProject implements internal.Project interface
+type GitlabProject struct {
+	fullpath   string
+	sharedWith map[string]internal.Level
+	members    map[string]internal.Level
+}
+
+// GetFullpath implements internal.Project interface
+func (g GitlabProject) GetFullpath() string {
+	return g.fullpath
+}
+
+// GetSharedGroups implements internal.Project interface
+func (g GitlabProject) GetSharedGroups() map[string]internal.Level {
+	return g.sharedWith
+}
+
+// GetGroupLevel implements internal.Project interface
+func (g GitlabProject) GetGroupLevel(group string) (internal.Level, bool) {
+	level, ok := g.sharedWith[group]
+	return level, ok
+}
+
+// GetMembers implements internal.Project interface
+func (g GitlabProject) GetMembers() map[string]internal.Level {
 	return g.members
 }
 

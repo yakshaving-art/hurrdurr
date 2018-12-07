@@ -5,3 +5,6 @@ groups:
     - admin
     developers:
     - user1
+  other_group:
+    owners:
+    - user2
