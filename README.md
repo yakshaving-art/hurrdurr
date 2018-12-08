@@ -13,6 +13,8 @@ Manages group acls, slowly and embarrassingly ineffectively, yet does the jerb.
 - **-dryrun** don't actually change anything, only evaluate which changes
   should happen.
 - **-version** prints the version and exits without error
+- **-manage-users** enables user management, enforcing admins and blocked
+  users to be converged.
 
 ### Required Environment Variables
 
@@ -61,7 +63,12 @@ them to a gitlab instance.
   A lazy definition of a group. It is expanded into members. Read
   [below](#using-queries) for the details.
 
-### Sample
+* #### User
+
+ A gitlab user that is being specifically managed by hurrdurr. They can
+ either be set admins, or can be blocked.
+
+### Full Sample
 
 ```yaml
 ---
@@ -91,6 +98,11 @@ projects:
   infrastructure/myproject:
     guests:
     - backend
+users:
+  admins:
+  - manager_1
+  blocked:
+  - bad_actor_1
 ```
 
 ### Using Queries
@@ -107,6 +119,14 @@ Queries are simple on purporse, and follow strict rules.
 1. You can query for `users` in a group. For example: `users in
    backend` would return `ninja_dev, samurai, ronin`.
 1. You can use more than one query to assign to a level.
+
+### User ACL management
+
+Users management has to be explicitly enabled using `-manage-users` argument.
+Once enabled, users will be managed the following way:
+
+1. Every user in the `admins` list will be set an admin.
+1. Every user in the `blocked` list will be blocked.
 
 ### Project ACL management
 
