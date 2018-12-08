@@ -40,7 +40,10 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 			currentMembers := currentGroup.GetMembers()
 			logrus.Debugf("  Diffing desired group %s members because the current group is present", desiredGroup.GetFullpath())
 
-			for desiredName, desiredLevel := range desiredMembers {
+			for _, m := range sortedMembers(desiredMembers) {
+				desiredName := m.name
+				desiredLevel := m.level
+
 				currentLevel, currentMemberPresent := currentMembers[desiredName]
 				if !currentMemberPresent {
 					logrus.Debugf("  Adding %s to group %s at level %s", desiredName, desiredGroup.GetFullpath(), desiredLevel)
@@ -275,4 +278,26 @@ type removeProjectMembership struct {
 
 func (r removeProjectMembership) Execute(c internal.APIClient) error {
 	return c.RemoveProjectMembership(r.Username, r.Project)
+}
+
+type member struct {
+	name  string
+	level internal.Level
+}
+
+func sortedMembers(members map[string]internal.Level) []member {
+	sorted := make([]member, 0)
+	for name, level := range members {
+		m := member{
+			name:  name,
+			level: level,
+		}
+
+		if m.level == internal.Owner {
+			sorted = append([]member{m}, sorted...)
+		} else {
+			sorted = append(sorted, m)
+		}
+	}
+	return sorted
 }
