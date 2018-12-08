@@ -293,9 +293,7 @@ func sortedMembers(members map[string]internal.Level) []member {
 			level: level,
 		}
 
-		if len(sorted) == 0 {
-			sorted = append(sorted, m)
-		} else if m.level == internal.Owner {
+		if m.level == internal.Owner {
 			sorted = append([]member{m}, sorted...)
 		} else {
 			sorted = append(sorted, m)
