@@ -2,7 +2,8 @@
 
 The idiotic for herder.
 
-Manages group acls, slowly and embarrassingly ineffectively, yet does the jerb.
+Manages user, group and project acls, slowly and embarrassingly
+ineffectively, yet does the jerb.
 
 ## Usage
 
@@ -22,7 +23,8 @@ Manages group acls, slowly and embarrassingly ineffectively, yet does the jerb.
 ## Configuration
 
 Configuration is managed through a yaml file. This file declares the
-structure of groups, levels and members for hurrdurr to colapse reality into.
+structure of groups, project, levels and members for hurrdurr to colapse
+reality into.
 
 ### Concepts
 
@@ -43,7 +45,8 @@ them to a gitlab instance.
 
 * #### Project
 
-  A gitlab project can be shared with a group at an ACL level.
+  A gitlab project can be shared with a group at any ACL level. Projects can
+  also have members added to it the same way we do with groups.
 
 * #### Level
 
