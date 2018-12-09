@@ -55,6 +55,7 @@ type State interface {
 type Querier interface {
 	IsUser(string) bool
 	IsAdmin(string) bool
+	IsBlocked(u string) bool
 	GroupExists(string) bool
 	ProjectExists(string) bool
 
