@@ -225,6 +225,7 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 	return GitlabQuerier{
 		users:    users,
 		admins:   admins,
+		blocked:  blocked,
 		groups:   groups,
 		projects: projects,
 	}, errs.ErrorOrNil()
