@@ -207,6 +207,10 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 					group.setHasSubquery(true)
 					continue
 				}
+				if q.IsBlocked(member) {
+					errs.Append(fmt.Errorf("User '%s' is blocked, it should not be included in group '%s'", member, fullpath))
+					continue
+				}
 				if !q.IsUser(member) && !q.IsAdmin(member) {
 					errs.Append(fmt.Errorf("User '%s' does not exists for group '%s'", member, fullpath))
 					continue

@@ -60,6 +60,14 @@ func TestLoadingState(t *testing.T) {
 			nil,
 		},
 		{
+			"group with blocked user fails",
+			"fixtures/bad-actor.yaml",
+			"failed to build local state from file fixtures/bad-actor.yaml: 1 error: User 'bad_actor_1' is blocked, it should not be included in group 'root_group'",
+			nil,
+			nil,
+			nil,
+		},
+		{
 			"query for owner returns nothing",
 			"fixtures/no-owner-in-query.yaml",
 			"failed to build local state from file fixtures/no-owner-in-query.yaml: 1 error: no owner in group 'skrrty'",
