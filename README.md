@@ -13,7 +13,8 @@ ineffectively, yet does the jerb.
   *hurrdurr.yml* in the current working directoy.
 - **-dryrun** don't actually change anything, only evaluate which changes
   should happen.
-- **-version** prints the version and exits without error
+- **-version** prints the version and exits without error.
+- **-ghost-user** system wide gitlab ghost user. (default "ghost")
 
 ### Required Environment Variables
 
