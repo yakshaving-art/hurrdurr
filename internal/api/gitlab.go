@@ -14,22 +14,24 @@ import (
 // GitlabAPIClient is a client for proving high level behaviors when talking to
 // a GitLab instance
 type GitlabAPIClient struct {
-	client  *gitlab.Client
-	PerPage int
+	client    *gitlab.Client
+	PerPage   int
+	ghostUser string
 
 	querier GitlabQuerier
 }
 
 // NewGitlabAPIClient create a new Gitlab API Client
-func NewGitlabAPIClient(gitlabToken, gitlabBaseURL string) GitlabAPIClient {
+func NewGitlabAPIClient(gitlabToken, gitlabBaseURL, gitlabGhostUser string) GitlabAPIClient {
 	gitlabClient := gitlab.NewClient(nil, gitlabToken)
 	if err := gitlabClient.SetBaseURL(gitlabBaseURL); err != nil {
 		logrus.Fatalf("Could not set base URL '%s' to GitLab Client: '%s'", gitlabBaseURL, err)
 	}
 
 	return GitlabAPIClient{
-		client:  gitlabClient,
-		PerPage: 100,
+		client:    gitlabClient,
+		ghostUser: gitlabGhostUser,
+		PerPage:   100,
 	}
 }
 
@@ -188,6 +190,11 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 	go m.getUsers(usersCh, &errs)
 
 	for u := range usersCh {
+		if u.Username == m.ghostUser {
+			logrus.Debugf("ignoring ghost user '%s'", m.ghostUser)
+			continue
+		}
+
 		if u.State == "blocked" {
 			logrus.Debugf("appending blocked user %s", u.Username)
 			blocked[u.Username] = u.ID
