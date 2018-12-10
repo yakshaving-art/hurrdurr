@@ -1,0 +1,7 @@
+---
+groups:
+  root_group:
+    owners:
+    - admin
+    developers:
+    - bad_actor_1

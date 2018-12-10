@@ -182,12 +182,16 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 
 	users := make(map[string]int, 0)
 	admins := make(map[string]int, 0)
+	blocked := make(map[string]int, 0)
 
 	usersCh := make(chan gitlab.User)
 	go m.getUsers(usersCh, &errs)
 
 	for u := range usersCh {
-		if u.IsAdmin {
+		if u.State == "blocked" {
+			logrus.Debugf("appending blocked user %s", u.Username)
+			blocked[u.Username] = u.ID
+		} else if u.IsAdmin {
 			logrus.Debugf("appending admin %s", u.Username)
 			admins[u.Username] = u.ID
 		} else {
@@ -221,6 +225,7 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 	return GitlabQuerier{
 		users:    users,
 		admins:   admins,
+		blocked:  blocked,
 		groups:   groups,
 		projects: projects,
 	}, errs.ErrorOrNil()
@@ -273,14 +278,10 @@ func (m GitlabAPIClient) buildLiveState() (internal.State, error) {
 
 func (m GitlabAPIClient) getUsers(ch chan gitlab.User, errs *errors.Errors) {
 	defer close(ch)
-	t := true  // yeah baby... talking about bad interfaces, I need a pointer to true...
-	f := false // and another one to false... sadness.
 
 	page := 1
 	for {
 		opt := &gitlab.ListUsersOptions{
-			Active:  &t,
-			Blocked: &f,
 			ListOptions: gitlab.ListOptions{
 				PerPage: m.PerPage,
 				Page:    page,
@@ -396,6 +397,7 @@ func (m GitlabAPIClient) getProjects(ch chan gitlab.Project, errs *errors.Errors
 type GitlabQuerier struct {
 	users    map[string]int
 	admins   map[string]int
+	blocked  map[string]int
 	groups   map[string]int
 	projects map[string]int
 }
@@ -406,7 +408,10 @@ func (m GitlabQuerier) getUserID(username string) int {
 		id, ok = m.admins[username]
 	}
 	if !ok {
-		logrus.Fatalf("could not find user '%s' in the lists of users and admins", username)
+		id, ok = m.blocked[username]
+	}
+	if !ok {
+		logrus.Fatalf("could not find user '%s' in the lists of normal, admins or blocked users", username)
 	}
 	return id
 }
@@ -428,6 +433,12 @@ func (m GitlabQuerier) IsUser(u string) bool {
 // IsAdmin implements Querier interface
 func (m GitlabQuerier) IsAdmin(u string) bool {
 	_, ok := m.admins[u]
+	return ok
+}
+
+// IsAdmin implements Querier interface
+func (m GitlabQuerier) IsBlocked(u string) bool {
+	_, ok := m.blocked[u]
 	return ok
 }
 
@@ -456,6 +467,11 @@ func (m GitlabQuerier) Users() []string {
 // Admins returns the list of users that are admins and are not blocked
 func (m GitlabQuerier) Admins() []string {
 	return toStringSlice(m.admins)
+}
+
+// Blocked returns the list of users that are blocked
+func (m GitlabQuerier) Blocked() []string {
+	return toStringSlice(m.blocked)
 }
 
 // GitlabState represents the state of a gitlab instance
