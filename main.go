@@ -18,7 +18,7 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 
-	client := api.NewGitlabAPIClient(args.GitlabToken, args.GitlabBaseURL)
+	client := api.NewGitlabAPIClient(args.GitlabToken, args.GitlabBaseURL, args.GhostUser)
 
 	gitlabQuerier, gitlabState, err := client.LoadState()
 	if err != nil {
