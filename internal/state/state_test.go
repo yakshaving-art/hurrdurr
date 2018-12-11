@@ -31,6 +31,9 @@ func TestLoadingState(t *testing.T) {
 		projects: map[string]bool{
 			"root_group/a_project": true,
 		},
+		blocked: map[string]bool{
+			"bad_actor_1": true,
+		},
 	}
 	tt := []struct {
 		name                    string
@@ -52,6 +55,14 @@ func TestLoadingState(t *testing.T) {
 			"group without owner fails",
 			"fixtures/group-without-owner.yaml",
 			"failed to build local state from file fixtures/group-without-owner.yaml: 1 error: no owner in group 'root_group'",
+			nil,
+			nil,
+			nil,
+		},
+		{
+			"group with blocked user fails",
+			"fixtures/bad-actor.yaml",
+			"failed to build local state from file fixtures/bad-actor.yaml: 1 error: User 'bad_actor_1' is blocked, it should not be included in group 'root_group'",
 			nil,
 			nil,
 			nil,
@@ -272,6 +283,7 @@ func TestLoadingState(t *testing.T) {
 type querierMock struct {
 	admins   map[string]bool
 	users    map[string]bool
+	blocked  map[string]bool
 	groups   map[string]bool
 	projects map[string]bool
 }
@@ -285,6 +297,12 @@ func (q querierMock) IsAdmin(u string) bool {
 	_, ok := q.admins[u]
 	return ok
 }
+
+func (q querierMock) IsBlocked(u string) bool {
+	_, ok := q.blocked[u]
+	return ok
+}
+
 func (q querierMock) GroupExists(g string) bool {
 	_, ok := q.groups[g]
 	return ok
@@ -303,17 +321,21 @@ func (q querierMock) ProjectExists(p string) bool {
 }
 
 func (q querierMock) Users() []string {
-	users := make([]string, 0)
-	for u := range q.users {
-		users = append(users, u)
-	}
-	return users
+	return q.toStringSlice(q.users)
 }
 
 func (q querierMock) Admins() []string {
-	admins := make([]string, 0)
-	for a := range q.admins {
-		admins = append(admins, a)
+	return q.toStringSlice(q.admins)
+}
+
+func (q querierMock) Blocked() []string {
+	return q.toStringSlice(q.blocked)
+}
+
+func (q querierMock) toStringSlice(m map[string]bool) []string {
+	s := make([]string, 0)
+	for a := range m {
+		s = append(s, a)
 	}
-	return admins
+	return s
 }

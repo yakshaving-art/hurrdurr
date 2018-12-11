@@ -16,6 +16,8 @@ type Args struct {
 	GitlabToken   string
 	GitlabBaseURL string
 
+	GhostUser string
+
 	DryRun      bool
 	ShowVersion bool
 	Debug       bool
@@ -29,6 +31,7 @@ func parseArgs() Args {
 	flag.BoolVar(&args.Debug, "debug", false, "executes with logging in debug mode")
 
 	flag.StringVar(&args.ConfigFile, "config", "config.yaml", "configuration file to load")
+	flag.StringVar(&args.GhostUser, "ghost-user", "ghost", "system wide gitlab ghost user.")
 
 	flag.Parse()
 
