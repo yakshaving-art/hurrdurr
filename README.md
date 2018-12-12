@@ -13,10 +13,10 @@ ineffectively, yet does the jerb.
   *hurrdurr.yml* in the current working directoy.
 - **-dryrun** don't actually change anything, only evaluate which changes
   should happen.
-- **-version** prints the version and exits without error.
 - **-ghost-user** system wide gitlab ghost user. (default "ghost")
-- **-manage-users** enables user management, enforcing admins and blocked
-  users to be converged.
+- **-manage-acl** manage groups, projects permissions and sharing.
+- **-manage-users** manage user properties, like adminness and blockedness.
+- **-version** prints the version and exits without error.
 
 ### Required Environment Variables
 
