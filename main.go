@@ -5,13 +5,10 @@ import (
 	"gitlab.com/yakshaving.art/hurrdurr/internal/api"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/state"
 
-	"github.com/onrik/logrus/filename"
 	"github.com/sirupsen/logrus"
 )
 
 func main() {
-	setupLogger()
-
 	args := parseArgs()
 
 	if args.Debug {
@@ -30,7 +27,11 @@ func main() {
 		logrus.Fatalf("Failed to load desired state from file %s: %s", args.ConfigFile, err)
 	}
 
-	actions, err := state.Diff(gitlabState, desiredState)
+	actions, err := state.Diff(gitlabState, desiredState, state.DiffArgs{
+		DiffGroups:   args.ManageACLs,
+		DiffProjects: args.ManageACLs,
+		DiffUsers:    args.ManageUsers,
+	})
 	if err != nil {
 		logrus.Fatalf("Failed to diff current and desired state: %s", err)
 	}
@@ -59,11 +60,4 @@ func main() {
 			logrus.Infof("  %s", ug)
 		}
 	}
-}
-
-func setupLogger() {
-	logrus.AddHook(filename.NewHook())
-	logrus.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-	})
 }

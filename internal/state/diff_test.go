@@ -35,10 +35,10 @@ func TestDiffWithoutOneStateFails(t *testing.T) {
 	s, err := state.LoadStateFromFile("fixtures/plain.yaml", querier)
 	a.NoError(err)
 
-	_, err = state.Diff(nil, s)
+	_, err = state.Diff(nil, s, state.DiffArgs{})
 	a.EqualError(err, "invalid current state: nil")
 
-	_, err = state.Diff(s, nil)
+	_, err = state.Diff(s, nil, state.DiffArgs{})
 	a.EqualError(err, "invalid desired state: nil")
 }
 
@@ -167,7 +167,11 @@ func TestDiffingStates(t *testing.T) {
 			desiredState, err := state.LoadStateFromFile(tc.desiredState, querier)
 			a.NoError(err, "desired state")
 
-			actions, err := state.Diff(sourceState, desiredState)
+			actions, err := state.Diff(sourceState, desiredState, state.DiffArgs{
+				DiffGroups:   true,
+				DiffProjects: true,
+				DiffUsers:    true,
+			})
 			a.NoError(err, "diff")
 			a.NotNil(actions, "actions")
 
