@@ -17,9 +17,6 @@ build:
   artifacts:
     paths:
     - hurrdurr
-  cache:
-    paths:
-    - vendor
   script:
   - mkdir -p /go/src/gitlab.com/${CI_PROJECT_NAMESPACE}
   - cd /go/src/gitlab.com/${CI_PROJECT_NAMESPACE}
