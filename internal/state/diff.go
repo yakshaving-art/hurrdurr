@@ -243,7 +243,7 @@ func (d *differ) diffProjects() {
 }
 
 func (d *differ) diffUsers() {
-
+	d.Error(fmt.Errorf("diff users not implemented"))
 }
 
 type changeGroupMembership struct {
