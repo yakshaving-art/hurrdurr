@@ -105,7 +105,7 @@ func LoadStateFromFile(filename string, q internal.Querier) (internal.State, err
 	}
 
 	s := state{}
-	if err := yaml.Unmarshal(content, &s); err != nil {
+	if err := yaml.UnmarshalStrict(content, &s); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal state file %s: %s", filename, err)
 	}
 
