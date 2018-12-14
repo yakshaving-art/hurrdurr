@@ -21,6 +21,9 @@ type Args struct {
 	DryRun      bool
 	ShowVersion bool
 	Debug       bool
+
+	ManageACLs  bool
+	ManageUsers bool
 }
 
 func parseArgs() Args {
@@ -33,6 +36,9 @@ func parseArgs() Args {
 	flag.StringVar(&args.ConfigFile, "config", "config.yaml", "configuration file to load")
 	flag.StringVar(&args.GhostUser, "ghost-user", "ghost", "system wide gitlab ghost user.")
 
+	flag.BoolVar(&args.ManageACLs, "manage-acls", false, "performs diffs of groups and projects")
+	flag.BoolVar(&args.ManageUsers, "manage-users", false, "performs diffs of user attributes")
+
 	flag.Parse()
 
 	args.GitlabToken = os.Getenv("GITLAB_TOKEN")
@@ -44,18 +50,22 @@ func parseArgs() Args {
 	}
 
 	if args.GitlabToken == "" {
-		logrus.Fatalf("GITLAB_TOKEN is a required environment variable")
+		logrus.Fatal("GITLAB_TOKEN is a required environment variable")
 	}
 
 	if args.GitlabBaseURL == "" {
-		logrus.Fatalf("GITLAB_BASEURL is a required environment variable")
+		logrus.Fatal("GITLAB_BASEURL is a required environment variable")
 	}
 
 	if !strings.HasPrefix(args.GitlabBaseURL, "https://") {
-		logrus.Fatalf("Validate error: base_url should use https:// scheme")
+		logrus.Fatal("Validate error: base_url should use https:// scheme")
 	}
 	if !strings.HasSuffix(args.GitlabBaseURL, "/api/v4/") {
-		logrus.Fatalf("Validate error: base_url should end with '/api/v4/'")
+		logrus.Fatal("Validate error: base_url should end with '/api/v4/'")
+	}
+
+	if !(args.ManageACLs || args.ManageUsers) {
+		logrus.Fatal("Nothing to manage, set one of -manage-acls or -manage-users")
 	}
 
 	return args

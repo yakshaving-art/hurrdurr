@@ -10,9 +10,30 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// DiffArgs represents the different arguments used to configure the diffing process
+type DiffArgs struct {
+	DiffGroups   bool
+	DiffProjects bool
+	DiffUsers    bool
+}
+
+type differ struct {
+	actions          []internal.Action
+	errs             errors.Errors
+	current, desired internal.State
+}
+
+func (d *differ) Action(a internal.Action) {
+	d.actions = append(d.actions, a)
+}
+
+func (d *differ) Error(e error) {
+	d.errs.Append(e)
+}
+
 // Diff returns a set of actions that will turn the current state into the
 // desired state
-func Diff(current, desired internal.State) ([]internal.Action, error) {
+func Diff(current, desired internal.State, args DiffArgs) ([]internal.Action, error) {
 	if current == nil {
 		return nil, fmt.Errorf("invalid current state: nil")
 	}
@@ -20,25 +41,42 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 		return nil, fmt.Errorf("invalid desired state: nil")
 	}
 
-	actions := make([]internal.Action, 0)
-	errs := errors.New()
+	differ := &differ{
+		actions: make([]internal.Action, 0),
+		errs:    errors.New(),
+		current: current,
+		desired: desired,
+	}
 
-	desiredGroups := desired.Groups()
+	if args.DiffGroups {
+		differ.diffGroups()
+	}
+	if args.DiffProjects {
+		differ.diffProjects()
+	}
+	if args.DiffUsers {
+		differ.diffUsers()
+	}
+
+	return differ.actions, differ.errs.ErrorOrNil()
+}
+
+func (d *differ) diffGroups() {
+	desiredGroups := d.desired.Groups()
 	sort.Slice(desiredGroups, func(i, j int) bool {
 		return desiredGroups[i].GetFullpath() < desiredGroups[j].GetFullpath()
 	})
 
-	logrus.Debugf("Comparing current %#v with desired %#v", current, desired)
-
 	for _, desiredGroup := range desiredGroups {
 		logrus.Debugf("Processing desired group %s", desiredGroup.GetFullpath())
 
-		currentGroup, currentGroupPresent := current.Group(desiredGroup.GetFullpath())
+		currentGroup, currentGroupPresent := d.current.Group(desiredGroup.GetFullpath())
 		desiredMembers := desiredGroup.GetMembers()
 
 		if currentGroupPresent {
 			currentMembers := currentGroup.GetMembers()
-			logrus.Debugf("  Diffing desired group %s members because the current group is present", desiredGroup.GetFullpath())
+			logrus.Debugf("  Diffing desired group %s members because the current group is present",
+				desiredGroup.GetFullpath())
 
 			for _, m := range sortedMembers(desiredMembers) {
 				desiredName := m.name
@@ -46,14 +84,16 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 
 				currentLevel, currentMemberPresent := currentMembers[desiredName]
 				if !currentMemberPresent {
-					logrus.Debugf("  Adding %s to group %s at level %s", desiredName, desiredGroup.GetFullpath(), desiredLevel)
-					actions = append(actions, addUserMembershipAction{
+					logrus.Debugf("  Adding %s to group %s at level %s", desiredName, desiredGroup.GetFullpath(),
+						desiredLevel)
+					d.Action(addGroupMembershipAction{
 						Group:    desiredGroup.GetFullpath(),
 						Username: desiredName,
 						Level:    desiredLevel})
 				} else if currentLevel != desiredLevel {
-					logrus.Debugf("  Changing %s in group %s to level %s", desiredName, desiredGroup.GetFullpath(), desiredLevel)
-					actions = append(actions, changeUserLevelAction{
+					logrus.Debugf("  Changing %s in group %s to level %s", desiredName, desiredGroup.GetFullpath(),
+						desiredLevel)
+					d.Action(changeGroupMembership{
 						Group:    desiredGroup.GetFullpath(),
 						Username: desiredName,
 						Level:    desiredLevel})
@@ -66,15 +106,17 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 			for currentMember := range currentMembers {
 				if _, desiredMemberPresent := desiredMembers[currentMember]; !desiredMemberPresent {
 					logrus.Debugf("  Removing %s from group %s because it's not present in the desired state",
-						current, currentGroup.GetFullpath())
-					actions = append(actions, removeUserAction{Username: currentMember, Group: currentGroup.GetFullpath()})
+						d.current, currentGroup.GetFullpath())
+					d.Action(removeGroupMembership{Username: currentMember, Group: currentGroup.GetFullpath()})
 				}
 			}
 		} else { // !currentGroupPresent
-			logrus.Debugf("  Appending desired group %s members because the current group is not present", desiredGroup.GetFullpath())
+			logrus.Debugf("  Appending desired group %s members because the current group is not present",
+				desiredGroup.GetFullpath())
 			for desiredName, desiredLevel := range desiredMembers {
-				logrus.Debugf("  Adding %s to group %s at level %s", desiredName, desiredGroup.GetFullpath(), desiredLevel)
-				actions = append(actions, addUserMembershipAction{
+				logrus.Debugf("  Adding %s to group %s at level %s", desiredName, desiredGroup.GetFullpath(),
+					desiredLevel)
+				d.Action(addGroupMembershipAction{
 					Group:    desiredGroup.GetFullpath(),
 					Username: desiredName,
 					Level:    desiredLevel})
@@ -83,31 +125,37 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 
 	}
 
-	for _, desiredProject := range desired.Projects() {
-		currentProject, currentProjectPresent := current.Project(desiredProject.GetFullpath())
+}
 
-		logrus.Debugf("Processing desired project state: %#v from current state: %#v", desiredProject, currentProject)
+func (d *differ) diffProjects() {
+	for _, desiredProject := range d.desired.Projects() {
+		currentProject, currentProjectPresent := d.current.Project(desiredProject.GetFullpath())
+
+		logrus.Debugf("Processing desired project state: %#v from current state: %#v",
+			desiredProject, currentProject)
 
 		if currentProjectPresent {
 			logrus.Debugf("  Diffing project %s because current project is present", currentProject.GetFullpath())
 			for desiredGroup, desiredLevel := range desiredProject.GetSharedGroups() {
 				currentLevel, currentLevelPresent := currentProject.GetSharedGroups()[desiredGroup]
 				if !currentLevelPresent {
-					logrus.Debugf("  Adding group %s sharing because current level is not currently present", desiredGroup)
-					actions = append(actions, shareProjectWithGroup{
+					logrus.Debugf("  Adding group %s sharing because current level is not currently present",
+						desiredGroup)
+					d.Action(shareProjectWithGroup{
 						Project: desiredProject.GetFullpath(),
 						Group:   desiredGroup,
 						Level:   desiredLevel,
 					})
 				} else if currentLevel != desiredLevel {
-					logrus.Debugf("  Changing group %s sharing as %s because current level is %s", desiredGroup, desiredLevel, currentLevel)
+					logrus.Debugf("  Changing group %s sharing as %s because current level is %s",
+						desiredGroup, desiredLevel, currentLevel)
 
-					actions = append(actions, removeProjectGroupSharing{
+					d.Action(removeProjectGroupSharing{
 						Project: desiredProject.GetFullpath(),
 						Group:   desiredGroup,
 					})
 
-					actions = append(actions, shareProjectWithGroup{
+					d.Action(shareProjectWithGroup{
 						Project: desiredProject.GetFullpath(),
 						Group:   desiredGroup,
 						Level:   desiredLevel,
@@ -126,15 +174,17 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 
 				currentLevel, currentMemberPresent := currentMembers[desiredName]
 				if !currentMemberPresent {
-					logrus.Debugf("  Adding project %s membership for %s as %s", desiredProject.GetFullpath(), desiredName, desiredLevel)
-					actions = append(actions, addProjectMembership{
+					logrus.Debugf("  Adding project %s membership for %s as %s", desiredProject.GetFullpath(),
+						desiredName, desiredLevel)
+					d.Action(addProjectMembership{
 						Project:  desiredProject.GetFullpath(),
 						Username: desiredName,
 						Level:    desiredLevel})
 
 				} else if currentLevel != desiredLevel {
-					logrus.Debugf("  Changing project %s membership for %s to %s", desiredProject.GetFullpath(), desiredName, desiredLevel)
-					actions = append(actions, changeProjectMembership{
+					logrus.Debugf("  Changing project %s membership for %s to %s", desiredProject.GetFullpath(),
+						desiredName, desiredLevel)
+					d.Action(changeProjectMembership{
 						Project:  desiredProject.GetFullpath(),
 						Username: desiredName,
 						Level:    desiredLevel})
@@ -146,8 +196,9 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 			logrus.Debugf("  Appending project %s because current state is not present", desiredProject.GetFullpath())
 
 			for desiredGroup, desiredLevel := range desiredProject.GetSharedGroups() {
-				logrus.Debugf("  Adding group %s sharing with %s because project is not currently present", desiredProject.GetFullpath(), desiredGroup)
-				actions = append(actions, shareProjectWithGroup{
+				logrus.Debugf("  Adding group %s sharing with %s because project is not currently present",
+					desiredProject.GetFullpath(), desiredGroup)
+				d.Action(shareProjectWithGroup{
 					Project: desiredProject.GetFullpath(),
 					Group:   desiredGroup,
 					Level:   desiredLevel,
@@ -156,8 +207,9 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 
 			desiredMembers := desiredProject.GetMembers()
 			for desiredName, desiredLevel := range desiredMembers {
-				logrus.Debugf("  Adding project %s membership for %s as %s", desiredProject.GetFullpath(), desiredName, desiredLevel)
-				actions = append(actions, addProjectMembership{
+				logrus.Debugf("  Adding project %s membership for %s as %s", desiredProject.GetFullpath(),
+					desiredName, desiredLevel)
+				d.Action(addProjectMembership{
 					Username: desiredName,
 					Project:  desiredProject.GetFullpath(),
 					Level:    desiredLevel,
@@ -167,10 +219,11 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 	}
 
 	// Compare current project state with desired to remove things
-	for _, currentProject := range current.Projects() {
-		desiredProject, desiredProjectPresent := desired.Project(currentProject.GetFullpath())
+	for _, currentProject := range d.current.Projects() {
+		desiredProject, desiredProjectPresent := d.desired.Project(currentProject.GetFullpath())
 		if !desiredProjectPresent {
-			logrus.Debugf("Skipping current project '%s' because it's not managed in desired state", currentProject.GetFullpath())
+			logrus.Debugf("Skipping current project '%s' because it's not managed in desired state",
+				currentProject.GetFullpath())
 			continue
 		}
 
@@ -179,7 +232,7 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 				logrus.Debugf("  Removing project %s sharing with group %s because project is not in the desired state",
 					currentProject.GetFullpath(), group)
 
-				actions = append(actions, removeProjectGroupSharing{
+				d.Action(removeProjectGroupSharing{
 					Project: currentProject.GetFullpath(),
 					Group:   group,
 				})
@@ -192,7 +245,7 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 				logrus.Debugf("  Removing project %s membership for %s because member is not in the desired state",
 					currentProject.GetFullpath(), member)
 
-				actions = append(actions, removeProjectMembership{
+				d.Action(removeProjectMembership{
 					Project:  currentProject.GetFullpath(),
 					Username: member,
 				})
@@ -200,35 +253,68 @@ func Diff(current, desired internal.State) ([]internal.Action, error) {
 		}
 	}
 
-	return actions, errs.ErrorOrNil()
 }
 
-type changeUserLevelAction struct {
+func (d *differ) diffUsers() {
+	for _, a := range d.desired.Admins() {
+		if !d.current.IsAdmin(a) {
+			d.Action(setAdminUser{
+				Username: a,
+			})
+		}
+	}
+
+	for _, a := range d.current.Admins() {
+		if !d.desired.IsAdmin(a) {
+			d.Action(unsetAdminUser{
+				Username: a,
+			})
+		}
+	}
+
+	for _, a := range d.desired.Blocked() {
+		if !d.current.IsBlocked(a) {
+			d.Action(blockUser{
+				Username: a,
+			})
+		}
+	}
+
+	for _, a := range d.current.Blocked() {
+		if !d.desired.IsBlocked(a) {
+			d.Action(unblockUser{
+				Username: a,
+			})
+		}
+	}
+}
+
+type changeGroupMembership struct {
 	Username string
 	Group    string
 	Level    internal.Level
 }
 
-func (s changeUserLevelAction) Execute(c internal.APIClient) error {
+func (s changeGroupMembership) Execute(c internal.APIClient) error {
 	return c.ChangeGroupMembership(s.Username, s.Group, s.Level)
 }
 
-type addUserMembershipAction struct {
+type addGroupMembershipAction struct {
 	Username string
 	Group    string
 	Level    internal.Level
 }
 
-func (s addUserMembershipAction) Execute(c internal.APIClient) error {
+func (s addGroupMembershipAction) Execute(c internal.APIClient) error {
 	return c.AddGroupMembership(s.Username, s.Group, s.Level)
 }
 
-type removeUserAction struct {
+type removeGroupMembership struct {
 	Username string
 	Group    string
 }
 
-func (r removeUserAction) Execute(c internal.APIClient) error {
+func (r removeGroupMembership) Execute(c internal.APIClient) error {
 	return c.RemoveGroupMembership(r.Username, r.Group)
 }
 
@@ -278,6 +364,38 @@ type removeProjectMembership struct {
 
 func (r removeProjectMembership) Execute(c internal.APIClient) error {
 	return c.RemoveProjectMembership(r.Username, r.Project)
+}
+
+type setAdminUser struct {
+	Username string
+}
+
+func (r setAdminUser) Execute(c internal.APIClient) error {
+	return c.SetAdminUser(r.Username)
+}
+
+type unsetAdminUser struct {
+	Username string
+}
+
+func (r unsetAdminUser) Execute(c internal.APIClient) error {
+	return c.UnsetAdminUser(r.Username)
+}
+
+type blockUser struct {
+	Username string
+}
+
+func (r blockUser) Execute(c internal.APIClient) error {
+	return c.BlockUser(r.Username)
+}
+
+type unblockUser struct {
+	Username string
+}
+
+func (r unblockUser) Execute(c internal.APIClient) error {
+	return c.UnblockUser(r.Username)
 }
 
 type member struct {

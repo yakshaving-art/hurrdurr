@@ -35,10 +35,10 @@ func TestDiffWithoutOneStateFails(t *testing.T) {
 	s, err := state.LoadStateFromFile("fixtures/plain.yaml", querier)
 	a.NoError(err)
 
-	_, err = state.Diff(nil, s)
+	_, err = state.Diff(nil, s, state.DiffArgs{})
 	a.EqualError(err, "invalid current state: nil")
 
-	_, err = state.Diff(s, nil)
+	_, err = state.Diff(s, nil, state.DiffArgs{})
 	a.EqualError(err, "invalid desired state: nil")
 }
 
@@ -155,6 +155,24 @@ func TestDiffingStates(t *testing.T) {
 			"fixtures/plain-with-project.yaml",
 			[]string{},
 		},
+		{
+			"blocking a user works",
+			"fixtures/plain-with-admins.yaml",
+			"fixtures/plain-with-blocked-user.yaml",
+			[]string{
+				"unset 'user3' as admin",
+				"block 'user3'",
+			},
+		},
+		{
+			"unblocking a user works",
+			"fixtures/plain-with-blocked-user.yaml",
+			"fixtures/plain-with-admins.yaml",
+			[]string{
+				"set 'user3' as admin",
+				"unblock 'user3'",
+			},
+		},
 	}
 
 	for _, tc := range tt {
@@ -167,7 +185,11 @@ func TestDiffingStates(t *testing.T) {
 			desiredState, err := state.LoadStateFromFile(tc.desiredState, querier)
 			a.NoError(err, "desired state")
 
-			actions, err := state.Diff(sourceState, desiredState)
+			actions, err := state.Diff(sourceState, desiredState, state.DiffArgs{
+				DiffGroups:   true,
+				DiffProjects: true,
+				DiffUsers:    true,
+			})
 			a.NoError(err, "diff")
 			a.NotNil(actions, "actions")
 

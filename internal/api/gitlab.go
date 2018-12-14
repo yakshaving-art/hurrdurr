@@ -2,10 +2,11 @@ package api
 
 import (
 	"fmt"
-	"sort"
+	"sync"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
+	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
 
 	"github.com/sirupsen/logrus"
 	gitlab "github.com/xanzy/go-gitlab"
@@ -157,6 +158,66 @@ func (m GitlabAPIClient) RemoveProjectMembership(username, project string) error
 	return nil
 }
 
+// BlockUser implements the APIClient interface
+func (m GitlabAPIClient) BlockUser(username string) error {
+	userID := m.querier.getUserID(username)
+
+	err := m.client.Users.BlockUser(userID)
+	if err != nil {
+		return fmt.Errorf("failed to block user '%s': %s", username, err)
+	}
+	logrus.Infof(fmt.Sprintf("blocked user '%s'", username))
+
+	return nil
+}
+
+// UnblockUser implements the APIClient interface
+func (m GitlabAPIClient) UnblockUser(username string) error {
+	userID := m.querier.getUserID(username)
+
+	err := m.client.Users.UnblockUser(userID)
+	if err != nil {
+		return fmt.Errorf("failed to unblock user '%s': %s", username, err)
+	}
+	logrus.Infof(fmt.Sprintf("unblocked user '%s'", username))
+
+	return nil
+}
+
+// SetAdminUser implements the APIClient interface
+func (m GitlabAPIClient) SetAdminUser(username string) error {
+	userID := m.querier.getUserID(username)
+	t := true
+
+	_, _, err := m.client.Users.ModifyUser(userID,
+		&gitlab.ModifyUserOptions{
+			Admin: &t,
+		})
+	if err != nil {
+		return fmt.Errorf("failed to set user '%s' as admin: %s", username, err)
+	}
+	logrus.Infof(fmt.Sprintf("user '%s' is admin now", username))
+
+	return nil
+}
+
+// UnsetAdminUser implements the APIClient interface
+func (m GitlabAPIClient) UnsetAdminUser(username string) error {
+	userID := m.querier.getUserID(username)
+	f := false
+
+	_, _, err := m.client.Users.ModifyUser(userID,
+		&gitlab.ModifyUserOptions{
+			Admin: &f,
+		})
+	if err != nil {
+		return fmt.Errorf("failed to unset user '%s' as admin: %s", username, err)
+	}
+	logrus.Infof(fmt.Sprintf("user '%s' is not admin anymore", username))
+
+	return nil
+}
+
 // LoadState loads all the state from a remote gitlab instance and returns
 // both a querier and a state so they can be used for diffing operations
 func (m *GitlabAPIClient) LoadState() (internal.Querier, internal.State, error) {
@@ -167,7 +228,7 @@ func (m *GitlabAPIClient) LoadState() (internal.Querier, internal.State, error) 
 
 	logrus.Debugf("Loaded gitlab querier: %#v", querier)
 
-	state, err := m.buildLiveState()
+	state, err := m.buildLiveState(querier)
 	errs.Append(err)
 
 	logrus.Debugf("Loaded gitlab live state: %#v", state)
@@ -238,48 +299,56 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 	}, errs.ErrorOrNil()
 }
 
-func (m GitlabAPIClient) buildLiveState() (internal.State, error) {
+func (m GitlabAPIClient) buildLiveState(q GitlabQuerier) (internal.State, error) {
 	errs := errors.New()
 
 	groups := make(map[string]internal.Group, 0)
-	projects := make(map[string]internal.Project)
+	projects := make(map[string]internal.Project, 0)
 
-	groupsCh := make(chan gitlab.Group)
-	go m.getGroups(groupsCh, &errs)
+	wg := sync.WaitGroup{}
+	wg.Add(2)
 
-	projectsCh := make(chan gitlab.Project)
-	go m.getProjects(projectsCh, &errs)
+	go func() {
+		for group := range q.groups {
+			members, err := m.getGroupMembers(group)
+			if err != nil {
+				errs.Append(err)
+				continue
+			}
 
-	for group := range groupsCh {
-
-		members, err := m.getGroupMembers(group.FullPath)
-		if err != nil {
-			errs.Append(err)
-			continue
+			groups[group] = GitlabGroup{
+				fullpath: group,
+				members:  members,
+			}
 		}
+		wg.Done()
+	}()
 
-		groups[group.FullPath] = GitlabGroup{
-			fullpath: group.FullPath,
-			members:  members,
+	go func() {
+		projectsCh := make(chan gitlab.Project)
+		go m.getProjects(projectsCh, &errs)
+
+		for project := range projectsCh {
+			groups := make(map[string]internal.Level, 0)
+
+			for _, g := range project.SharedWithGroups {
+				groups[g.GroupName] = internal.Level(g.GroupAccessLevel)
+			}
+
+			projects[project.PathWithNamespace] = GitlabProject{
+				fullpath:   project.PathWithNamespace,
+				sharedWith: groups,
+			}
 		}
-	}
+		wg.Done()
+	}()
 
-	for project := range projectsCh {
-		groups := make(map[string]internal.Level, 0)
-
-		for _, g := range project.SharedWithGroups {
-			groups[g.GroupName] = internal.Level(g.GroupAccessLevel)
-		}
-
-		projects[project.PathWithNamespace] = GitlabProject{
-			fullpath:   project.PathWithNamespace,
-			sharedWith: groups,
-		}
-	}
+	wg.Wait()
 
 	return GitlabState{
-		groups:   groups,
-		projects: projects,
+		GitlabQuerier: q,
+		groups:        groups,
+		projects:      projects,
 	}, errs.ErrorOrNil()
 }
 
@@ -457,7 +526,7 @@ func (m GitlabQuerier) GroupExists(g string) bool {
 
 // Groups implements Querier interface
 func (m GitlabQuerier) Groups() []string {
-	return toStringSlice(m.groups)
+	return util.ToStringSlice(m.groups)
 }
 
 // ProjectExists implements Querier interface
@@ -468,21 +537,22 @@ func (m GitlabQuerier) ProjectExists(p string) bool {
 
 // Users returns the list of users that are regular users and are not blocked
 func (m GitlabQuerier) Users() []string {
-	return toStringSlice(m.users)
+	return util.ToStringSlice(m.users)
 }
 
 // Admins returns the list of users that are admins and are not blocked
 func (m GitlabQuerier) Admins() []string {
-	return toStringSlice(m.admins)
+	return util.ToStringSlice(m.admins)
 }
 
 // Blocked returns the list of users that are blocked
 func (m GitlabQuerier) Blocked() []string {
-	return toStringSlice(m.blocked)
+	return util.ToStringSlice(m.blocked)
 }
 
 // GitlabState represents the state of a gitlab instance
 type GitlabState struct {
+	GitlabQuerier
 	groups   map[string]internal.Group
 	projects map[string]internal.Project
 }
@@ -564,15 +634,4 @@ func (g GitlabProject) GetGroupLevel(group string) (internal.Level, bool) {
 // GetMembers implements internal.Project interface
 func (g GitlabProject) GetMembers() map[string]internal.Level {
 	return g.members
-}
-
-func toStringSlice(m map[string]int) []string {
-	slice := make([]string, 0)
-	for v := range m {
-		slice = append(slice, v)
-	}
-	sort.Slice(slice, func(i, j int) bool {
-		return slice[i] < slice[j]
-	})
-	return slice
 }

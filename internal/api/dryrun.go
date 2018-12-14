@@ -59,3 +59,27 @@ func (m DryRunAPIClient) RemoveProjectMembership(username, project string) error
 	m.Append(fmt.Sprintf("remove '%s' from '%s'", username, project))
 	return nil
 }
+
+// BlockUser implements the APIClient interface
+func (m DryRunAPIClient) BlockUser(username string) error {
+	m.Append(fmt.Sprintf("block '%s'", username))
+	return nil
+}
+
+// UnblockUser implements the APIClient interface
+func (m DryRunAPIClient) UnblockUser(username string) error {
+	m.Append(fmt.Sprintf("unblock '%s'", username))
+	return nil
+}
+
+// SetAdminUser implements the APIClient interface
+func (m DryRunAPIClient) SetAdminUser(username string) error {
+	m.Append(fmt.Sprintf("set '%s' as admin", username))
+	return nil
+}
+
+// UnsetAdminUser implements the APIClient interface
+func (m DryRunAPIClient) UnsetAdminUser(username string) error {
+	m.Append(fmt.Sprintf("unset '%s' as admin", username))
+	return nil
+}

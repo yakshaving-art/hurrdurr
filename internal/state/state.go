@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
+	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
 
 	"github.com/go-yaml/yaml"
 	"github.com/sirupsen/logrus"
@@ -120,8 +121,10 @@ func LoadStateFromFile(filename string, q internal.Querier) (internal.State, err
 
 type localState struct {
 	groups          map[string]*LocalGroup
-	unhandledGroups []string
 	projects        map[string]*LocalProject
+	admins          map[string]int
+	blocked         map[string]int
+	unhandledGroups []string
 }
 
 func (s localState) addGroup(g *LocalGroup) {
@@ -162,6 +165,26 @@ func (s localState) Project(fullpath string) (internal.Project, bool) {
 	return p, ok
 }
 
+func (s localState) IsAdmin(username string) bool {
+	_, ok := s.admins[username]
+	return ok
+}
+
+func (s localState) IsBlocked(username string) bool {
+	_, ok := s.blocked[username]
+	return ok
+}
+
+// Admins implements State interface
+func (s localState) Admins() []string {
+	return util.ToStringSlice(s.admins)
+}
+
+// Blocked implements State interface
+func (s localState) Blocked() []string {
+	return util.ToStringSlice(s.blocked)
+}
+
 type acls struct {
 	Guests      []string `yaml:"guests,omitempty"`
 	Reporters   []string `yaml:"reporters,omitempty"`
@@ -171,15 +194,23 @@ type acls struct {
 	Owners []string `yaml:"owners,omitempty"`
 }
 
+type users struct {
+	Admins  []string `yaml:"admins,omitempty"`
+	Blocked []string `yaml:"blocked,omitempty"`
+}
+
 type state struct {
 	Groups   map[string]acls `yaml:"groups,omitempty"`
 	Projects map[string]acls `yaml:"projects,omitempty"`
+	Users    users           `yaml:"users,omitempty"`
 }
 
 func (s state) toLocalState(q internal.Querier) (localState, error) {
 	l := localState{
 		groups:   make(map[string]*LocalGroup, 0),
 		projects: make(map[string]*LocalProject, 0),
+		admins:   make(map[string]int, 0),
+		blocked:  make(map[string]int, 0),
 	}
 
 	errs := errors.New() // This object aggregates all the errors to dump them all at the end
@@ -307,6 +338,14 @@ Loop:
 			}
 		}
 		errs.Append(fmt.Errorf("no owner in group '%s'", localGroup.Fullpath))
+	}
+
+	for _, u := range s.Users.Admins {
+		l.admins[u] = 1
+	}
+
+	for _, u := range s.Users.Blocked {
+		l.blocked[u] = 1
 	}
 
 	return l, errs.ErrorOrNil()

@@ -1,0 +1,15 @@
+---
+groups:
+  root_group:
+    owners:
+    - admin
+    developers:
+    - user1
+  other_group:
+    owners:
+    - user2
+users:
+  admins:
+  - admin
+  blocked:
+  - user3

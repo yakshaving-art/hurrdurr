@@ -49,6 +49,12 @@ type State interface {
 
 	Projects() []Project
 	Project(string) (Project, bool)
+
+	Admins() []string
+	IsAdmin(string) bool
+
+	Blocked() []string
+	IsBlocked(string) bool
 }
 
 // Querier represents an object which can be used to query a live instance to validate data
@@ -62,6 +68,7 @@ type Querier interface {
 	Users() []string
 	Groups() []string
 	Admins() []string
+	Blocked() []string
 }
 
 // Action is an action to execute using the APIClient
@@ -81,4 +88,10 @@ type APIClient interface {
 	AddProjectMembership(username, project string, level Level) error
 	ChangeProjectMembership(username, project string, level Level) error
 	RemoveProjectMembership(username, project string) error
+
+	BlockUser(username string) error
+	UnblockUser(username string) error
+
+	SetAdminUser(username string) error
+	UnsetAdminUser(username string) error
 }
