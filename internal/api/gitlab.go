@@ -220,10 +220,10 @@ func (m GitlabAPIClient) UnsetAdminUser(username string) error {
 
 // LoadState loads all the state from a remote gitlab instance and returns
 // both a querier and a state so they can be used for diffing operations
-func (m *GitlabAPIClient) LoadState() (internal.Querier, internal.State, error) {
+func (m *GitlabAPIClient) LoadState(noAdmin bool) (internal.Querier, internal.State, error) {
 	errs := errors.New()
 
-	querier, err := m.buildQuerier()
+	querier, err := m.buildQuerier(!noAdmin)
 	errs.Append(err)
 
 	logrus.Debugf("Loaded gitlab querier: %#v", querier)
@@ -238,7 +238,7 @@ func (m *GitlabAPIClient) LoadState() (internal.Querier, internal.State, error) 
 	return querier, state, errs.ErrorOrNil()
 }
 
-func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
+func (m GitlabAPIClient) buildQuerier(expectAdmins bool) (GitlabQuerier, error) {
 	errs := errors.New()
 
 	logrus.Debugf("building querier...")
@@ -277,7 +277,7 @@ func (m GitlabAPIClient) buildQuerier() (GitlabQuerier, error) {
 		groups[group.FullPath] = group.ID
 	}
 
-	if len(admins) == 0 {
+	if expectAdmins && len(admins) == 0 {
 		errs.Append(fmt.Errorf("no admin was detected, are you using an admin token?"))
 	}
 
