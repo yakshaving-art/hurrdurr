@@ -1,0 +1,10 @@
+---
+groups:
+  root_group:
+    owners:
+    - admin
+    dvlprs:
+    - user1
+  other_group:
+    owners:
+    - user2

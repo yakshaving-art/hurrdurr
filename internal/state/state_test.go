@@ -68,6 +68,15 @@ func TestLoadingState(t *testing.T) {
 			nil,
 		},
 		{
+			"invalid yaml fails",
+			"fixtures/invalid.yaml",
+			"failed to unmarshal state file fixtures/invalid.yaml: yaml: unmarshal errors:\n" +
+				"  line 6: field dvlprs not found in type state.acls",
+			nil,
+			nil,
+			nil,
+		},
+		{
 			"query for owner returns nothing",
 			"fixtures/no-owner-in-query.yaml",
 			"failed to build local state from file fixtures/no-owner-in-query.yaml: 1 error: no owner in group 'skrrty'",
