@@ -17,7 +17,7 @@ func main() {
 
 	client := api.NewGitlabAPIClient(args.GitlabToken, args.GitlabBaseURL, args.GhostUser)
 
-	gitlabQuerier, gitlabState, err := client.LoadState()
+	gitlabQuerier, gitlabState, err := client.LoadState(args.NoAdmin)
 	if err != nil {
 		logrus.Fatalf("Failed to load live state from gitlab instance: %s", err)
 	}
