@@ -9,6 +9,8 @@ ineffectively, yet does the jerb.
 
 ### Arguments
 
+- **-autodevopsmode** where you have no admin rights but still do what you
+  gotta do
 - **-config** the configuration file to use, by default hurrdurr will load
   *hurrdurr.yml* in the current working directoy.
 - **-dryrun** don't actually change anything, only evaluate which changes
