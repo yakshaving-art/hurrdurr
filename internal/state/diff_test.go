@@ -155,6 +155,24 @@ func TestDiffingStates(t *testing.T) {
 			"fixtures/plain-with-project.yaml",
 			[]string{},
 		},
+		{
+			"blocking a user works",
+			"fixtures/plain-with-admins.yaml",
+			"fixtures/plain-with-blocked-user.yaml",
+			[]string{
+				"unset 'user3' as admin",
+				"block 'user3'",
+			},
+		},
+		{
+			"unblocking a user works",
+			"fixtures/plain-with-blocked-user.yaml",
+			"fixtures/plain-with-admins.yaml",
+			[]string{
+				"set 'user3' as admin",
+				"unblock 'user3'",
+			},
+		},
 	}
 
 	for _, tc := range tt {
