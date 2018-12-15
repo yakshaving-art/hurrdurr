@@ -251,11 +251,6 @@ func (m GitlabAPIClient) buildQuerier(expectAdmins bool) (GitlabQuerier, error) 
 	go m.getUsers(usersCh, &errs)
 
 	for u := range usersCh {
-		if u.Username == m.ghostUser {
-			logrus.Debugf("ignoring ghost user '%s'", m.ghostUser)
-			continue
-		}
-
 		if u.State == "blocked" {
 			logrus.Debugf("appending blocked user %s", u.Username)
 			blocked[u.Username] = u.ID
@@ -291,11 +286,12 @@ func (m GitlabAPIClient) buildQuerier(expectAdmins bool) (GitlabQuerier, error) 
 	}
 
 	return GitlabQuerier{
-		users:    users,
-		admins:   admins,
-		blocked:  blocked,
-		groups:   groups,
-		projects: projects,
+		ghostUser: m.ghostUser,
+		users:     users,
+		admins:    admins,
+		blocked:   blocked,
+		groups:    groups,
+		projects:  projects,
 	}, errs.ErrorOrNil()
 }
 
@@ -471,11 +467,12 @@ func (m GitlabAPIClient) getProjects(ch chan gitlab.Project, errs *errors.Errors
 
 // GitlabQuerier implements the internal.Querier interface
 type GitlabQuerier struct {
-	users    map[string]int
-	admins   map[string]int
-	blocked  map[string]int
-	groups   map[string]int
-	projects map[string]int
+	ghostUser string
+	users     map[string]int
+	admins    map[string]int
+	blocked   map[string]int
+	groups    map[string]int
+	projects  map[string]int
 }
 
 func (m GitlabQuerier) getUserID(username string) int {
@@ -537,12 +534,12 @@ func (m GitlabQuerier) ProjectExists(p string) bool {
 
 // Users returns the list of users that are regular users and are not blocked
 func (m GitlabQuerier) Users() []string {
-	return util.ToStringSlice(m.users)
+	return util.ToStringSliceIgnoring(m.users, m.ghostUser)
 }
 
 // Admins returns the list of users that are admins and are not blocked
 func (m GitlabQuerier) Admins() []string {
-	return util.ToStringSlice(m.admins)
+	return util.ToStringSliceIgnoring(m.admins, m.ghostUser)
 }
 
 // Blocked returns the list of users that are blocked
