@@ -99,22 +99,24 @@ type APIClient interface {
 	UnsetAdminUser(username string) error
 }
 
+// Config represents the configuration structure supporter by hurrdurr
+type Config struct {
+	Groups   map[string]Acls `yaml:"groups,omitempty"`
+	Projects map[string]Acls `yaml:"projects,omitempty"`
+	Users    Users           `yaml:"users,omitempty"`
+}
+
+// Acls represents a set of levels and users in each level in a configuration file
 type Acls struct {
 	Guests      []string `yaml:"guests,omitempty"`
 	Reporters   []string `yaml:"reporters,omitempty"`
 	Developers  []string `yaml:"developers,omitempty"`
 	Maintainers []string `yaml:"maintainers,omitempty"`
-
-	Owners []string `yaml:"owners,omitempty"`
+	Owners      []string `yaml:"owners,omitempty"`
 }
 
+// Users represents the pair of admins and blocked users
 type Users struct {
 	Admins  []string `yaml:"admins,omitempty"`
 	Blocked []string `yaml:"blocked,omitempty"`
-}
-
-type Config struct {
-	Groups   map[string]Acls `yaml:"groups,omitempty"`
-	Projects map[string]Acls `yaml:"projects,omitempty"`
-	Users    Users           `yaml:"users,omitempty"`
 }
