@@ -66,9 +66,12 @@ type Querier interface {
 	ProjectExists(string) bool
 
 	Users() []string
+	GetUserID(string) int
 	Groups() []string
+	GetGroupID(string) int
 	Admins() []string
 	Blocked() []string
+	Projects() []string
 }
 
 // Action is an action to execute using the APIClient

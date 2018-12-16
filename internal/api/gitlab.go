@@ -19,26 +19,156 @@ type GitlabAPIClient struct {
 	PerPage   int
 	ghostUser string
 
-	querier GitlabQuerier
+	Querier internal.Querier
+}
+
+// GitlabAPIClientArgs gitlab api client
+type GitlabAPIClientArgs struct {
+	GitlabToken     string
+	GitlabBaseURL   string
+	GitlabGhostUser string
 }
 
 // NewGitlabAPIClient create a new Gitlab API Client
-func NewGitlabAPIClient(gitlabToken, gitlabBaseURL, gitlabGhostUser string) GitlabAPIClient {
-	gitlabClient := gitlab.NewClient(nil, gitlabToken)
-	if err := gitlabClient.SetBaseURL(gitlabBaseURL); err != nil {
-		logrus.Fatalf("Could not set base URL '%s' to GitLab Client: '%s'", gitlabBaseURL, err)
+func NewGitlabAPIClient(args GitlabAPIClientArgs) GitlabAPIClient {
+	gitlabClient := gitlab.NewClient(nil, args.GitlabToken)
+	if err := gitlabClient.SetBaseURL(args.GitlabBaseURL); err != nil {
+		logrus.Fatalf("Could not set base URL '%s' to GitLab Client: '%s'", args.GitlabBaseURL, err)
 	}
 
 	return GitlabAPIClient{
 		client:    gitlabClient,
-		ghostUser: gitlabGhostUser,
 		PerPage:   100,
+		ghostUser: args.GitlabGhostUser,
 	}
+}
+
+// CreatePreloadedQuerier creates a Querier with all the data preloaded
+func (m *GitlabAPIClient) CreatePreloadedQuerier() error {
+	logrus.Debugf("building querier...")
+
+	errs := errors.New()
+
+	users := make(map[string]int, 0)
+	admins := make(map[string]int, 0)
+	blocked := make(map[string]int, 0)
+	groups := make(map[string]int, 0)
+	projects := make(map[string]int, 0)
+
+	usersCh := make(chan gitlab.User)
+	go m.fetchAllUsers(usersCh, &errs)
+
+	for u := range usersCh {
+		if u.State == "blocked" {
+			logrus.Debugf("appending blocked user %s", u.Username)
+			blocked[u.Username] = u.ID
+		} else if u.IsAdmin {
+			logrus.Debugf("appending admin %s", u.Username)
+			admins[u.Username] = u.ID
+		} else {
+			logrus.Debugf("appending user %s", u.Username)
+			users[u.Username] = u.ID
+		}
+	}
+
+	groupsCh := make(chan gitlab.Group)
+	go m.fetchAllGroups(groupsCh, &errs)
+
+	for group := range groupsCh {
+		logrus.Debugf("appending group %s", group.FullPath)
+		groups[group.FullPath] = group.ID
+	}
+
+	projectsCh := make(chan gitlab.Project)
+	go m.fetchAllProjects(projectsCh, &errs)
+
+	for project := range projectsCh {
+		logrus.Debugf("appending project %s", project.PathWithNamespace)
+		projects[project.PathWithNamespace] = project.ID
+	}
+
+	if len(admins) == 0 {
+		errs.Append(fmt.Errorf("no admin was detected, are you using an admin token?"))
+	}
+
+	m.Querier = GitlabQuerier{
+		ghostUser: m.ghostUser,
+		users:     users,
+		admins:    admins,
+		blocked:   blocked,
+		groups:    groups,
+		projects:  projects,
+	}
+
+	return errs.ErrorOrNil()
+}
+
+// LoadGitlabState loads all the state from a remote gitlab instance and returns
+// both a querier and a state so they can be used for diffing operations
+func (m GitlabAPIClient) LoadGitlabState() (internal.State, error) {
+	groups := make(map[string]internal.Group, 0)
+	projects := make(map[string]internal.Project, 0)
+	errs := errors.New()
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+
+		logrus.Debugf("loading group members...")
+		groupsCh := make(chan gitlab.Group)
+		go m.fetchAllGroups(groupsCh, &errs)
+
+		for group := range groupsCh {
+			members, err := m.fetchGroupMembers(group.FullPath)
+			if err != nil {
+				errs.Append(err)
+				continue
+			}
+
+			logrus.Debugf("  appending group '%s' with it's members", group.FullPath)
+			groups[group.FullPath] = GitlabGroup{
+				fullpath: group.FullPath,
+				members:  members,
+			}
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		logrus.Debugf("loading projects...")
+		projectsCh := make(chan gitlab.Project)
+		go m.fetchAllProjects(projectsCh, &errs)
+
+		for project := range projectsCh {
+			groups := make(map[string]internal.Level, 0)
+
+			for _, g := range project.SharedWithGroups {
+				groups[g.GroupName] = internal.Level(g.GroupAccessLevel)
+			}
+
+			logrus.Debugf("  appending project '%s' with it's members", project.PathWithNamespace)
+			projects[project.PathWithNamespace] = GitlabProject{
+				fullpath:   project.PathWithNamespace,
+				sharedWith: groups,
+			}
+		}
+	}()
+
+	wg.Wait()
+
+	return GitlabState{
+		Querier:  m.Querier,
+		groups:   groups,
+		projects: projects,
+	}, errs.ErrorOrNil()
 }
 
 // AddGroupMembership implements the APIClient interface
 func (m GitlabAPIClient) AddGroupMembership(username, group string, level internal.Level) error {
-	userID := m.querier.getUserID(username)
+	userID := m.Querier.GetUserID(username)
 	acl := gitlab.AccessLevelValue(level)
 
 	opt := &gitlab.AddGroupMemberOptions{
@@ -56,7 +186,7 @@ func (m GitlabAPIClient) AddGroupMembership(username, group string, level intern
 
 // ChangeGroupMembership implements the APIClient interface
 func (m GitlabAPIClient) ChangeGroupMembership(username, group string, level internal.Level) error {
-	userID := m.querier.getUserID(username)
+	userID := m.Querier.GetUserID(username)
 	acl := gitlab.AccessLevelValue(level)
 
 	opt := &gitlab.EditGroupMemberOptions{
@@ -73,7 +203,7 @@ func (m GitlabAPIClient) ChangeGroupMembership(username, group string, level int
 
 // RemoveGroupMembership implements the APIClient interface
 func (m GitlabAPIClient) RemoveGroupMembership(username, group string) error {
-	userID := m.querier.getUserID(username)
+	userID := m.Querier.GetUserID(username)
 
 	_, err := m.client.GroupMembers.RemoveGroupMember(group, userID)
 	if err != nil {
@@ -85,7 +215,7 @@ func (m GitlabAPIClient) RemoveGroupMembership(username, group string) error {
 
 // AddProjectSharing implements the APIClient interface
 func (m GitlabAPIClient) AddProjectSharing(project, group string, level internal.Level) error {
-	id := m.querier.getGroupID(group)
+	id := m.Querier.GetGroupID(group)
 	acl := gitlab.AccessLevelValue(level)
 
 	opt := gitlab.ShareWithGroupOptions{
@@ -101,7 +231,7 @@ func (m GitlabAPIClient) AddProjectSharing(project, group string, level internal
 
 // RemoveProjectSharing implements the APIClient interface
 func (m GitlabAPIClient) RemoveProjectSharing(project, group string) error {
-	id := m.querier.getGroupID(group)
+	id := m.Querier.GetGroupID(group)
 
 	_, err := m.client.Projects.DeleteSharedProjectFromGroup(project, id)
 	if err != nil {
@@ -113,7 +243,7 @@ func (m GitlabAPIClient) RemoveProjectSharing(project, group string) error {
 
 // AddProjectMembership implements the APIClient interface
 func (m GitlabAPIClient) AddProjectMembership(username, project string, level internal.Level) error {
-	userID := m.querier.getUserID(username)
+	userID := m.Querier.GetUserID(username)
 	acl := gitlab.AccessLevelValue(level)
 
 	opt := &gitlab.AddProjectMemberOptions{
@@ -131,7 +261,7 @@ func (m GitlabAPIClient) AddProjectMembership(username, project string, level in
 
 // ChangeProjectMembership implements the APIClient interface
 func (m GitlabAPIClient) ChangeProjectMembership(username, project string, level internal.Level) error {
-	userID := m.querier.getUserID(username)
+	userID := m.Querier.GetUserID(username)
 	acl := gitlab.AccessLevelValue(level)
 
 	opt := &gitlab.EditProjectMemberOptions{
@@ -148,7 +278,7 @@ func (m GitlabAPIClient) ChangeProjectMembership(username, project string, level
 
 // RemoveProjectMembership implements the APIClient interface
 func (m GitlabAPIClient) RemoveProjectMembership(username, project string) error {
-	userID := m.querier.getUserID(username)
+	userID := m.Querier.GetUserID(username)
 
 	_, err := m.client.ProjectMembers.DeleteProjectMember(project, userID)
 	if err != nil {
@@ -160,7 +290,7 @@ func (m GitlabAPIClient) RemoveProjectMembership(username, project string) error
 
 // BlockUser implements the APIClient interface
 func (m GitlabAPIClient) BlockUser(username string) error {
-	userID := m.querier.getUserID(username)
+	userID := m.Querier.GetUserID(username)
 
 	err := m.client.Users.BlockUser(userID)
 	if err != nil {
@@ -173,7 +303,7 @@ func (m GitlabAPIClient) BlockUser(username string) error {
 
 // UnblockUser implements the APIClient interface
 func (m GitlabAPIClient) UnblockUser(username string) error {
-	userID := m.querier.getUserID(username)
+	userID := m.Querier.GetUserID(username)
 
 	err := m.client.Users.UnblockUser(userID)
 	if err != nil {
@@ -186,7 +316,7 @@ func (m GitlabAPIClient) UnblockUser(username string) error {
 
 // SetAdminUser implements the APIClient interface
 func (m GitlabAPIClient) SetAdminUser(username string) error {
-	userID := m.querier.getUserID(username)
+	userID := m.Querier.GetUserID(username)
 	t := true
 
 	_, _, err := m.client.Users.ModifyUser(userID,
@@ -203,7 +333,7 @@ func (m GitlabAPIClient) SetAdminUser(username string) error {
 
 // UnsetAdminUser implements the APIClient interface
 func (m GitlabAPIClient) UnsetAdminUser(username string) error {
-	userID := m.querier.getUserID(username)
+	userID := m.Querier.GetUserID(username)
 	f := false
 
 	_, _, err := m.client.Users.ModifyUser(userID,
@@ -218,137 +348,7 @@ func (m GitlabAPIClient) UnsetAdminUser(username string) error {
 	return nil
 }
 
-// LoadState loads all the state from a remote gitlab instance and returns
-// both a querier and a state so they can be used for diffing operations
-func (m *GitlabAPIClient) LoadState(noAdmin bool) (internal.Querier, internal.State, error) {
-	errs := errors.New()
-
-	querier, err := m.buildQuerier(!noAdmin)
-	errs.Append(err)
-
-	logrus.Debugf("Loaded gitlab querier: %#v", querier)
-
-	state, err := m.buildLiveState(querier)
-	errs.Append(err)
-
-	logrus.Debugf("Loaded gitlab live state: %#v", state)
-
-	m.querier = querier
-
-	return querier, state, errs.ErrorOrNil()
-}
-
-func (m GitlabAPIClient) buildQuerier(expectAdmins bool) (GitlabQuerier, error) {
-	errs := errors.New()
-
-	logrus.Debugf("building querier...")
-
-	users := make(map[string]int, 0)
-	admins := make(map[string]int, 0)
-	blocked := make(map[string]int, 0)
-
-	usersCh := make(chan gitlab.User)
-	go m.getUsers(usersCh, &errs)
-
-	for u := range usersCh {
-		if u.State == "blocked" {
-			logrus.Debugf("appending blocked user %s", u.Username)
-			blocked[u.Username] = u.ID
-		} else if u.IsAdmin {
-			logrus.Debugf("appending admin %s", u.Username)
-			admins[u.Username] = u.ID
-		} else {
-			logrus.Debugf("appending user %s", u.Username)
-			users[u.Username] = u.ID
-		}
-	}
-
-	groupsCh := make(chan gitlab.Group)
-	go m.getGroups(groupsCh, &errs)
-
-	groups := make(map[string]int, 0)
-	for group := range groupsCh {
-		logrus.Debugf("appending group %s", group.FullPath)
-		groups[group.FullPath] = group.ID
-	}
-
-	if expectAdmins && len(admins) == 0 {
-		errs.Append(fmt.Errorf("no admin was detected, are you using an admin token?"))
-	}
-
-	projectsCh := make(chan gitlab.Project)
-	go m.getProjects(projectsCh, &errs)
-
-	projects := make(map[string]int, 0)
-	for project := range projectsCh {
-		logrus.Debugf("appending project %s", project.PathWithNamespace)
-		projects[project.PathWithNamespace] = project.ID
-	}
-
-	return GitlabQuerier{
-		ghostUser: m.ghostUser,
-		users:     users,
-		admins:    admins,
-		blocked:   blocked,
-		groups:    groups,
-		projects:  projects,
-	}, errs.ErrorOrNil()
-}
-
-func (m GitlabAPIClient) buildLiveState(q GitlabQuerier) (internal.State, error) {
-	errs := errors.New()
-
-	groups := make(map[string]internal.Group, 0)
-	projects := make(map[string]internal.Project, 0)
-
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-
-	go func() {
-		for group := range q.groups {
-			members, err := m.getGroupMembers(group)
-			if err != nil {
-				errs.Append(err)
-				continue
-			}
-
-			groups[group] = GitlabGroup{
-				fullpath: group,
-				members:  members,
-			}
-		}
-		wg.Done()
-	}()
-
-	go func() {
-		projectsCh := make(chan gitlab.Project)
-		go m.getProjects(projectsCh, &errs)
-
-		for project := range projectsCh {
-			groups := make(map[string]internal.Level, 0)
-
-			for _, g := range project.SharedWithGroups {
-				groups[g.GroupName] = internal.Level(g.GroupAccessLevel)
-			}
-
-			projects[project.PathWithNamespace] = GitlabProject{
-				fullpath:   project.PathWithNamespace,
-				sharedWith: groups,
-			}
-		}
-		wg.Done()
-	}()
-
-	wg.Wait()
-
-	return GitlabState{
-		GitlabQuerier: q,
-		groups:        groups,
-		projects:      projects,
-	}, errs.ErrorOrNil()
-}
-
-func (m GitlabAPIClient) getUsers(ch chan gitlab.User, errs *errors.Errors) {
+func (m GitlabAPIClient) fetchAllUsers(ch chan gitlab.User, errs *errors.Errors) {
 	defer close(ch)
 
 	page := 1
@@ -376,7 +376,34 @@ func (m GitlabAPIClient) getUsers(ch chan gitlab.User, errs *errors.Errors) {
 	}
 }
 
-func (m GitlabAPIClient) getGroups(ch chan gitlab.Group, errs *errors.Errors) {
+func (m GitlabAPIClient) fetchUser(username string) *gitlab.User {
+	users, _, err := m.client.Users.ListUsers(&gitlab.ListUsersOptions{
+		ListOptions: gitlab.ListOptions{
+			PerPage: 1,
+			Page:    1,
+		},
+		Username: &username,
+	})
+	if err != nil {
+		logrus.Fatalf("failed to fetch user '%s': %s", username, err)
+	}
+
+	if len(users) == 0 {
+		return nil
+	}
+	return users[0]
+}
+
+func (m GitlabAPIClient) fetchGroup(fullpath string) *gitlab.Group {
+	group, _, err := m.client.Groups.GetGroup(fullpath)
+	if err != nil {
+		logrus.Fatalf("failed to fetch group '%s': %s", fullpath, err)
+	}
+
+	return group
+}
+
+func (m GitlabAPIClient) fetchAllGroups(ch chan gitlab.Group, errs *errors.Errors) {
 	defer close(ch)
 	t := true // yeah baby... talking about bad interfaces, I need a pointer to true...
 
@@ -407,7 +434,7 @@ func (m GitlabAPIClient) getGroups(ch chan gitlab.Group, errs *errors.Errors) {
 	}
 }
 
-func (m GitlabAPIClient) getGroupMembers(fullpath string) (map[string]internal.Level, error) {
+func (m GitlabAPIClient) fetchGroupMembers(fullpath string) (map[string]internal.Level, error) {
 	groupMembers := make(map[string]internal.Level)
 
 	page := 1
@@ -436,7 +463,7 @@ func (m GitlabAPIClient) getGroupMembers(fullpath string) (map[string]internal.L
 	return groupMembers, nil
 }
 
-func (m GitlabAPIClient) getProjects(ch chan gitlab.Project, errs *errors.Errors) {
+func (m GitlabAPIClient) fetchAllProjects(ch chan gitlab.Project, errs *errors.Errors) {
 	defer close(ch)
 
 	page := 1
@@ -475,7 +502,8 @@ type GitlabQuerier struct {
 	projects  map[string]int
 }
 
-func (m GitlabQuerier) getUserID(username string) int {
+// GetUserID implements the internal querier interface
+func (m GitlabQuerier) GetUserID(username string) int {
 	id, ok := m.users[username]
 	if !ok {
 		id, ok = m.admins[username]
@@ -489,7 +517,8 @@ func (m GitlabQuerier) getUserID(username string) int {
 	return id
 }
 
-func (m GitlabQuerier) getGroupID(group string) int {
+// GetGroupID implements the internal querier interface
+func (m GitlabQuerier) GetGroupID(group string) int {
 	id, ok := m.groups[group]
 	if !ok {
 		logrus.Fatalf("could not find group '%s' in the list of groups", group)
@@ -509,7 +538,7 @@ func (m GitlabQuerier) IsAdmin(u string) bool {
 	return ok
 }
 
-// IsAdmin implements Querier interface
+// IsBlocked implements Querier interface
 func (m GitlabQuerier) IsBlocked(u string) bool {
 	_, ok := m.blocked[u]
 	return ok
@@ -547,9 +576,20 @@ func (m GitlabQuerier) Blocked() []string {
 	return util.ToStringSlice(m.blocked)
 }
 
+// Projects returns the list of projects
+func (m GitlabQuerier) Projects() []string {
+	return util.ToStringSlice(m.projects)
+}
+
 // GitlabState represents the state of a gitlab instance
+//
+// This object is used to calculate the diff of state between a current and a
+// desired state. This particular kind of GitlabState will preload all the data
+// to optimize for performance at he expense of keeping everything in memory.
+// This is not particularly bad in a small instance, but it will take "a lot" to
+// load gitlab.com state.
 type GitlabState struct {
-	GitlabQuerier
+	internal.Querier
 	groups   map[string]internal.Group
 	projects map[string]internal.Project
 }
@@ -569,11 +609,6 @@ func (s GitlabState) Group(name string) (internal.Group, bool) {
 	return g, ok
 }
 
-// UnhandledGroups implements internal.State interface
-func (s GitlabState) UnhandledGroups() []string {
-	return []string{}
-}
-
 // Project implements internal.State interface
 func (s GitlabState) Project(fullpath string) (internal.Project, bool) {
 	p, ok := s.projects[fullpath]
@@ -589,7 +624,15 @@ func (s GitlabState) Projects() []internal.Project {
 	return projects
 }
 
+// UnhandledGroups implements internal.State interface
+func (s GitlabState) UnhandledGroups() []string {
+	return []string{}
+}
+
 // GitlabGroup represents a group in a live instance with it's members
+//
+// This is a helper object that is used to preload the members of a group with
+// the state, without leaking gitlab's api structure.
 type GitlabGroup struct {
 	fullpath string
 	members  map[string]internal.Level
@@ -606,6 +649,10 @@ func (g GitlabGroup) GetMembers() map[string]internal.Level {
 }
 
 // GitlabProject implements internal.Project interface
+//
+// This is a helper object that is used to load a project with the list of
+// groups it's shared with, and the specific members that it has assigned.
+// It exists to prevent leaking gitlab's API.
 type GitlabProject struct {
 	fullpath   string
 	sharedWith map[string]internal.Level

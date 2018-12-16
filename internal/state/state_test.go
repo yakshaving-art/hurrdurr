@@ -341,10 +341,22 @@ func (q querierMock) Blocked() []string {
 	return q.toStringSlice(q.blocked)
 }
 
+func (q querierMock) Projects() []string {
+	return q.toStringSlice(q.projects)
+}
+
 func (q querierMock) toStringSlice(m map[string]bool) []string {
 	s := make([]string, 0)
 	for a := range m {
 		s = append(s, a)
 	}
 	return s
+}
+
+func (querierMock) GetGroupID(_ string) int {
+	return -1
+}
+
+func (querierMock) GetUserID(_ string) int {
+	return -1
 }

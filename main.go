@@ -15,14 +15,24 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 
-	client := api.NewGitlabAPIClient(args.GitlabToken, args.GitlabBaseURL, args.GhostUser)
+	client := api.NewGitlabAPIClient(
+		api.GitlabAPIClientArgs{
+			GitlabToken:     args.GitlabToken,
+			GitlabBaseURL:   args.GitlabBaseURL,
+			GitlabGhostUser: args.GhostUser,
+		})
 
-	gitlabQuerier, gitlabState, err := client.LoadState(args.NoAdmin)
+	err := client.CreatePreloadedQuerier()
+	if err != nil {
+		logrus.Fatalf("Failed to preload querier from gitlab instance: %s", err)
+	}
+
+	gitlabState, err := client.LoadGitlabState()
 	if err != nil {
 		logrus.Fatalf("Failed to load live state from gitlab instance: %s", err)
 	}
 
-	desiredState, err := state.LoadStateFromFile(args.ConfigFile, gitlabQuerier)
+	desiredState, err := state.LoadStateFromFile(args.ConfigFile, client.Querier)
 	if err != nil {
 		logrus.Fatalf("Failed to load desired state from file %s: %s", args.ConfigFile, err)
 	}
