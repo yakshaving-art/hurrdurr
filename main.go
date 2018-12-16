@@ -30,6 +30,15 @@ func main() {
 
 	var currentState internal.State
 	if args.AutoDevOpsMode {
+		err := api.CreateLazyQuerier(&client)
+		if err != nil {
+			logrus.Fatalf("Failed to create lazy querier from gitlab instance: %s", err)
+		}
+
+		currentState, err = api.LoadPartialGitlabState(conf, client)
+		if err != nil {
+			logrus.Fatalf("Failed to load partial live state from gitlab instance: %s", err)
+		}
 
 	} else {
 		err := api.CreatePreloadedQuerier(&client)
@@ -39,7 +48,7 @@ func main() {
 
 		currentState, err = api.LoadFullGitlabState(client)
 		if err != nil {
-			logrus.Fatalf("Failed to load live state from gitlab instance: %s", err)
+			logrus.Fatalf("Failed to load full live state from gitlab instance: %s", err)
 		}
 	}
 

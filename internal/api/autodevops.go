@@ -1,19 +1,77 @@
 package api
 
 import (
+	"fmt"
+
+	"gitlab.com/yakshaving.art/hurrdurr/internal"
+	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
+
+	"github.com/sirupsen/logrus"
+	gitlab "github.com/xanzy/go-gitlab"
 )
 
 // GitlabLazyQuerier is a querier that is just too lazy to do things up front
 type GitlabLazyQuerier struct {
-	api    GitlabAPIClient
+	api    *GitlabAPIClient
 	users  map[string]int
 	groups map[string]int
 	// projects map[string]int // not yet implemented
 }
 
-func NewGitlabLazyQuerier() {
+// LoadPartialGitlabState loads a gitlab state with only the groups and projects that exists
+// in the passed configuration
+func LoadPartialGitlabState(_ internal.Config, client GitlabAPIClient) (internal.State, error) {
+	errs := errors.New()
 
+	groups := make(map[string]internal.Group)
+	projects := make(map[string]internal.Project)
+
+	groupsCh := make(chan gitlab.Group)
+	go client.fetchGroups(false, groupsCh, &errs)
+
+	for g := range groupsCh {
+		members, err := client.fetchGroupMembers(g.FullPath)
+		if err != nil {
+			errs.Append(fmt.Errorf("failed to fetch members for group '%s'", err))
+			continue
+		}
+
+		groups[g.FullPath] = GitlabGroup{
+			fullpath: g.FullPath,
+			members:  members,
+		}
+	}
+
+	return GitlabState{
+		Querier:  client.Querier,
+		groups:   groups,
+		projects: projects,
+	}, errs.ErrorOrNil()
+}
+
+// CreateLazyQuerier creates a gitlab querier that loads the state based in the
+// configuration passed in, and then lazily as it is requested.
+func CreateLazyQuerier(client *GitlabAPIClient) error {
+	errs := errors.New()
+
+	querier := GitlabLazyQuerier{
+		api:    client,
+		users:  make(map[string]int, 0),
+		groups: make(map[string]int, 0),
+	}
+	client.Querier = querier
+
+	logrus.Debugf("Loading partial groups")
+	groupsCh := make(chan gitlab.Group)
+	go client.fetchGroups(false, groupsCh, &errs)
+
+	for g := range groupsCh {
+		logrus.Debugf("  loading group %s", g.FullPath)
+		querier.groups[g.FullPath] = g.ID
+	}
+
+	return errs.ErrorOrNil()
 }
 
 // GetUserID implements the internal Querier interface
@@ -53,12 +111,12 @@ func (g GitlabLazyQuerier) IsUser(u string) bool {
 }
 
 // IsAdmin implements Querier interface
-func (g GitlabLazyQuerier) IsAdmin(u string) bool {
+func (g GitlabLazyQuerier) IsAdmin(_ string) bool {
 	return false
 }
 
 // IsBlocked implements Querier interface
-func (g GitlabLazyQuerier) IsBlocked(u string) bool {
+func (g GitlabLazyQuerier) IsBlocked(_ string) bool {
 	return false
 }
 
@@ -85,6 +143,11 @@ func (g GitlabLazyQuerier) Users() []string {
 // Admins returns the list of users that are admins and are not blocked
 func (GitlabLazyQuerier) Admins() []string {
 	return []string{}
+}
+
+// Projects returns the list of projects
+func (GitlabLazyQuerier) Projects() []string {
+	return []string{} // not implemented yet
 }
 
 // Blocked returns the list of users that are blocked

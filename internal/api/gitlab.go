@@ -72,7 +72,7 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	}
 
 	groupsCh := make(chan gitlab.Group)
-	go m.fetchAllGroups(groupsCh, &errs)
+	go m.fetchGroups(true, groupsCh, &errs)
 
 	for group := range groupsCh {
 		logrus.Debugf("appending group %s", group.FullPath)
@@ -118,7 +118,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 
 		logrus.Debugf("loading group members...")
 		groupsCh := make(chan gitlab.Group)
-		go m.fetchAllGroups(groupsCh, &errs)
+		go m.fetchGroups(true, groupsCh, &errs)
 
 		for group := range groupsCh {
 			members, err := m.fetchGroupMembers(group.FullPath)
@@ -403,14 +403,13 @@ func (m GitlabAPIClient) fetchGroup(fullpath string) *gitlab.Group {
 	return group
 }
 
-func (m GitlabAPIClient) fetchAllGroups(ch chan gitlab.Group, errs *errors.Errors) {
+func (m GitlabAPIClient) fetchGroups(allAvailable bool, ch chan gitlab.Group, errs *errors.Errors) {
 	defer close(ch)
-	t := true // yeah baby... talking about bad interfaces, I need a pointer to true...
 
 	page := 1
 	for {
 		opt := &gitlab.ListGroupsOptions{
-			AllAvailable: &t,
+			AllAvailable: &allAvailable,
 			ListOptions: gitlab.ListOptions{
 				PerPage: m.PerPage,
 				Page:    page,
