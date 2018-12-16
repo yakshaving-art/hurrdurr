@@ -71,13 +71,17 @@ func main() {
 	if args.DryRun {
 		actionClient = api.DryRunAPIClient{
 			Append: func(change string) {
-				logrus.Info(change)
+				logrus.Info("  ", change)
 			},
 		}
 	} else {
 		actionClient = client
 	}
 
+	logrus.Infof("Changes:")
+	if len(actions) == 0 {
+		logrus.Infof("  No changes necessary")
+	}
 	for _, action := range actions {
 		if err := action.Execute(actionClient); err != nil {
 			logrus.Fatalf("Faile to run action: %s", err)

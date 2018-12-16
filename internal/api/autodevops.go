@@ -13,15 +13,15 @@ import (
 
 // GitlabLazyQuerier is a querier that is just too lazy to do things up front
 type GitlabLazyQuerier struct {
-	api    *GitlabAPIClient
-	users  map[string]int
-	groups map[string]int
-	// projects map[string]int // not yet implemented
+	api      *GitlabAPIClient
+	users    map[string]int
+	groups   map[string]int
+	projects map[string]int // not yet implemented
 }
 
 // LoadPartialGitlabState loads a gitlab state with only the groups and projects that exists
 // in the passed configuration
-func LoadPartialGitlabState(_ internal.Config, client GitlabAPIClient) (internal.State, error) {
+func LoadPartialGitlabState(cnf internal.Config, client GitlabAPIClient) (internal.State, error) {
 	errs := errors.New()
 
 	groups := make(map[string]internal.Group)
@@ -43,6 +43,36 @@ func LoadPartialGitlabState(_ internal.Config, client GitlabAPIClient) (internal
 		}
 	}
 
+	for p := range cnf.Projects {
+		project, err := client.fetchProject(p)
+		if err != nil {
+			errs.Append(fmt.Errorf("failed to fetch project: %s", p))
+			continue
+		}
+		if project == nil {
+			errs.Append(fmt.Errorf("project '%s' does not exists", p))
+			continue
+		}
+
+		members, err := client.fetchProjectMembers(p)
+		if err != nil {
+			errs.Append(fmt.Errorf("failed to fetch project members for '%s': %s", project.PathWithNamespace, err))
+			continue
+		}
+
+		groups := make(map[string]internal.Level, 0)
+
+		for _, g := range project.SharedWithGroups {
+			groups[g.GroupName] = internal.Level(g.GroupAccessLevel)
+		}
+
+		projects[p] = GitlabProject{
+			fullpath:   p,
+			sharedWith: groups,
+			members:    members,
+		}
+	}
+
 	return GitlabState{
 		Querier:  client.Querier,
 		groups:   groups,
@@ -56,9 +86,10 @@ func CreateLazyQuerier(client *GitlabAPIClient) error {
 	errs := errors.New()
 
 	querier := GitlabLazyQuerier{
-		api:    client,
-		users:  make(map[string]int, 0),
-		groups: make(map[string]int, 0),
+		api:      client,
+		users:    make(map[string]int, 0),
+		groups:   make(map[string]int, 0),
+		projects: make(map[string]int, 0),
 	}
 	client.Querier = querier
 
@@ -105,6 +136,25 @@ func (g GitlabLazyQuerier) GetGroupID(fullpath string) int {
 	return id
 }
 
+// ProjectExists implements Querier interface
+func (g GitlabLazyQuerier) ProjectExists(fullpath string) bool {
+	id, ok := g.projects[fullpath]
+	if !ok {
+		project, err := g.api.fetchProject(fullpath)
+		if err != nil {
+			logrus.Fatalf("failed to fetch project '%s': %s", fullpath, err)
+		}
+
+		if project == nil {
+			id = -1
+		} else {
+			id = project.ID
+		}
+		g.projects[fullpath] = id
+	}
+	return id != -1
+}
+
 // IsUser implements Querier interface
 func (g GitlabLazyQuerier) IsUser(u string) bool {
 	return g.GetUserID(u) != -1
@@ -130,11 +180,6 @@ func (g GitlabLazyQuerier) Groups() []string {
 	return util.ToStringSlice(g.groups)
 }
 
-// ProjectExists implements Querier interface
-func (g GitlabLazyQuerier) ProjectExists(p string) bool {
-	return false
-}
-
 // Users returns the list of users that are regular users and are not blocked
 func (g GitlabLazyQuerier) Users() []string {
 	return util.ToStringSlice(g.users)
@@ -147,7 +192,7 @@ func (GitlabLazyQuerier) Admins() []string {
 
 // Projects returns the list of projects
 func (GitlabLazyQuerier) Projects() []string {
-	return []string{} // not implemented yet
+	return []string{}
 }
 
 // Blocked returns the list of users that are blocked

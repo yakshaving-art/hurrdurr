@@ -106,7 +106,7 @@ func (d *differ) diffGroups() {
 			for currentMember := range currentMembers {
 				if _, desiredMemberPresent := desiredMembers[currentMember]; !desiredMemberPresent {
 					logrus.Debugf("  Removing %s from group %s because it's not present in the desired state",
-						d.current, currentGroup.GetFullpath())
+						currentMember, currentGroup.GetFullpath())
 					d.Action(removeGroupMembership{Username: currentMember, Group: currentGroup.GetFullpath()})
 				}
 			}

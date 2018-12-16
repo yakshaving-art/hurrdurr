@@ -149,10 +149,17 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				groups[g.GroupName] = internal.Level(g.GroupAccessLevel)
 			}
 
+			members, err := m.fetchProjectMembers(project.PathWithNamespace)
+			if err != nil {
+				errs.Append(fmt.Errorf("failed to fetch project members for '%s': %s", project.PathWithNamespace, err))
+				continue
+			}
+
 			logrus.Debugf("  appending project '%s' with it's members", project.PathWithNamespace)
 			projects[project.PathWithNamespace] = GitlabProject{
 				fullpath:   project.PathWithNamespace,
 				sharedWith: groups,
+				members:    members,
 			}
 		}
 	}()
@@ -489,6 +496,44 @@ func (m GitlabAPIClient) fetchAllProjects(ch chan gitlab.Project, errs *errors.E
 		}
 		page++
 	}
+}
+
+func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]internal.Level, error) {
+	projectMembers := make(map[string]internal.Level)
+
+	page := 1
+	for {
+		opt := &gitlab.ListProjectMembersOptions{
+			ListOptions: gitlab.ListOptions{
+				PerPage: m.PerPage,
+				Page:    page,
+			},
+		}
+
+		members, resp, err := m.client.ProjectMembers.ListProjectMembers(fullpath, opt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch project members for %s: %s", fullpath, err)
+		}
+
+		for _, member := range members {
+			projectMembers[member.Username] = internal.Level(member.AccessLevel)
+		}
+
+		if page == resp.TotalPages {
+			break
+		}
+		page++
+	}
+	return projectMembers, nil
+
+}
+
+func (m GitlabAPIClient) fetchProject(fullpath string) (*gitlab.Project, error) {
+	p, _, err := m.client.Projects.GetProject(fullpath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch project '%s': %s", fullpath, err)
+	}
+	return p, nil
 }
 
 // GitlabQuerier implements the internal.Querier interface
