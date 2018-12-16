@@ -98,3 +98,23 @@ type APIClient interface {
 	SetAdminUser(username string) error
 	UnsetAdminUser(username string) error
 }
+
+type Acls struct {
+	Guests      []string `yaml:"guests,omitempty"`
+	Reporters   []string `yaml:"reporters,omitempty"`
+	Developers  []string `yaml:"developers,omitempty"`
+	Maintainers []string `yaml:"maintainers,omitempty"`
+
+	Owners []string `yaml:"owners,omitempty"`
+}
+
+type Users struct {
+	Admins  []string `yaml:"admins,omitempty"`
+	Blocked []string `yaml:"blocked,omitempty"`
+}
+
+type Config struct {
+	Groups   map[string]Acls `yaml:"groups,omitempty"`
+	Projects map[string]Acls `yaml:"projects,omitempty"`
+	Users    Users           `yaml:"users,omitempty"`
+}

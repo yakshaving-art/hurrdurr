@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
 	"sort"
 	"testing"
 
@@ -54,7 +55,7 @@ func TestLoadingState(t *testing.T) {
 		{
 			"group without owner fails",
 			"fixtures/group-without-owner.yaml",
-			"failed to build local state from file fixtures/group-without-owner.yaml: 1 error: no owner in group 'root_group'",
+			"failed to build local state: 1 error: no owner in group 'root_group'",
 			nil,
 			nil,
 			nil,
@@ -62,7 +63,7 @@ func TestLoadingState(t *testing.T) {
 		{
 			"group with blocked user fails",
 			"fixtures/bad-actor.yaml",
-			"failed to build local state from file fixtures/bad-actor.yaml: 1 error: User 'bad_actor_1' is blocked, it should not be included in group 'root_group'",
+			"failed to build local state: 1 error: User 'bad_actor_1' is blocked, it should not be included in group 'root_group'",
 			nil,
 			nil,
 			nil,
@@ -71,7 +72,7 @@ func TestLoadingState(t *testing.T) {
 			"invalid yaml fails",
 			"fixtures/invalid.yaml",
 			"failed to unmarshal state file fixtures/invalid.yaml: yaml: unmarshal errors:\n" +
-				"  line 6: field dvlprs not found in type state.acls",
+				"  line 6: field dvlprs not found in type internal.Acls",
 			nil,
 			nil,
 			nil,
@@ -79,7 +80,7 @@ func TestLoadingState(t *testing.T) {
 		{
 			"query for owner returns nothing",
 			"fixtures/no-owner-in-query.yaml",
-			"failed to build local state from file fixtures/no-owner-in-query.yaml: 1 error: no owner in group 'skrrty'",
+			"failed to build local state: 1 error: no owner in group 'skrrty'",
 			nil,
 			nil,
 			nil,
@@ -87,7 +88,7 @@ func TestLoadingState(t *testing.T) {
 		{
 			"non existing user and group",
 			"fixtures/non_existing.yaml",
-			"failed to build local state from file fixtures/non_existing.yaml: " +
+			"failed to build local state: " +
 				"3 errors: Group 'non_existing_group' does not exist; " +
 				"User 'non_exiting' does not exists for group 'root_group'; " +
 				"no owner in group 'root_group'",
@@ -98,7 +99,7 @@ func TestLoadingState(t *testing.T) {
 		{
 			"invalid because of subqueries",
 			"fixtures/invalid-with-subqueries.yaml",
-			"failed to build local state from file fixtures/invalid-with-subqueries.yaml: " +
+			"failed to build local state: " +
 				"1 error: failed to execute query 'owners from root_group' for 'skrrty/Guest': " +
 				"group 'root_group' points at 'skrrty/Guest' which contains 'owners from root_group'. " +
 				"Subquerying is not allowed",
@@ -109,7 +110,7 @@ func TestLoadingState(t *testing.T) {
 		{
 			"invalid because of non existing group in query",
 			"fixtures/invalid-subquery.yaml",
-			"failed to build local state from file fixtures/invalid-subquery.yaml: " +
+			"failed to build local state: " +
 				"2 errors: failed to execute query 'guests from non_existing_group' " +
 				"for 'root_group/Guest': could not find group 'non_existing_group' " +
 				"to resolve query 'guests from non_existing_group' in 'root_group/Guest'; " +
@@ -251,13 +252,21 @@ func TestLoadingState(t *testing.T) {
 		},
 	}
 
+	loadState := func(filename string, querier internal.Querier) (internal.State, error) {
+		c, err := util.LoadConfig(filename)
+		if err != nil {
+			return nil, err
+		}
+		return hurrdurr.LoadStateFromFile(c, querier)
+
+	}
+
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
-
-			s, err := hurrdurr.LoadStateFromFile(tc.stateFile, querier)
+			s, err := loadState(tc.stateFile, querier)
 			if tc.expectedError != "" {
-				a.EqualErrorf(err, tc.expectedError, "Wrong error, expected %s, got %s", tc.expectedError, err)
+				a.EqualErrorf(err, tc.expectedError, "Wrong error, expected '%s', got '%s'", tc.expectedError, err)
 				return
 			}
 

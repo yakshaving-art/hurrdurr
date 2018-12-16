@@ -12,6 +12,10 @@ type GitlabLazyQuerier struct {
 	// projects map[string]int // not yet implemented
 }
 
+func NewGitlabLazyQuerier() {
+
+}
+
 // GetUserID implements the internal Querier interface
 func (g GitlabLazyQuerier) GetUserID(username string) int {
 	id, ok := g.users[username]

@@ -44,7 +44,7 @@ func NewGitlabAPIClient(args GitlabAPIClientArgs) GitlabAPIClient {
 }
 
 // CreatePreloadedQuerier creates a Querier with all the data preloaded
-func (m *GitlabAPIClient) CreatePreloadedQuerier() error {
+func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	logrus.Debugf("building querier...")
 
 	errs := errors.New()
@@ -103,9 +103,9 @@ func (m *GitlabAPIClient) CreatePreloadedQuerier() error {
 	return errs.ErrorOrNil()
 }
 
-// LoadGitlabState loads all the state from a remote gitlab instance and returns
+// LoadFullGitlabState loads all the state from a remote gitlab instance and returns
 // both a querier and a state so they can be used for diffing operations
-func (m GitlabAPIClient) LoadGitlabState() (internal.State, error) {
+func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 	groups := make(map[string]internal.Group, 0)
 	projects := make(map[string]internal.Project, 0)
 	errs := errors.New()
