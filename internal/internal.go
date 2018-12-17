@@ -66,9 +66,12 @@ type Querier interface {
 	ProjectExists(string) bool
 
 	Users() []string
+	GetUserID(string) int
 	Groups() []string
+	GetGroupID(string) int
 	Admins() []string
 	Blocked() []string
+	Projects() []string
 }
 
 // Action is an action to execute using the APIClient
@@ -94,4 +97,26 @@ type APIClient interface {
 
 	SetAdminUser(username string) error
 	UnsetAdminUser(username string) error
+}
+
+// Config represents the configuration structure supporter by hurrdurr
+type Config struct {
+	Groups   map[string]Acls `yaml:"groups,omitempty"`
+	Projects map[string]Acls `yaml:"projects,omitempty"`
+	Users    Users           `yaml:"users,omitempty"`
+}
+
+// Acls represents a set of levels and users in each level in a configuration file
+type Acls struct {
+	Guests      []string `yaml:"guests,omitempty"`
+	Reporters   []string `yaml:"reporters,omitempty"`
+	Developers  []string `yaml:"developers,omitempty"`
+	Maintainers []string `yaml:"maintainers,omitempty"`
+	Owners      []string `yaml:"owners,omitempty"`
+}
+
+// Users represents the pair of admins and blocked users
+type Users struct {
+	Admins  []string `yaml:"admins,omitempty"`
+	Blocked []string `yaml:"blocked,omitempty"`
 }

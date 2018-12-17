@@ -25,7 +25,7 @@ type Args struct {
 	ManageACLs  bool
 	ManageUsers bool
 
-	NoAdmin bool
+	AutoDevOpsMode bool
 }
 
 func parseArgs() Args {
@@ -41,7 +41,7 @@ func parseArgs() Args {
 	flag.BoolVar(&args.ManageACLs, "manage-acls", false, "performs diffs of groups and projects")
 	flag.BoolVar(&args.ManageUsers, "manage-users", false, "performs diffs of user attributes")
 
-	flag.BoolVar(&args.NoAdmin, "autodevopsmode", false,
+	flag.BoolVar(&args.AutoDevOpsMode, "autodevopsmode", false,
 		"where you have no admin rights but still do what you gotta do")
 
 	flag.Parse()

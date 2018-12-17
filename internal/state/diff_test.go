@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
 	"testing"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal/api"
@@ -32,7 +33,10 @@ var querier = querierMock{
 func TestDiffWithoutOneStateFails(t *testing.T) {
 	a := assert.New(t)
 
-	s, err := state.LoadStateFromFile("fixtures/plain.yaml", querier)
+	c, err := util.LoadConfig("fixtures/plain.yaml")
+	a.NoError(err)
+
+	s, err := state.LoadStateFromFile(c, querier)
 	a.NoError(err)
 
 	_, err = state.Diff(nil, s, state.DiffArgs{})
@@ -179,10 +183,16 @@ func TestDiffingStates(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			sourceState, err := state.LoadStateFromFile(tc.sourceState, querier)
+			sourceConfig, err := util.LoadConfig(tc.sourceState)
 			a.NoError(err, "source state")
 
-			desiredState, err := state.LoadStateFromFile(tc.desiredState, querier)
+			sourceState, err := state.LoadStateFromFile(sourceConfig, querier)
+			a.NoError(err, "source state")
+
+			desiredConfig, err := util.LoadConfig(tc.desiredState)
+			a.NoError(err, "desired state")
+
+			desiredState, err := state.LoadStateFromFile(desiredConfig, querier)
 			a.NoError(err, "desired state")
 
 			actions, err := state.Diff(sourceState, desiredState, state.DiffArgs{

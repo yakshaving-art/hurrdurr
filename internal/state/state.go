@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	"io/ioutil"
 	"regexp"
 	"sort"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
 
-	"github.com/go-yaml/yaml"
 	"github.com/sirupsen/logrus"
 )
 
@@ -98,23 +96,11 @@ func (l LocalProject) addMember(username string, level internal.Level) {
 }
 
 // LoadStateFromFile loads the desired state from a file
-func LoadStateFromFile(filename string, q internal.Querier) (internal.State, error) {
-	content, err := ioutil.ReadFile(filename)
+func LoadStateFromFile(c internal.Config, q internal.Querier) (internal.State, error) {
+	l, err := configToLocalState(c, q)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load state file %s: %s", filename, err)
+		return nil, fmt.Errorf("failed to build local state: %s", err)
 	}
-
-	s := state{}
-	if err := yaml.UnmarshalStrict(content, &s); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal state file %s: %s", filename, err)
-	}
-
-	l, err := s.toLocalState(q)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build local state from file %s: %s", filename, err)
-	}
-
-	logrus.Debugf("Loaded local state: %#v", l)
 
 	return l, nil
 }
@@ -185,27 +171,7 @@ func (s localState) Blocked() []string {
 	return util.ToStringSlice(s.blocked)
 }
 
-type acls struct {
-	Guests      []string `yaml:"guests,omitempty"`
-	Reporters   []string `yaml:"reporters,omitempty"`
-	Developers  []string `yaml:"developers,omitempty"`
-	Maintainers []string `yaml:"maintainers,omitempty"`
-
-	Owners []string `yaml:"owners,omitempty"`
-}
-
-type users struct {
-	Admins  []string `yaml:"admins,omitempty"`
-	Blocked []string `yaml:"blocked,omitempty"`
-}
-
-type state struct {
-	Groups   map[string]acls `yaml:"groups,omitempty"`
-	Projects map[string]acls `yaml:"projects,omitempty"`
-	Users    users           `yaml:"users,omitempty"`
-}
-
-func (s state) toLocalState(q internal.Querier) (localState, error) {
+func configToLocalState(c internal.Config, q internal.Querier) (localState, error) {
 	l := localState{
 		groups:   make(map[string]*LocalGroup, 0),
 		projects: make(map[string]*LocalProject, 0),
@@ -216,7 +182,7 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 	errs := errors.New() // This object aggregates all the errors to dump them all at the end
 	queries := make([]query, 0)
 
-	for fullpath, g := range s.Groups {
+	for fullpath, g := range c.Groups {
 		if !q.GroupExists(fullpath) {
 			errs.Append(fmt.Errorf("Group '%s' does not exist", fullpath))
 			continue
@@ -273,7 +239,7 @@ func (s state) toLocalState(q internal.Querier) (localState, error) {
 
 	l.unhandledGroups = unhandledGroups
 
-	for projectPath, acls := range s.Projects {
+	for projectPath, acls := range c.Projects {
 		if !q.ProjectExists(projectPath) {
 			errs.Append(fmt.Errorf("project '%s' does not exist", projectPath))
 			continue
@@ -340,11 +306,11 @@ Loop:
 		errs.Append(fmt.Errorf("no owner in group '%s'", localGroup.Fullpath))
 	}
 
-	for _, u := range s.Users.Admins {
+	for _, u := range c.Users.Admins {
 		l.admins[u] = 1
 	}
 
-	for _, u := range s.Users.Blocked {
+	for _, u := range c.Users.Blocked {
 		l.blocked[u] = 1
 	}
 
