@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/api"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/state"
@@ -91,7 +93,9 @@ func main() {
 	if len(desiredState.UnhandledGroups()) > 0 {
 		logrus.Infof("Unhandled groups detected:")
 		for _, ug := range desiredState.UnhandledGroups() {
-			logrus.Infof("  %s", ug)
+			if args.SnoopDepth == 0 || strings.Count(ug, "/") <= args.SnoopDepth {
+				logrus.Infof("  %s", ug)
+			}
 		}
 	}
 }

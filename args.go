@@ -26,6 +26,8 @@ type Args struct {
 	ManageUsers bool
 
 	AutoDevOpsMode bool
+
+	SnoopDepth int
 }
 
 func parseArgs() Args {
@@ -40,9 +42,10 @@ func parseArgs() Args {
 
 	flag.BoolVar(&args.ManageACLs, "manage-acls", false, "performs diffs of groups and projects")
 	flag.BoolVar(&args.ManageUsers, "manage-users", false, "performs diffs of user attributes")
-
 	flag.BoolVar(&args.AutoDevOpsMode, "autodevopsmode", false,
 		"where you have no admin rights but still do what you gotta do")
+
+	flag.IntVar(&args.SnoopDepth, "snoopdepth", 0, "max depth to report unhandled groups. 0 means all")
 
 	flag.Parse()
 
