@@ -1,4 +1,4 @@
-# Hurrdurr
+# HurrDurr
 
 The idiotic for herder.
 
@@ -11,51 +11,65 @@ ineffectively, yet does the jerb.
 
 - **-autodevopsmode** where you have no admin rights but still do what you
   gotta do
-- **-config** the configuration file to use, by default hurrdurr will load
-  *hurrdurr.yml* in the current working directoy.
-- **-dryrun** don't actually change anything, only evaluate which changes
+- **-config** the configuration file to use, by default HurrDurr will load
+  *hurrdurr.yml* in the current working directory.
+- **-dryrun** don't actually change anything, only evaluates which changes
   should happen.
-- **-ghost-user** system wide gitlab ghost user. (default "ghost")
+- **-ghost-user** system wide GitLab ghost user. (default "ghost")
 - **-manage-acl** manage groups, projects permissions and sharing.
 - **-manage-users** manage user properties, like adminness and blockedness.
 - **-version** prints the version and exits without error.
 
 ### Required Environment Variables
 
-- **GITLAB_TOKEN** the token to use when contacting the gitlab instance API.
-- **GITLAB_BASEURL** the gitlab instance url to talk to.
+- **GITLAB_TOKEN** the token to use when contacting the GitLab instance API.
+- **GITLAB_BASEURL** the GitLab instance url to talk to.
+
+### API Token scope
+
+You'll want to generate or re-use a token with just the `api` scope.
+
+### AutoDevOpsMode and where to use it
+
+If the token you are using with HurrDurr belongs to an *Admin* user on
+your GitLab instance, you don't need the *AutoDevOpsMode* mode.
+
+If you plan to use HurrDurr on an instance that you are not managing
+then you probably want to use the *AutoDevOpsMode* flag.
+In this particular case, HurrDurr will lazily load users and projects
+to avoid fetching the whole universe at once.
 
 ## Configuration
 
 Configuration is managed through a yaml file. This file declares the
-structure of groups, project, levels and members for hurrdurr to colapse
+structure of groups, project, levels and members for HurrDurr to collapse
 reality into.
 
 ### Concepts
 
-Hurrdurr understands 4 basic elements that it uses to build ACLs and apply
-them to a gitlab instance.
+HurrDurr understands 4 basic elements that it uses to build ACLs and apply
+them to a GitLab instance.
 
 * #### Member
 
   A member is a user, it is defined by the username and must exist in the
-  instance. If the declared user does not exist, hurrdurr will fail the
+  instance. If the declared user does not exist, HurrDurr will fail the
   execution.
 
 * #### Group
 
-  A gitlab group whose members are managed by hurrdurr. Hurrdurr will only
+  A GitLab group whose members are managed by HurrDurr. HurrDurr will only
   manage the groups that are declared in the configuration, other groups will
   be ignored.
 
 * #### Project
 
-  A gitlab project can be shared with a group at any ACL level. Projects can
+  A GitLab project can be shared with a group at any ACL level. Projects can
   also have members added to it the same way we do with groups.
 
 * #### Level
 
-  A level setting in gitlab. The levels, sorted by decreasing access rights,
+  A level setting in GitLab. The levels, sorted by decreasing access rights,
   are:
 
   - Owner
@@ -71,7 +85,7 @@ them to a gitlab instance.
 
 * #### User
 
- A gitlab user that is being specifically managed by hurrdurr. They can
+ A GitLab user that is being specifically managed by HurrDurr. They can
  either be set admins, or can be blocked.
 
 ### Full Sample
@@ -117,9 +131,9 @@ Queries are simple on purporse, and follow strict rules.
 
 1. You can't query a group that contains a query. This will result in a runtime error.
 1. You can query for `users`. This will return the list of all the
-   members that are not blocked or admins that exist in the gitlab instance.
+   members that are not blocked or admins that exist in the GitLab instance.
 1. You can query for `admins`. This will return the list of all the
-   members that are not blocked admins that exist in the gitlab instance.
+   members that are not blocked admins that exist in the GitLab instance.
 1. You can query for a level in a group. For example: `owners in
    infrastructure` would return `werewolve_1, bofh_1`.
 1. You can query for `users` in a group. For example: `users in
