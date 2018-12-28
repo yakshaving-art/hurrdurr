@@ -187,7 +187,7 @@ func (m GitlabAPIClient) AddGroupMembership(username, group string, level intern
 	if err != nil {
 		return fmt.Errorf("failed to add user '%s' to group '%s': %s", username, group, err)
 	}
-	logrus.Infof("added '%s' to '%s' at level '%d'", username, group, level)
+	logrus.Infof("added '%s' to '%s' at level '%s'", username, group, level)
 	return nil
 }
 
@@ -204,7 +204,7 @@ func (m GitlabAPIClient) ChangeGroupMembership(username, group string, level int
 		return fmt.Errorf("failed to change user '%s' in group '%s': %s", username, group, err)
 	}
 
-	logrus.Infof("changed '%s' in '%s' at level '%d'", username, group, level)
+	logrus.Infof("changed '%s' in '%s' at level '%s'", username, group, level)
 	return nil
 }
 
@@ -262,7 +262,7 @@ func (m GitlabAPIClient) AddProjectMembership(username, project string, level in
 	if err != nil {
 		return fmt.Errorf("failed to add user '%s' to project '%s': %s", username, project, err)
 	}
-	logrus.Infof("added '%s' to '%s' at level '%d'", username, project, level)
+	logrus.Infof("added '%s' to '%s' at level '%s'", username, project, level)
 	return nil
 }
 
@@ -279,7 +279,7 @@ func (m GitlabAPIClient) ChangeProjectMembership(username, project string, level
 		return fmt.Errorf("failed to change user '%s' in project '%s': %s", username, project, err)
 	}
 
-	logrus.Infof("changed '%s' in '%s' at level '%d'", username, project, level)
+	logrus.Infof("changed '%s' in '%s' at level '%s'", username, project, level)
 	return nil
 }
 
