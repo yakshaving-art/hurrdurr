@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/api"
@@ -98,7 +99,9 @@ func main() {
 	if len(desiredState.UnhandledGroups()) > 0 {
 		fmt.Println("Unhandled groups detected:")
 		for _, ug := range desiredState.UnhandledGroups() {
-			fmt.Printf("  %s\n", ug)
+			if args.SnoopDepth == 0 || strings.Count(ug, "/") <= args.SnoopDepth {
+				logrus.Infof("  %s", ug)
+			}
 		}
 	}
 }
