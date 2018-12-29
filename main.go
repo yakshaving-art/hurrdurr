@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
@@ -12,6 +13,10 @@ import (
 )
 
 func main() {
+	logrus.SetFormatter(&logrus.TextFormatter{
+		DisableTimestamp: true,
+	})
+
 	args := parseArgs()
 
 	if args.Debug {
@@ -71,18 +76,19 @@ func main() {
 	var actionClient internal.APIClient
 
 	if args.DryRun {
+		fmt.Println("Changes proposed [dryrun]:")
 		actionClient = api.DryRunAPIClient{
 			Append: func(change string) {
-				logrus.Info("  ", change)
+				fmt.Printf("  %s\n", change)
 			},
 		}
 	} else {
+		fmt.Println("Changes:")
 		actionClient = client
 	}
 
-	logrus.Infof("Changes:")
 	if len(actions) == 0 {
-		logrus.Infof("  No changes necessary")
+		fmt.Println("  No changes necessary")
 	}
 	for _, action := range actions {
 		if err := action.Execute(actionClient); err != nil {
@@ -91,7 +97,7 @@ func main() {
 	}
 
 	if len(desiredState.UnhandledGroups()) > 0 {
-		logrus.Infof("Unhandled groups detected:")
+		fmt.Println("Unhandled groups detected:")
 		for _, ug := range desiredState.UnhandledGroups() {
 			if args.SnoopDepth == 0 || strings.Count(ug, "/") <= args.SnoopDepth {
 				logrus.Infof("  %s", ug)
