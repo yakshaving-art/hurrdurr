@@ -106,6 +106,7 @@ func LoadStateFromFile(c internal.Config, q internal.Querier) (internal.State, e
 }
 
 type localState struct {
+	currentUser     string
 	groups          map[string]*LocalGroup
 	projects        map[string]*LocalProject
 	admins          map[string]int
@@ -161,6 +162,10 @@ func (s localState) IsBlocked(username string) bool {
 	return ok
 }
 
+func (s localState) CurrentUser() string {
+	return s.currentUser
+}
+
 // Admins implements State interface
 func (s localState) Admins() []string {
 	return util.ToStringSlice(s.admins)
@@ -173,10 +178,11 @@ func (s localState) Blocked() []string {
 
 func configToLocalState(c internal.Config, q internal.Querier) (localState, error) {
 	l := localState{
-		groups:   make(map[string]*LocalGroup, 0),
-		projects: make(map[string]*LocalProject, 0),
-		admins:   make(map[string]int, 0),
-		blocked:  make(map[string]int, 0),
+		currentUser: q.CurrentUser(),
+		groups:      make(map[string]*LocalGroup, 0),
+		projects:    make(map[string]*LocalProject, 0),
+		admins:      make(map[string]int, 0),
+		blocked:     make(map[string]int, 0),
 	}
 
 	errs := errors.New() // This object aggregates all the errors to dump them all at the end

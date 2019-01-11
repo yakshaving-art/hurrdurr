@@ -55,6 +55,8 @@ type State interface {
 
 	Blocked() []string
 	IsBlocked(string) bool
+
+	CurrentUser() string
 }
 
 // Querier represents an object which can be used to query a live instance to validate data
@@ -65,6 +67,7 @@ type Querier interface {
 	GroupExists(string) bool
 	ProjectExists(string) bool
 
+	CurrentUser() string
 	Users() []string
 	GetUserID(string) int
 	Groups() []string

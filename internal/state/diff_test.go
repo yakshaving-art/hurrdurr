@@ -11,6 +11,7 @@ import (
 )
 
 var querier = querierMock{
+	currentUser: "admin",
 	admins: map[string]bool{
 		"admin": true,
 	},
@@ -44,6 +45,29 @@ func TestDiffWithoutOneStateFails(t *testing.T) {
 
 	_, err = state.Diff(s, nil, state.DiffArgs{})
 	a.EqualError(err, "invalid desired state: nil")
+}
+
+func TestDiffRemovingCurrentAdminUserFails(t *testing.T) {
+	a := assert.New(t)
+
+	sourceConfig, err := util.LoadConfig("fixtures/plain-with-admins.yaml")
+	a.NoError(err)
+
+	sourceState, err := state.LoadStateFromFile(sourceConfig, querier)
+	a.NoError(err)
+
+	desiredConfig, err := util.LoadConfig("fixtures/plain-without-current-user.yaml")
+	a.NoError(err)
+
+	desiredState, err := state.LoadStateFromFile(desiredConfig, querier)
+	a.NoError(err)
+
+	_, err = state.Diff(sourceState, desiredState, state.DiffArgs{
+		DiffUsers: true,
+	})
+	a.EqualError(err, "2 errors: "+
+		"can't block current user 'admin' as it would be shooting myself in the foot; "+
+		"can't unset current user 'admin' as admin as it would be shooting myself in the foot")
 }
 
 func TestDiffingStates(t *testing.T) {
@@ -184,13 +208,13 @@ func TestDiffingStates(t *testing.T) {
 			a := assert.New(t)
 
 			sourceConfig, err := util.LoadConfig(tc.sourceState)
-			a.NoError(err, "source state")
+			a.NoError(err, "source config")
 
 			sourceState, err := state.LoadStateFromFile(sourceConfig, querier)
 			a.NoError(err, "source state")
 
 			desiredConfig, err := util.LoadConfig(tc.desiredState)
-			a.NoError(err, "desired state")
+			a.NoError(err, "desired config")
 
 			desiredState, err := state.LoadStateFromFile(desiredConfig, querier)
 			a.NoError(err, "desired state")

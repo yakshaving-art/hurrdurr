@@ -13,6 +13,7 @@ import (
 
 func TestLoadingState(t *testing.T) {
 	querier := querierMock{
+		currentUser: "admin",
 		admins: map[string]bool{
 			"admin": true,
 		},
@@ -299,11 +300,16 @@ func TestLoadingState(t *testing.T) {
 }
 
 type querierMock struct {
-	admins   map[string]bool
-	users    map[string]bool
-	blocked  map[string]bool
-	groups   map[string]bool
-	projects map[string]bool
+	currentUser string
+	admins      map[string]bool
+	users       map[string]bool
+	blocked     map[string]bool
+	groups      map[string]bool
+	projects    map[string]bool
+}
+
+func (q querierMock) CurrentUser() string {
+	return q.currentUser
 }
 
 func (q querierMock) IsUser(u string) bool {

@@ -92,12 +92,13 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	}
 
 	m.Querier = GitlabQuerier{
-		ghostUser: m.ghostUser,
-		users:     users,
-		admins:    admins,
-		blocked:   blocked,
-		groups:    groups,
-		projects:  projects,
+		ghostUser:   m.ghostUser,
+		currentUser: m.CurrentUser(),
+		users:       users,
+		admins:      admins,
+		blocked:     blocked,
+		groups:      groups,
+		projects:    projects,
 	}
 
 	return errs.ErrorOrNil()
@@ -171,6 +172,15 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		groups:   groups,
 		projects: projects,
 	}, errs.ErrorOrNil()
+}
+
+// CurrentUser returns the user that is used to talk to the API
+func (m GitlabAPIClient) CurrentUser() string {
+	u, _, err := m.client.Users.CurrentUser()
+	if err != nil {
+		logrus.Fatalf("Failed to get current user: %s", err)
+	}
+	return u.Username
 }
 
 // AddGroupMembership implements the APIClient interface
@@ -539,12 +549,13 @@ func (m GitlabAPIClient) fetchProject(fullpath string) (*gitlab.Project, error) 
 
 // GitlabQuerier implements the internal.Querier interface
 type GitlabQuerier struct {
-	ghostUser string
-	users     map[string]int
-	admins    map[string]int
-	blocked   map[string]int
-	groups    map[string]int
-	projects  map[string]int
+	ghostUser   string
+	currentUser string
+	users       map[string]int
+	admins      map[string]int
+	blocked     map[string]int
+	groups      map[string]int
+	projects    map[string]int
 }
 
 // GetUserID implements the internal querier interface
@@ -624,6 +635,11 @@ func (m GitlabQuerier) Blocked() []string {
 // Projects returns the list of projects
 func (m GitlabQuerier) Projects() []string {
 	return util.ToStringSlice(m.projects)
+}
+
+// CurrentUser returns the current user talking to the API
+func (m GitlabQuerier) CurrentUser() string {
+	return m.currentUser
 }
 
 // GitlabState represents the state of a gitlab instance

@@ -266,6 +266,10 @@ func (d *differ) diffUsers() {
 
 	for _, a := range d.current.Admins() {
 		if !d.desired.IsAdmin(a) {
+			if d.desired.CurrentUser() == a {
+				d.Error(fmt.Errorf("can't unset current user '%s' as admin as it would be shooting myself in the foot", a))
+				continue
+			}
 			d.Action(unsetAdminUser{
 				Username: a,
 			})
@@ -273,6 +277,10 @@ func (d *differ) diffUsers() {
 	}
 
 	for _, a := range d.desired.Blocked() {
+		if d.desired.CurrentUser() == a {
+			d.Error(fmt.Errorf("can't block current user '%s' as it would be shooting myself in the foot", a))
+			continue
+		}
 		if !d.current.IsBlocked(a) {
 			d.Action(blockUser{
 				Username: a,

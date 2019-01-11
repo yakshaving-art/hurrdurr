@@ -199,3 +199,8 @@ func (GitlabLazyQuerier) Projects() []string {
 func (GitlabLazyQuerier) Blocked() []string {
 	return []string{}
 }
+
+// CurrentUser returns the current user talking to the API
+func (g GitlabLazyQuerier) CurrentUser() string {
+	return g.api.CurrentUser()
+}
