@@ -18,6 +18,7 @@ ineffectively, yet does the jerb.
 - **-ghost-user** system wide GitLab ghost user. (default "ghost")
 - **-manage-acl** manage groups, projects permissions and sharing.
 - **-manage-users** manage user properties, like adminness and blockedness.
+- **-snoopdepth** do not report unmanaged groups located deeper than this.
 - **-version** prints the version and exits without error.
 
 ### Required Environment Variables
