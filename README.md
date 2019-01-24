@@ -195,3 +195,46 @@ projects:
     owners:
     - pointy_haired_boss
 ```
+
+### Group/Project secret variable management
+
+HurrDurr can grab secret variables from one location and update them under
+project or group CI settings. It understands the following configuration:
+
+```
+groups:
+  group/subgroup:
+    secrets:
+      SOURCE_VAR: DST_VAR
+projects:
+  group/subgroup/project:
+    secrets:
+      SOURCE_VAR_2: DST_VAR
+```
+
+In this configuration, HurrDurr will try to do the following:
+- for subgroup: lookup environmental variable `SOURCE_VAR`,
+   and set its _value_ as a secret variable named `DST_VAR` at subgroup level.
+- for project: lookup environmental variable `SOURCE_VAR_2`,
+   and set its _value_ as a secret variable named `DST_VAR` at project level.
+
+It is up to gitlab operator to figure out priorities of those variables and
+design acceptable overrides.
+
+#### Error handling
+
+- If there's no `SOURCE_VAR` set in the HurrDurr environment, it will
+  fail fast without making any changes. Dry run mode will complain about
+  it and return non-zero code.
+
+- If the `DST_VAR` already exists:
+  - if the values match, then HurrDurr will do nothing.
+  - if the values don't match, then HurrDurr will exit with error (err to not overwrite things for now)
+
+##### TODO:
+- Variable sources: for now, its env of the hurrdurr. What about the case where we want to
+  grab those from different source? Like, https/gkms/vault, whatever -- should we think about
+  it now? Like: `<type>_SOURCE_VAR: DST_VAR` where type can be env/gkms?
+- Custom sources for variables? For example, say we have shell wrapper in the same docker image
+  that can output variable to stdin (`gkms_secret_to_stdout /variable/path` I'm looking at you).
+  How we can incorporate it? Or should we not bother with it now since they can be passed to env anyways?
