@@ -564,9 +564,9 @@ func (m GitlabQuerier) GetUserID(username string) int {
 	if !ok {
 		id, ok = m.admins[username]
 	}
-	if !ok {
-		id, ok = m.blocked[username]
-	}
+	// if !ok {
+	// 	id, ok = m.blocked[username]
+	// }
 	if !ok {
 		logrus.Fatalf("could not find user '%s' in the lists of normal, admins or blocked users", username)
 	}

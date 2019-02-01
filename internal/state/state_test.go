@@ -123,6 +123,14 @@ func TestLoadingState(t *testing.T) {
 			nil,
 		},
 		{
+			"invalid because of blocked user being assigned",
+			"fixtures/invalid-with-blocked-user.yaml",
+			"failed to build local state: 1 error: User 'bad_actor_1' is blocked, it should not be included in group 'root_group'",
+			[]hurrdurr.LocalGroup{},
+			nil,
+			nil,
+		},
+		{
 			"plain state",
 			"fixtures/plain.yaml",
 			"",
