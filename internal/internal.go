@@ -77,9 +77,23 @@ type Querier interface {
 	Projects() []string
 }
 
+// ActionPriority is used to prioritize different actions according to when
+// should they be executed
+type ActionPriority int
+
+// Priorities
+const (
+	UnblockUser             = 0
+	ManageAdminUser         = 1
+	ManageGroupMemeberships = 2
+	ManageProject           = 3
+	BlockUser               = 4
+)
+
 // Action is an action to execute using the APIClient
 type Action interface {
 	Execute(APIClient) error
+	Priority() ActionPriority
 }
 
 // APIClient is the tool used to reach the remote instance and perform actions on it
