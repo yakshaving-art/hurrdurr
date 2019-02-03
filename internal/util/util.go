@@ -7,7 +7,7 @@ import (
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 
-	"github.com/go-yaml/yaml"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // ToStringSlice turns a map[string]int into a []string

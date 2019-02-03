@@ -1,4 +1,4 @@
-image: registry.gitlab.com/yakshaving.art/go-builder:0.0.2
+image: registry.gitlab.com/yakshaving.art/dockerfiles/go-builder:0.0.1
 stages:
   - build
   - docker_image
@@ -14,11 +14,8 @@ build-binary:
     paths:
     - hurrdurr
   script:
-  - mkdir -p /go/src/gitlab.com/${CI_PROJECT_NAMESPACE}
-  - cd /go/src/gitlab.com/${CI_PROJECT_NAMESPACE}
-  - ln -s ${CI_PROJECT_DIR}
-  - cd /go/src/gitlab.com/${CI_PROJECT_PATH}
-  - make test build
+    - go mod download
+    - make test build
 
 .build-image: &build-image
   image: docker:stable

@@ -18,13 +18,36 @@ type DiffArgs struct {
 }
 
 type differ struct {
-	actions          []internal.Action
+	actions          map[internal.ActionPriority][]internal.Action
 	errs             errors.Errors
 	current, desired internal.State
 }
 
 func (d *differ) Action(a internal.Action) {
-	d.actions = append(d.actions, a)
+	actions, ok := d.actions[a.Priority()]
+	if !ok {
+		actions = make([]internal.Action, 0)
+	}
+	actions = append(actions, a)
+	d.actions[a.Priority()] = actions
+}
+
+func (d differ) prioritizedActions() []internal.Action {
+	pactions := make([]internal.Action, 0)
+	for _, priority := range []internal.ActionPriority{
+		internal.UnblockUser,
+		internal.ManageAdminUser,
+		internal.ManageGroupMemberships,
+		internal.ManageProject,
+		internal.BlockUser} {
+		if actions, ok := d.actions[priority]; ok {
+			for _, a := range actions {
+				pactions = append(pactions, a)
+			}
+		}
+	}
+
+	return pactions
 }
 
 func (d *differ) Error(e error) {
@@ -42,7 +65,7 @@ func Diff(current, desired internal.State, args DiffArgs) ([]internal.Action, er
 	}
 
 	differ := &differ{
-		actions: make([]internal.Action, 0),
+		actions: make(map[internal.ActionPriority][]internal.Action, 0),
 		errs:    errors.New(),
 		current: current,
 		desired: desired,
@@ -58,7 +81,7 @@ func Diff(current, desired internal.State, args DiffArgs) ([]internal.Action, er
 		differ.diffUsers()
 	}
 
-	return differ.actions, differ.errs.ErrorOrNil()
+	return differ.prioritizedActions(), differ.errs.ErrorOrNil()
 }
 
 func (d *differ) diffGroups() {
@@ -86,7 +109,7 @@ func (d *differ) diffGroups() {
 				if !currentMemberPresent {
 					logrus.Debugf("  Adding %s to group %s at level %s", desiredName, desiredGroup.GetFullpath(),
 						desiredLevel)
-					d.Action(addGroupMembershipAction{
+					d.Action(addGroupMembership{
 						Group:    desiredGroup.GetFullpath(),
 						Username: desiredName,
 						Level:    desiredLevel})
@@ -116,15 +139,13 @@ func (d *differ) diffGroups() {
 			for desiredName, desiredLevel := range desiredMembers {
 				logrus.Debugf("  Adding %s to group %s at level %s", desiredName, desiredGroup.GetFullpath(),
 					desiredLevel)
-				d.Action(addGroupMembershipAction{
+				d.Action(addGroupMembership{
 					Group:    desiredGroup.GetFullpath(),
 					Username: desiredName,
 					Level:    desiredLevel})
 			}
 		}
-
 	}
-
 }
 
 func (d *differ) diffProjects() {
@@ -276,6 +297,14 @@ func (d *differ) diffUsers() {
 		}
 	}
 
+	for _, a := range d.current.Blocked() {
+		if !d.desired.IsBlocked(a) {
+			d.Action(unblockUser{
+				Username: a,
+			})
+		}
+	}
+
 	for _, a := range d.desired.Blocked() {
 		if d.desired.CurrentUser() == a {
 			d.Error(fmt.Errorf("can't block current user '%s' as it would be shooting myself in the foot", a))
@@ -283,14 +312,6 @@ func (d *differ) diffUsers() {
 		}
 		if !d.current.IsBlocked(a) {
 			d.Action(blockUser{
-				Username: a,
-			})
-		}
-	}
-
-	for _, a := range d.current.Blocked() {
-		if !d.desired.IsBlocked(a) {
-			d.Action(unblockUser{
 				Username: a,
 			})
 		}
@@ -307,14 +328,22 @@ func (s changeGroupMembership) Execute(c internal.APIClient) error {
 	return c.ChangeGroupMembership(s.Username, s.Group, s.Level)
 }
 
-type addGroupMembershipAction struct {
+func (changeGroupMembership) Priority() internal.ActionPriority {
+	return internal.ManageGroupMemberships
+}
+
+type addGroupMembership struct {
 	Username string
 	Group    string
 	Level    internal.Level
 }
 
-func (s addGroupMembershipAction) Execute(c internal.APIClient) error {
+func (s addGroupMembership) Execute(c internal.APIClient) error {
 	return c.AddGroupMembership(s.Username, s.Group, s.Level)
+}
+
+func (addGroupMembership) Priority() internal.ActionPriority {
+	return internal.ManageGroupMemberships
 }
 
 type removeGroupMembership struct {
@@ -324,6 +353,10 @@ type removeGroupMembership struct {
 
 func (r removeGroupMembership) Execute(c internal.APIClient) error {
 	return c.RemoveGroupMembership(r.Username, r.Group)
+}
+
+func (removeGroupMembership) Priority() internal.ActionPriority {
+	return internal.ManageGroupMemberships
 }
 
 type shareProjectWithGroup struct {
@@ -336,6 +369,10 @@ func (r shareProjectWithGroup) Execute(c internal.APIClient) error {
 	return c.AddProjectSharing(r.Project, r.Group, r.Level)
 }
 
+func (shareProjectWithGroup) Priority() internal.ActionPriority {
+	return internal.ManageProject
+}
+
 type removeProjectGroupSharing struct {
 	Project string
 	Group   string
@@ -343,6 +380,10 @@ type removeProjectGroupSharing struct {
 
 func (r removeProjectGroupSharing) Execute(c internal.APIClient) error {
 	return c.RemoveProjectSharing(r.Project, r.Group)
+}
+
+func (removeProjectGroupSharing) Priority() internal.ActionPriority {
+	return internal.ManageProject
 }
 
 type addProjectMembership struct {
@@ -355,6 +396,10 @@ func (r addProjectMembership) Execute(c internal.APIClient) error {
 	return c.AddProjectMembership(r.Username, r.Project, r.Level)
 }
 
+func (addProjectMembership) Priority() internal.ActionPriority {
+	return internal.ManageProject
+}
+
 type changeProjectMembership struct {
 	Project  string
 	Username string
@@ -363,6 +408,10 @@ type changeProjectMembership struct {
 
 func (r changeProjectMembership) Execute(c internal.APIClient) error {
 	return c.ChangeProjectMembership(r.Username, r.Project, r.Level)
+}
+
+func (changeProjectMembership) Priority() internal.ActionPriority {
+	return internal.ManageProject
 }
 
 type removeProjectMembership struct {
@@ -374,12 +423,20 @@ func (r removeProjectMembership) Execute(c internal.APIClient) error {
 	return c.RemoveProjectMembership(r.Username, r.Project)
 }
 
+func (removeProjectMembership) Priority() internal.ActionPriority {
+	return internal.ManageProject
+}
+
 type setAdminUser struct {
 	Username string
 }
 
 func (r setAdminUser) Execute(c internal.APIClient) error {
 	return c.SetAdminUser(r.Username)
+}
+
+func (setAdminUser) Priority() internal.ActionPriority {
+	return internal.ManageAdminUser
 }
 
 type unsetAdminUser struct {
@@ -390,6 +447,10 @@ func (r unsetAdminUser) Execute(c internal.APIClient) error {
 	return c.UnsetAdminUser(r.Username)
 }
 
+func (unsetAdminUser) Priority() internal.ActionPriority {
+	return internal.ManageAdminUser
+}
+
 type blockUser struct {
 	Username string
 }
@@ -398,12 +459,20 @@ func (r blockUser) Execute(c internal.APIClient) error {
 	return c.BlockUser(r.Username)
 }
 
+func (blockUser) Priority() internal.ActionPriority {
+	return internal.BlockUser
+}
+
 type unblockUser struct {
 	Username string
 }
 
 func (r unblockUser) Execute(c internal.APIClient) error {
 	return c.UnblockUser(r.Username)
+}
+
+func (unblockUser) Priority() internal.ActionPriority {
+	return internal.UnblockUser
 }
 
 type member struct {
