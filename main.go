@@ -68,6 +68,8 @@ func main() {
 		DiffGroups:   args.ManageACLs,
 		DiffProjects: args.ManageACLs,
 		DiffUsers:    args.ManageUsers,
+
+		Yolo: args.YoloMode,
 	})
 	if err != nil {
 		logrus.Fatalf("Failed to diff current and desired state: %s", err)
