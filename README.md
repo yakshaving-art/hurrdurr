@@ -195,3 +195,38 @@ projects:
     owners:
     - pointy_haired_boss
 ```
+
+### Group/Project secret variable management
+
+HurrDurr can grab secret variables from one location and update them under
+project or group CI settings. It understands the following configuration:
+
+```
+groups:
+  group/subgroup:
+    secrets:
+      SOURCE_VAR: DST_VAR
+projects:
+  group/subgroup/project:
+    secrets:
+      SOURCE_VAR_2: DST_VAR
+```
+
+In this configuration, HurrDurr will try to do the following:
+- for subgroup: lookup environmental variable `SOURCE_VAR`,
+   and set its _value_ as a secret variable named `DST_VAR` at subgroup level.
+- for project: lookup environmental variable `SOURCE_VAR_2`,
+   and set its _value_ as a secret variable named `DST_VAR` at project level.
+
+It is up to gitlab operator to figure out priorities of those variables and
+design acceptable overrides.
+
+#### Error handling
+
+- If there's no `SOURCE_VAR` set in the HurrDurr environment, it will
+  fail fast without making any changes. Dry run mode will complain about
+  it and return non-zero code.
+
+- If the `DST_VAR` already exists:
+  - if the values match, then HurrDurr will do nothing.
+  - if the values don't match, then HurrDurr will exit with error, unless `--yes-yolo-force-secret-var-overwrite` is given.
