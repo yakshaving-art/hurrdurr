@@ -229,12 +229,4 @@ design acceptable overrides.
 
 - If the `DST_VAR` already exists:
   - if the values match, then HurrDurr will do nothing.
-  - if the values don't match, then HurrDurr will exit with error (err to not overwrite things for now)
-
-##### TODO:
-- Variable sources: for now, its env of the hurrdurr. What about the case where we want to
-  grab those from different source? Like, https/gkms/vault, whatever -- should we think about
-  it now? Like: `<type>_SOURCE_VAR: DST_VAR` where type can be env/gkms?
-- Custom sources for variables? For example, say we have shell wrapper in the same docker image
-  that can output variable to stdin (`gkms_secret_to_stdout /variable/path` I'm looking at you).
-  How we can incorporate it? Or should we not bother with it now since they can be passed to env anyways?
+  - if the values don't match, then HurrDurr will exit with error, unless `--yes-yolo-force-secret-var-overwrite` is given.
