@@ -37,7 +37,7 @@ func (d differ) prioritizedActions() []internal.Action {
 	for _, priority := range []internal.ActionPriority{
 		internal.UnblockUser,
 		internal.ManageAdminUser,
-		internal.ManageGroupMemeberships,
+		internal.ManageGroupMemberships,
 		internal.ManageProject,
 		internal.BlockUser} {
 		if actions, ok := d.actions[priority]; ok {
@@ -329,7 +329,7 @@ func (s changeGroupMembership) Execute(c internal.APIClient) error {
 }
 
 func (changeGroupMembership) Priority() internal.ActionPriority {
-	return internal.ManageGroupMemeberships
+	return internal.ManageGroupMemberships
 }
 
 type addGroupMembership struct {
@@ -343,7 +343,7 @@ func (s addGroupMembership) Execute(c internal.APIClient) error {
 }
 
 func (addGroupMembership) Priority() internal.ActionPriority {
-	return internal.ManageGroupMemeberships
+	return internal.ManageGroupMemberships
 }
 
 type removeGroupMembership struct {
@@ -356,7 +356,7 @@ func (r removeGroupMembership) Execute(c internal.APIClient) error {
 }
 
 func (removeGroupMembership) Priority() internal.ActionPriority {
-	return internal.ManageGroupMemeberships
+	return internal.ManageGroupMemberships
 }
 
 type shareProjectWithGroup struct {

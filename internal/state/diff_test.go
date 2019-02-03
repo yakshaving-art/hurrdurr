@@ -77,6 +77,7 @@ func TestDiffingStates(t *testing.T) {
 		sourceState    string
 		desiredState   string
 		desiredActions []string
+		inOrder        bool
 	}{
 		{
 			"add developers",
@@ -86,17 +87,20 @@ func TestDiffingStates(t *testing.T) {
 				"add 'user1' to 'root_group' at level 'Developer'",
 				"add 'user2' to 'root_group' at level 'Developer'",
 			},
+			false,
 		},
 		{
 			"add skrrty group and change admin",
 			"fixtures/diff-root-with-admin.yaml",
 			"fixtures/diff-with-skrrty-group.yaml",
-			[]string{"add 'user1' to 'root_group' at level 'Owner'",
+			[]string{
+				"add 'user1' to 'root_group' at level 'Owner'",
 				"remove 'admin' from 'root_group'",
 				"add 'user1' to 'skrrty' at level 'Developer'",
 				"add 'user2' to 'skrrty' at level 'Developer'",
 				"add 'admin' to 'skrrty' at level 'Owner'",
 			},
+			false,
 		},
 		{
 			"change admins in developers",
@@ -106,6 +110,7 @@ func TestDiffingStates(t *testing.T) {
 				"change 'user1' in 'root_group' at level 'Developer'",
 				"add 'user2' to 'root_group' at level 'Developer'",
 			},
+			false,
 		},
 		{
 			"share root with skrrty",
@@ -115,6 +120,7 @@ func TestDiffingStates(t *testing.T) {
 				"share project 'root_group/myawesomeproject' with group 'skrrty' at level 'Maintainer'",
 				"add 'user1' to 'root_group/myawesomeproject' at level 'Developer'",
 			},
+			false,
 		},
 		{
 			"unshare root with skrrty",
@@ -124,6 +130,7 @@ func TestDiffingStates(t *testing.T) {
 				"remove project sharing from 'root_group/myawesomeproject' with group 'skrrty'",
 				"remove 'user1' from 'root_group/myawesomeproject'",
 			},
+			false,
 		},
 		{
 			"change root sharing with skrrty to developers",
@@ -134,6 +141,7 @@ func TestDiffingStates(t *testing.T) {
 				"share project 'root_group/myawesomeproject' with group 'skrrty' at level 'Developer'",
 				"remove 'user1' from 'root_group/myawesomeproject'",
 			},
+			false,
 		},
 		{
 			"change root sharing with skrrty to maintainers",
@@ -144,6 +152,7 @@ func TestDiffingStates(t *testing.T) {
 				"share project 'root_group/myawesomeproject' with group 'skrrty' at level 'Maintainer'",
 				"add 'user1' to 'root_group/myawesomeproject' at level 'Developer'",
 			},
+			false,
 		},
 		{
 			"add project permissions",
@@ -154,6 +163,7 @@ func TestDiffingStates(t *testing.T) {
 				"add 'admin' to 'root_group/a_project' at level 'Owner'",
 				"add 'user2' to 'root_group/a_project' at level 'Maintainer'",
 			},
+			false,
 		},
 		{
 			"change project permissions",
@@ -165,23 +175,26 @@ func TestDiffingStates(t *testing.T) {
 				"add 'user3' to 'root_group/a_project' at level 'Reporter'",
 				"remove project sharing from 'root_group/a_project' with group 'other_group'",
 			},
+			false,
 		},
 		{
 			"change project permissions the other way",
 			"fixtures/plain-with-other-levels-project.yaml",
 			"fixtures/plain-with-project.yaml",
 			[]string{
+				"share project 'root_group/a_project' with group 'other_group' at level 'Developer'",
+				"change 'user2' in 'root_group/a_project' to level 'Maintainer'",
 				"remove 'user1' from 'root_group/a_project'",
 				"remove 'user3' from 'root_group/a_project'",
-				"change 'user2' in 'root_group/a_project' to level 'Maintainer'",
-				"share project 'root_group/a_project' with group 'other_group' at level 'Developer'",
 			},
+			false,
 		},
 		{
 			"plain project permissions without changes",
 			"fixtures/plain-with-project.yaml",
 			"fixtures/plain-with-project.yaml",
 			[]string{},
+			true,
 		},
 		{
 			"blocking a user works",
@@ -189,17 +202,21 @@ func TestDiffingStates(t *testing.T) {
 			"fixtures/plain-with-blocked-user.yaml",
 			[]string{
 				"unset 'user3' as admin",
+				"remove 'user3' from 'other_group'",
 				"block 'user3'",
 			},
+			true,
 		},
 		{
 			"unblocking a user works",
 			"fixtures/plain-with-blocked-user.yaml",
 			"fixtures/plain-with-admins.yaml",
 			[]string{
-				"set 'user3' as admin",
 				"unblock 'user3'",
+				"set 'user3' as admin",
+				"add 'user3' to 'other_group' at level 'Developer'",
 			},
+			true,
 		},
 	}
 
@@ -241,11 +258,15 @@ func TestDiffingStates(t *testing.T) {
 			// a.Equal(len(tc.actions), len(executedActions), "actions length is not as expected")
 			// a.Equal(tc.desiredActions, executedActions, "actions are not as expected")
 
-			for _, action := range tc.desiredActions {
-				a.Contains(executedActions, action, "more desired actions than executed")
-			}
-			for _, action := range executedActions {
-				a.Contains(tc.desiredActions, action, "more executed actions than desired")
+			if tc.inOrder {
+				a.EqualValues(tc.desiredActions, executedActions, "actions")
+			} else {
+				for _, action := range tc.desiredActions {
+					a.Contains(executedActions, action, "more desired actions than executed")
+				}
+				for _, action := range executedActions {
+					a.Contains(tc.desiredActions, action, "more executed actions than desired")
+				}
 			}
 
 		})
