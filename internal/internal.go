@@ -30,6 +30,9 @@ func (l Level) String() string {
 type Group interface {
 	GetFullpath() string
 	GetMembers() map[string]Level
+
+	// HasVariable(key string) bool
+	// VariableEquals(key, value string) bool
 }
 
 // Project represents a gitlab project
@@ -39,6 +42,9 @@ type Project interface {
 
 	GetSharedGroups() map[string]Level
 	GetMembers() map[string]Level
+
+	// HasVariable(key string) bool
+	// VariableEquals(key, value string) bool
 }
 
 // State represents a state which includes groups and memberships
@@ -108,6 +114,12 @@ type APIClient interface {
 	AddProjectMembership(username, project string, level Level) error
 	ChangeProjectMembership(username, project string, level Level) error
 	RemoveProjectMembership(username, project string) error
+
+	// CreateGroupVariable(group, key, value string) error
+	// UpdateGroupVariable(group, key, value string) error
+
+	// CreateProjectVariable(fullpath, key, value string) error
+	// UpdateProjectVariable(fullpath, key, value string) error
 
 	BlockUser(username string) error
 	UnblockUser(username string) error
