@@ -15,12 +15,16 @@ type DiffArgs struct {
 	DiffGroups   bool
 	DiffProjects bool
 	DiffUsers    bool
+
+	Yolo bool
 }
 
 type differ struct {
 	actions          map[internal.ActionPriority][]internal.Action
 	errs             errors.Errors
 	current, desired internal.State
+
+	yolo bool
 }
 
 func (d *differ) Action(a internal.Action) {
@@ -37,7 +41,7 @@ func (d differ) prioritizedActions() []internal.Action {
 	for _, priority := range []internal.ActionPriority{
 		internal.UnblockUser,
 		internal.ManageAdminUser,
-		internal.ManageGroupMemberships,
+		internal.ManageGroup,
 		internal.ManageProject,
 		internal.BlockUser} {
 		if actions, ok := d.actions[priority]; ok {
@@ -69,6 +73,7 @@ func Diff(current, desired internal.State, args DiffArgs) ([]internal.Action, er
 		errs:    errors.New(),
 		current: current,
 		desired: desired,
+		yolo:    args.Yolo,
 	}
 
 	if args.DiffGroups {
@@ -133,6 +138,32 @@ func (d *differ) diffGroups() {
 					d.Action(removeGroupMembership{Username: currentMember, Group: currentGroup.GetFullpath()})
 				}
 			}
+
+			logrus.Debugf("  Processing group %s secret vars", desiredGroup.GetFullpath())
+			for k, v := range desiredGroup.GetVariables() {
+				if !currentGroup.HasVariable(k) {
+					d.Action(createGroupVariable{
+						Group: desiredGroup.GetFullpath(),
+						Key:   k,
+						Value: v,
+					})
+					continue
+				}
+				if !currentGroup.VariableEquals(k, v) {
+
+					if d.yolo {
+						d.Action(updateGroupVariable{
+							Group: desiredGroup.GetFullpath(),
+							Key:   k,
+							Value: v,
+						})
+					} else {
+						d.Error(fmt.Errorf("variable %s in group %s is not as expected", k,
+							desiredGroup.GetFullpath()))
+					}
+				}
+			}
+
 		} else { // !currentGroupPresent
 			logrus.Debugf("  Appending desired group %s members because the current group is not present",
 				desiredGroup.GetFullpath())
@@ -143,6 +174,13 @@ func (d *differ) diffGroups() {
 					Group:    desiredGroup.GetFullpath(),
 					Username: desiredName,
 					Level:    desiredLevel})
+			}
+			for k, v := range desiredGroup.GetVariables() {
+				d.Action(createGroupVariable{
+					Group: desiredGroup.GetFullpath(),
+					Key:   k,
+					Value: v,
+				})
 			}
 		}
 	}
@@ -211,6 +249,29 @@ func (d *differ) diffProjects() {
 						Level:    desiredLevel})
 				}
 
+				logrus.Debugf("  Processing project %s secret vars", desiredProject.GetFullpath())
+				for k, v := range desiredProject.GetVariables() {
+					if !currentProject.HasVariable(k) {
+						d.Action(createProjectVariable{
+							Project: desiredProject.GetFullpath(),
+							Key:     k,
+							Value:   v,
+						})
+						continue
+					}
+					if !currentProject.VariableEquals(k, v) {
+						if d.yolo {
+							d.Action(updateProjectVariable{
+								Project: desiredProject.GetFullpath(),
+								Key:     k,
+								Value:   v,
+							})
+						} else {
+							d.Error(fmt.Errorf("variable %s in project %s is not as expected", k,
+								desiredProject.GetFullpath()))
+						}
+					}
+				}
 			}
 
 		} else { // currentProject not present
@@ -234,6 +295,14 @@ func (d *differ) diffProjects() {
 					Username: desiredName,
 					Project:  desiredProject.GetFullpath(),
 					Level:    desiredLevel,
+				})
+			}
+
+			for k, v := range desiredProject.GetVariables() {
+				d.Action(createProjectVariable{
+					Project: desiredProject.GetFullpath(),
+					Key:     k,
+					Value:   v,
 				})
 			}
 		}
@@ -329,7 +398,7 @@ func (s changeGroupMembership) Execute(c internal.APIClient) error {
 }
 
 func (changeGroupMembership) Priority() internal.ActionPriority {
-	return internal.ManageGroupMemberships
+	return internal.ManageGroup
 }
 
 type addGroupMembership struct {
@@ -343,7 +412,7 @@ func (s addGroupMembership) Execute(c internal.APIClient) error {
 }
 
 func (addGroupMembership) Priority() internal.ActionPriority {
-	return internal.ManageGroupMemberships
+	return internal.ManageGroup
 }
 
 type removeGroupMembership struct {
@@ -356,7 +425,35 @@ func (r removeGroupMembership) Execute(c internal.APIClient) error {
 }
 
 func (removeGroupMembership) Priority() internal.ActionPriority {
-	return internal.ManageGroupMemberships
+	return internal.ManageGroup
+}
+
+type createGroupVariable struct {
+	Group string
+	Key   string
+	Value string
+}
+
+func (p createGroupVariable) Execute(c internal.APIClient) error {
+	return c.CreateGroupVariable(p.Group, p.Key, p.Value)
+}
+
+func (createGroupVariable) Priority() internal.ActionPriority {
+	return internal.ManageGroup
+}
+
+type updateGroupVariable struct {
+	Group string
+	Key   string
+	Value string
+}
+
+func (p updateGroupVariable) Execute(c internal.APIClient) error {
+	return c.UpdateGroupVariable(p.Group, p.Key, p.Value)
+}
+
+func (updateGroupVariable) Priority() internal.ActionPriority {
+	return internal.ManageGroup
 }
 
 type shareProjectWithGroup struct {
@@ -424,6 +521,34 @@ func (r removeProjectMembership) Execute(c internal.APIClient) error {
 }
 
 func (removeProjectMembership) Priority() internal.ActionPriority {
+	return internal.ManageProject
+}
+
+type createProjectVariable struct {
+	Project string
+	Key     string
+	Value   string
+}
+
+func (p createProjectVariable) Execute(c internal.APIClient) error {
+	return c.CreateProjectVariable(p.Project, p.Key, p.Value)
+}
+
+func (createProjectVariable) Priority() internal.ActionPriority {
+	return internal.ManageProject
+}
+
+type updateProjectVariable struct {
+	Project string
+	Key     string
+	Value   string
+}
+
+func (p updateProjectVariable) Execute(c internal.APIClient) error {
+	return c.UpdateProjectVariable(p.Project, p.Key, p.Value)
+}
+
+func (updateProjectVariable) Priority() internal.ActionPriority {
 	return internal.ManageProject
 }
 

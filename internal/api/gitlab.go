@@ -823,6 +823,11 @@ func (g GitlabGroup) VariableEquals(key, value string) bool {
 	return false
 }
 
+// GetVariables implements internal.GetVariables interface
+func (g GitlabGroup) GetVariables() map[string]string {
+	return g.variables
+}
+
 // GitlabProject implements internal.Project interface
 //
 // This is a helper object that is used to load a project with the list of
@@ -868,4 +873,9 @@ func (g GitlabProject) VariableEquals(key, value string) bool {
 		return current == value
 	}
 	return false
+}
+
+// GetVariables implements internal.GetVariables interface
+func (g GitlabProject) GetVariables() map[string]string {
+	return g.variables
 }

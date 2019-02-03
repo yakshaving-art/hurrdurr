@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -18,6 +19,8 @@ type LocalGroup struct {
 	Fullpath string
 	Members  map[string]internal.Level
 	Subquery bool
+
+	Variables map[string]string
 }
 
 // GetFullpath implements Group interface
@@ -33,6 +36,25 @@ func (g LocalGroup) GetMembers() map[string]internal.Level {
 // HasSubquery implements Group interface
 func (g LocalGroup) HasSubquery() bool {
 	return g.Subquery
+}
+
+// HasVariable implements Group interface
+func (g LocalGroup) HasVariable(key string) bool {
+	_, ok := g.Variables[key]
+	return ok
+}
+
+// VariableEquals implements Group interface
+func (g LocalGroup) VariableEquals(key, value string) bool {
+	if v, ok := g.Variables[key]; ok {
+		return value == v
+	}
+	return false
+}
+
+// GetVariables implements Group interface
+func (g LocalGroup) GetVariables() map[string]string {
+	return g.Variables
 }
 
 func (g LocalGroup) addMember(username string, level internal.Level) {
@@ -56,6 +78,8 @@ type LocalProject struct {
 	Fullpath     string
 	SharedGroups map[string]internal.Level
 	Members      map[string]internal.Level
+
+	Variables map[string]string
 }
 
 // GetFullpath implements internal.Project interface
@@ -72,6 +96,25 @@ func (l LocalProject) GetSharedGroups() map[string]internal.Level {
 func (l LocalProject) GetGroupLevel(group string) (internal.Level, bool) {
 	level, ok := l.SharedGroups[group]
 	return level, ok
+}
+
+// HasVariable implements Group interface
+func (l LocalProject) HasVariable(key string) bool {
+	_, ok := l.Variables[key]
+	return ok
+}
+
+// VariableEquals implements Group interface
+func (l LocalProject) VariableEquals(key, value string) bool {
+	if v, ok := l.Variables[key]; ok {
+		return value == v
+	}
+	return false
+}
+
+// GetVariables implements Project interface
+func (l LocalProject) GetVariables() map[string]string {
+	return l.Variables
 }
 
 func (l *LocalProject) addGroupSharing(group string, level internal.Level) {
@@ -197,6 +240,17 @@ func configToLocalState(c internal.Config, q internal.Querier) (localState, erro
 		group := &LocalGroup{
 			Fullpath: fullpath,
 			Members:  make(map[string]internal.Level, 0),
+
+			Variables: make(map[string]string, 0),
+		}
+
+		for k, envKey := range g.Variables {
+			value, ok := os.LookupEnv(envKey)
+			if !ok {
+				errs.Append(fmt.Errorf("Group contains secret '%s'='%s' which is not loaded in the environment", k, envKey))
+				continue
+			}
+			group.Variables[k] = value
 		}
 
 		addMembers := func(members []string, level internal.Level) {
@@ -255,6 +309,17 @@ func configToLocalState(c internal.Config, q internal.Querier) (localState, erro
 			Fullpath:     projectPath,
 			SharedGroups: make(map[string]internal.Level, 0),
 			Members:      make(map[string]internal.Level, 0),
+
+			Variables: make(map[string]string, 0),
+		}
+
+		for k, envKey := range acls.Variables {
+			value, ok := os.LookupEnv(envKey)
+			if !ok {
+				errs.Append(fmt.Errorf("Project contains secret '%s'='%s' which is not loaded in the environment", k, envKey))
+				continue
+			}
+			project.Variables[k] = value
 		}
 
 		addSharedGroups := func(members []string, level internal.Level) {

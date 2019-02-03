@@ -140,6 +140,7 @@ func TestLoadingState(t *testing.T) {
 					Members: map[string]internal.Level{
 						"user2": internal.Owner,
 					},
+					Variables: map[string]string{},
 				},
 				{
 					Fullpath: "root_group",
@@ -147,6 +148,7 @@ func TestLoadingState(t *testing.T) {
 						"admin": internal.Owner,
 						"user1": internal.Developer,
 					},
+					Variables: map[string]string{},
 				},
 			},
 			[]string{"simple_group", "skrrty", "yet_another_group"},
@@ -162,6 +164,7 @@ func TestLoadingState(t *testing.T) {
 					Members: map[string]internal.Level{
 						"user2": internal.Owner,
 					},
+					Variables: map[string]string{},
 				},
 				{
 					Fullpath: "root_group",
@@ -169,6 +172,7 @@ func TestLoadingState(t *testing.T) {
 						"admin": internal.Owner,
 						"user1": internal.Developer,
 					},
+					Variables: map[string]string{},
 				},
 			},
 			[]string{"simple_group", "skrrty", "yet_another_group"},
@@ -182,6 +186,7 @@ func TestLoadingState(t *testing.T) {
 						"admin": internal.Owner,
 						"user2": internal.Maintainer,
 					},
+					Variables: map[string]string{},
 				},
 			},
 		},
@@ -200,12 +205,14 @@ func TestLoadingState(t *testing.T) {
 						"user3": internal.Developer,
 						"user4": internal.Developer,
 					},
+					Variables: map[string]string{},
 				},
 				{
 					Fullpath: "root_group",
 					Members: map[string]internal.Level{
 						"admin": internal.Owner,
 					},
+					Variables: map[string]string{},
 				},
 				{
 					Fullpath: "simple_group",
@@ -216,6 +223,7 @@ func TestLoadingState(t *testing.T) {
 						"user3": internal.Reporter,
 						"user4": internal.Guest,
 					},
+					Variables: map[string]string{},
 				},
 				{
 					Fullpath: "skrrty",
@@ -227,6 +235,7 @@ func TestLoadingState(t *testing.T) {
 						"user3": internal.Guest,
 						"user4": internal.Guest,
 					},
+					Variables: map[string]string{},
 				},
 				{
 					Fullpath: "yet_another_group",
@@ -238,6 +247,7 @@ func TestLoadingState(t *testing.T) {
 						"user3": internal.Reporter,
 						"user4": internal.Guest,
 					},
+					Variables: map[string]string{},
 				},
 			},
 			[]string{},
@@ -254,6 +264,7 @@ func TestLoadingState(t *testing.T) {
 					Members: map[string]internal.Level{
 						"admin": internal.Owner,
 					},
+					Variables: map[string]string{},
 				},
 			},
 			[]string{"other_group", "simple_group", "skrrty", "yet_another_group"},
