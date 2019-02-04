@@ -297,8 +297,25 @@ func TestDiffingVariablesWorksAsExpected(t *testing.T) {
 		expectedError  string
 	}{
 		{
+			"create a set of variables in new groups",
+			"fixtures/plain-minimal.yaml",
+			"fixtures/plain-with-project-with-secrets.yaml",
+			[]string{
+				"add 'user2' to 'other_group' at level 'Owner'",
+				"create group variable 'mygroupkey' in 'other_group'",
+				"add 'admin' to 'root_group/a_project' at level 'Owner'",
+				"create project variable 'mykey' in 'root_group/a_project'",
+			},
+			map[string]string{
+				"myenvkey":      "value",
+				"myenvgroupkey": "othervalue",
+			},
+			false,
+			"",
+		},
+		{
 			"create a set of variables",
-			"fixtures/plain-with-project.yaml",
+			"fixtures/plain-with-project-without-variables.yaml",
 			"fixtures/plain-with-project-with-secrets.yaml",
 			[]string{
 				"create group variable 'mygroupkey' in 'other_group'",
