@@ -249,27 +249,27 @@ func (d *differ) diffProjects() {
 						Level:    desiredLevel})
 				}
 
-				logrus.Debugf("  Processing project %s secret vars", desiredProject.GetFullpath())
-				for k, v := range desiredProject.GetVariables() {
-					if !currentProject.HasVariable(k) {
-						d.Action(createProjectVariable{
+			}
+			logrus.Debugf("  Processing project %s secret vars", desiredProject.GetFullpath())
+			for k, v := range desiredProject.GetVariables() {
+				if !currentProject.HasVariable(k) {
+					d.Action(createProjectVariable{
+						Project: desiredProject.GetFullpath(),
+						Key:     k,
+						Value:   v,
+					})
+					continue
+				}
+				if !currentProject.VariableEquals(k, v) {
+					if d.yolo {
+						d.Action(updateProjectVariable{
 							Project: desiredProject.GetFullpath(),
 							Key:     k,
 							Value:   v,
 						})
-						continue
-					}
-					if !currentProject.VariableEquals(k, v) {
-						if d.yolo {
-							d.Action(updateProjectVariable{
-								Project: desiredProject.GetFullpath(),
-								Key:     k,
-								Value:   v,
-							})
-						} else {
-							d.Error(fmt.Errorf("variable %s in project %s is not as expected", k,
-								desiredProject.GetFullpath()))
-						}
+					} else {
+						d.Error(fmt.Errorf("variable %s in project %s is not as expected", k,
+							desiredProject.GetFullpath()))
 					}
 				}
 			}
