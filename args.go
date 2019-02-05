@@ -26,6 +26,7 @@ type Args struct {
 	ManageUsers bool
 
 	AutoDevOpsMode bool
+	YoloMode       bool
 
 	SnoopDepth int
 }
@@ -44,7 +45,8 @@ func parseArgs() Args {
 	flag.BoolVar(&args.ManageUsers, "manage-users", false, "performs diffs of user attributes")
 	flag.BoolVar(&args.AutoDevOpsMode, "autodevopsmode", false,
 		"where you have no admin rights but still do what you gotta do")
-
+	flag.BoolVar(&args.YoloMode, "yolo-force-secrets-overwrite", false,
+		"life is too short to not overwrite group and project environment variables")
 	flag.IntVar(&args.SnoopDepth, "snoopdepth", 0, "max depth to report unhandled groups. 0 means all")
 
 	flag.Parse()

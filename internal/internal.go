@@ -30,6 +30,10 @@ func (l Level) String() string {
 type Group interface {
 	GetFullpath() string
 	GetMembers() map[string]Level
+
+	GetVariables() map[string]string
+	HasVariable(key string) bool
+	VariableEquals(key, value string) bool
 }
 
 // Project represents a gitlab project
@@ -39,6 +43,10 @@ type Project interface {
 
 	GetSharedGroups() map[string]Level
 	GetMembers() map[string]Level
+
+	GetVariables() map[string]string
+	HasVariable(key string) bool
+	VariableEquals(key, value string) bool
 }
 
 // State represents a state which includes groups and memberships
@@ -83,11 +91,11 @@ type ActionPriority int
 
 // Priorities
 const (
-	UnblockUser            = 0
-	ManageAdminUser        = 1
-	ManageGroupMemberships = 2
-	ManageProject          = 3
-	BlockUser              = 4
+	UnblockUser     = 0
+	ManageAdminUser = 1
+	ManageGroup     = 2
+	ManageProject   = 3
+	BlockUser       = 4
 )
 
 // Action is an action to execute using the APIClient
@@ -109,6 +117,12 @@ type APIClient interface {
 	ChangeProjectMembership(username, project string, level Level) error
 	RemoveProjectMembership(username, project string) error
 
+	CreateGroupVariable(group, key, value string) error
+	UpdateGroupVariable(group, key, value string) error
+
+	CreateProjectVariable(fullpath, key, value string) error
+	UpdateProjectVariable(fullpath, key, value string) error
+
 	BlockUser(username string) error
 	UnblockUser(username string) error
 
@@ -125,11 +139,12 @@ type Config struct {
 
 // Acls represents a set of levels and users in each level in a configuration file
 type Acls struct {
-	Guests      []string `yaml:"guests,omitempty"`
-	Reporters   []string `yaml:"reporters,omitempty"`
-	Developers  []string `yaml:"developers,omitempty"`
-	Maintainers []string `yaml:"maintainers,omitempty"`
-	Owners      []string `yaml:"owners,omitempty"`
+	Guests      []string          `yaml:"guests,omitempty"`
+	Reporters   []string          `yaml:"reporters,omitempty"`
+	Developers  []string          `yaml:"developers,omitempty"`
+	Maintainers []string          `yaml:"maintainers,omitempty"`
+	Owners      []string          `yaml:"owners,omitempty"`
+	Variables   map[string]string `yaml:"secret_variables,omitempty"`
 }
 
 // Users represents the pair of admins and blocked users

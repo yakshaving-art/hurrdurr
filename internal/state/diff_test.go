@@ -1,11 +1,12 @@
 package state_test
 
 import (
-	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
+	"os"
 	"testing"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal/api"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/state"
+	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -269,6 +270,170 @@ func TestDiffingStates(t *testing.T) {
 				}
 			}
 
+		})
+	}
+}
+
+func TestLoadingStateWithoutEnvironmentSetFails(t *testing.T) {
+	a := assert.New(t)
+
+	desiredConfig, err := util.LoadConfig("fixtures/plain-with-project-with-secrets.yaml")
+	a.NoError(err, "desired config")
+
+	_, err = state.LoadStateFromFile(desiredConfig, querier)
+	a.EqualError(err, "failed to build local state: 2 errors: "+
+		"Group contains secret 'mygroupkey'='myenvgroupkey' which is not loaded in the environment; "+
+		"Project contains secret 'mykey'='myenvkey' which is not loaded in the environment")
+}
+
+func TestDiffingVariablesWorksAsExpected(t *testing.T) {
+	tt := []struct {
+		name           string
+		sourceState    string
+		desiredState   string
+		desiredActions []string
+		environment    map[string]string
+		yolo           bool
+		expectedError  string
+	}{
+		{
+			"create a set of variables in new groups",
+			"fixtures/plain-minimal.yaml",
+			"fixtures/plain-with-project-with-secrets.yaml",
+			[]string{
+				"add 'user2' to 'other_group' at level 'Owner'",
+				"create group variable 'mygroupkey' in 'other_group'",
+				"add 'admin' to 'root_group/a_project' at level 'Owner'",
+				"create project variable 'mykey' in 'root_group/a_project'",
+			},
+			map[string]string{
+				"myenvkey":      "value",
+				"myenvgroupkey": "othervalue",
+			},
+			false,
+			"",
+		},
+		{
+			"create a set of variables",
+			"fixtures/plain-with-project-without-variables.yaml",
+			"fixtures/plain-with-project-with-secrets.yaml",
+			[]string{
+				"create group variable 'mygroupkey' in 'other_group'",
+				"create project variable 'mykey' in 'root_group/a_project'",
+			},
+			map[string]string{
+				"myenvkey":      "value",
+				"myenvgroupkey": "othervalue",
+			},
+			false,
+			"",
+		},
+		{
+			"variables are the same",
+			"fixtures/plain-with-project-with-secrets.yaml",
+			"fixtures/plain-with-project-with-other-secrets.yaml",
+			[]string{},
+			map[string]string{
+				"myenvkey":           "value",
+				"myenvgroupkey":      "othervalue",
+				"myotherenvkey":      "value",
+				"myotherenvgroupkey": "othervalue",
+			},
+			true,
+			"",
+		},
+		{
+			"update a set of variables",
+			"fixtures/plain-with-project-with-secrets.yaml",
+			"fixtures/plain-with-project-with-other-secrets.yaml",
+			[]string{
+				"update group variable 'mygroupkey' in 'other_group'",
+				"update project variable 'mykey' in 'root_group/a_project'",
+			},
+			map[string]string{
+				"myenvkey":           "value",
+				"myenvgroupkey":      "othervalue",
+				"myotherenvkey":      "othervalue",
+				"myotherenvgroupkey": "yetanothervalue",
+			},
+			true,
+			"",
+		},
+		{
+			"update a set of variables without yolo mode fails",
+			"fixtures/plain-with-project-with-secrets.yaml",
+			"fixtures/plain-with-project-with-other-secrets.yaml",
+			[]string{
+				"update group variable 'mygroupkey' in 'other_group'",
+				"update project variable 'mykey' in 'root_group/a_project'",
+			},
+			map[string]string{
+				"myenvkey":           "value",
+				"myenvgroupkey":      "othervalue",
+				"myotherenvkey":      "othervalue",
+				"myotherenvgroupkey": "yetanothervalue",
+			},
+			false,
+			"2 errors: variable mygroupkey in group other_group is not as expected; " +
+				"variable mykey in project root_group/a_project is not as expected",
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			if tc.environment != nil {
+				for k, v := range tc.environment {
+					a.NoError(os.Setenv(k, v))
+					defer os.Setenv(k, "")
+				}
+			}
+
+			sourceConfig, err := util.LoadConfig(tc.sourceState)
+			a.NoError(err, "source config")
+
+			sourceState, err := state.LoadStateFromFile(sourceConfig, querier)
+			a.NoError(err, "source state")
+
+			desiredConfig, err := util.LoadConfig(tc.desiredState)
+			a.NoError(err, "desired config")
+
+			desiredState, err := state.LoadStateFromFile(desiredConfig, querier)
+			a.NoError(err, "desired state")
+
+			actions, err := state.Diff(sourceState, desiredState, state.DiffArgs{
+				DiffGroups:   true,
+				DiffProjects: true,
+				DiffUsers:    true,
+				Yolo:         tc.yolo,
+			})
+			if err != nil {
+				a.EqualError(err, tc.expectedError)
+				return // Error was expected, get out
+			}
+
+			a.NotNil(actions, "actions")
+
+			executedActions := make([]string, 0)
+			c := api.DryRunAPIClient{
+				Append: func(action string) {
+					executedActions = append(executedActions, action)
+				},
+			}
+
+			for _, action := range actions {
+				a.NoError(action.Execute(c))
+			}
+
+			a.Equal(tc.desiredActions, executedActions, "actions are not as expected")
+
+			for _, action := range tc.desiredActions {
+				a.Contains(executedActions, action, "more desired actions than executed")
+			}
+			for _, action := range executedActions {
+				a.Contains(tc.desiredActions, action, "more executed actions than desired")
+			}
 		})
 	}
 }

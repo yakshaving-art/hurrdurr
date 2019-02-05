@@ -128,10 +128,17 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				continue
 			}
 
+			variables, err := m.fetchGroupVariables(group.FullPath)
+			if err != nil {
+				errs.Append(err)
+				continue
+			}
+
 			logrus.Debugf("  appending group '%s' with it's members", group.FullPath)
 			groups[group.FullPath] = GitlabGroup{
-				fullpath: group.FullPath,
-				members:  members,
+				fullpath:  group.FullPath,
+				members:   members,
+				variables: variables,
 			}
 		}
 	}()
@@ -156,11 +163,18 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				continue
 			}
 
+			variables, err := m.fetchProjectVariables(project.PathWithNamespace)
+			if err != nil {
+				errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
+				continue
+			}
+
 			logrus.Debugf("  appending project '%s' with it's members", project.PathWithNamespace)
 			projects[project.PathWithNamespace] = GitlabProject{
 				fullpath:   project.PathWithNamespace,
 				sharedWith: groups,
 				members:    members,
+				variables:  variables,
 			}
 		}
 	}()
@@ -366,6 +380,64 @@ func (m GitlabAPIClient) UnsetAdminUser(username string) error {
 	return nil
 }
 
+// CreateGroupVariable implements APIClient interface
+func (m GitlabAPIClient) CreateGroupVariable(group, key, value string) error {
+	_, _, err := m.client.GroupVariables.CreateVariable(group,
+		&gitlab.CreateVariableOptions{
+			Key:   &key,
+			Value: &value,
+		})
+	if err != nil {
+		return fmt.Errorf("failed to create group variable '%s' in group '%s'", key, group)
+	}
+	fmt.Printf("[apply] variable '%s' in group '%s' was created\n", key, group)
+	return nil
+}
+
+// UpdateGroupVariable implements APIClient interface
+func (m GitlabAPIClient) UpdateGroupVariable(group, key, value string) error {
+	_, _, err := m.client.GroupVariables.UpdateVariable(group, key,
+		&gitlab.UpdateVariableOptions{
+			Value: &value,
+		})
+	if err != nil {
+		return fmt.Errorf("failed to update group variable '%s' in group '%s'", key, group)
+	}
+	fmt.Printf("[apply] variable '%s' in group '%s' was updated\n", key, group)
+	return nil
+}
+
+// CreateProjectVariable implements APIClient interface
+func (m GitlabAPIClient) CreateProjectVariable(fullpath, key, value string) error {
+	_, _, err := m.client.ProjectVariables.CreateVariable(fullpath,
+		&gitlab.CreateVariableOptions{
+			Key:   &key,
+			Value: &value,
+		})
+	if err != nil {
+		return fmt.Errorf("failed to create project variable '%s' in group '%s'", key, fullpath)
+	}
+	fmt.Printf("[apply] variable '%s' in project '%s' was created\n", key, fullpath)
+	return nil
+}
+
+// UpdateProjectVariable implements APIClient interface
+func (m GitlabAPIClient) UpdateProjectVariable(fullpath, key, value string) error {
+	_, _, err := m.client.ProjectVariables.UpdateVariable(fullpath, key,
+		&gitlab.UpdateVariableOptions{
+			Value: &value,
+		})
+	if err != nil {
+		return fmt.Errorf("failed to update project variable '%s' in group '%s'", key, fullpath)
+	}
+	fmt.Printf("[apply] variable '%s' in project '%s' was updated\n", key, fullpath)
+	return nil
+}
+
+// ########################
+// PRIVATE GITLAB API usage
+// ########################
+
 func (m GitlabAPIClient) fetchAllUsers(ch chan gitlab.User, errs *errors.Errors) {
 	defer close(ch)
 
@@ -480,6 +552,21 @@ func (m GitlabAPIClient) fetchGroupMembers(fullpath string) (map[string]internal
 	return groupMembers, nil
 }
 
+func (m GitlabAPIClient) fetchGroupVariables(fullpath string) (map[string]string, error) {
+	variables := make(map[string]string)
+
+	vars, _, err := m.client.GroupVariables.ListVariables(fullpath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list group variables for %s: %s", fullpath, err)
+	}
+
+	for _, v := range vars {
+		variables[v.Key] = v.Value
+	}
+
+	return variables, nil
+}
+
 func (m GitlabAPIClient) fetchAllProjects(ch chan gitlab.Project, errs *errors.Errors) {
 	defer close(ch)
 
@@ -536,7 +623,19 @@ func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]intern
 		page++
 	}
 	return projectMembers, nil
+}
 
+func (m GitlabAPIClient) fetchProjectVariables(fullpath string) (map[string]string, error) {
+	projectVariables := make(map[string]string)
+
+	vars, _, err := m.client.ProjectVariables.ListVariables(fullpath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list project variables for %s: %s", fullpath, err)
+	}
+	for _, v := range vars {
+		projectVariables[v.Key] = v.Value
+	}
+	return projectVariables, nil
 }
 
 func (m GitlabAPIClient) fetchProject(fullpath string) (*gitlab.Project, error) {
@@ -695,8 +794,9 @@ func (s GitlabState) UnhandledGroups() []string {
 // This is a helper object that is used to preload the members of a group with
 // the state, without leaking gitlab's api structure.
 type GitlabGroup struct {
-	fullpath string
-	members  map[string]internal.Level
+	fullpath  string
+	members   map[string]internal.Level
+	variables map[string]string
 }
 
 // GetFullpath implements the internal.Group interface
@@ -709,6 +809,25 @@ func (g GitlabGroup) GetMembers() map[string]internal.Level {
 	return g.members
 }
 
+// HasVariable implements internal.HasVariable interface
+func (g GitlabGroup) HasVariable(key string) bool {
+	_, ok := g.variables[key]
+	return ok
+}
+
+// VariableEquals implements internal.VariableEquals interface
+func (g GitlabGroup) VariableEquals(key, value string) bool {
+	if current, ok := g.variables[key]; ok {
+		return current == value
+	}
+	return false
+}
+
+// GetVariables implements internal.GetVariables interface
+func (g GitlabGroup) GetVariables() map[string]string {
+	return g.variables
+}
+
 // GitlabProject implements internal.Project interface
 //
 // This is a helper object that is used to load a project with the list of
@@ -718,6 +837,7 @@ type GitlabProject struct {
 	fullpath   string
 	sharedWith map[string]internal.Level
 	members    map[string]internal.Level
+	variables  map[string]string
 }
 
 // GetFullpath implements internal.Project interface
@@ -739,4 +859,23 @@ func (g GitlabProject) GetGroupLevel(group string) (internal.Level, bool) {
 // GetMembers implements internal.Project interface
 func (g GitlabProject) GetMembers() map[string]internal.Level {
 	return g.members
+}
+
+// HasVariable implements internal.HasVariable interface
+func (g GitlabProject) HasVariable(key string) bool {
+	_, ok := g.variables[key]
+	return ok
+}
+
+// VariableEquals implements internal.VariableEquals interface
+func (g GitlabProject) VariableEquals(key, value string) bool {
+	if current, ok := g.variables[key]; ok {
+		return current == value
+	}
+	return false
+}
+
+// GetVariables implements internal.GetVariables interface
+func (g GitlabProject) GetVariables() map[string]string {
+	return g.variables
 }

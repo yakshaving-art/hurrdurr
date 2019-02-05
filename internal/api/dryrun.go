@@ -83,3 +83,27 @@ func (m DryRunAPIClient) UnsetAdminUser(username string) error {
 	m.Append(fmt.Sprintf("unset '%s' as admin", username))
 	return nil
 }
+
+// CreateGroupVariable implements APIClient interface
+func (m DryRunAPIClient) CreateGroupVariable(group, key, value string) error {
+	m.Append(fmt.Sprintf("create group variable '%s' in '%s'", key, group))
+	return nil
+}
+
+// UpdateGroupVariable implements APIClient interface
+func (m DryRunAPIClient) UpdateGroupVariable(group, key, value string) error {
+	m.Append(fmt.Sprintf("update group variable '%s' in '%s'", key, group))
+	return nil
+}
+
+// CreateProjectVariable implements APIClient interface
+func (m DryRunAPIClient) CreateProjectVariable(fullpath, key, value string) error {
+	m.Append(fmt.Sprintf("create project variable '%s' in '%s'", key, fullpath))
+	return nil
+}
+
+// UpdateProjectVariable implements APIClient interface
+func (m DryRunAPIClient) UpdateProjectVariable(fullpath, key, value string) error {
+	m.Append(fmt.Sprintf("update project variable '%s' in '%s'", key, fullpath))
+	return nil
+}
