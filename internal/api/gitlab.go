@@ -163,16 +163,16 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				continue
 			}
 
+			variables := make(map[string]string)
 			if project.Archived {
 				// skip archived projects
 				logrus.Debugf("  skipping variables for project '%s' because it's archited", project.PathWithNamespace)
-				continue
-			}
-
-			variables, err := m.fetchProjectVariables(project.PathWithNamespace)
-			if err != nil {
-				errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
-				continue
+			} else {
+				variables, err = m.fetchProjectVariables(project.PathWithNamespace)
+				if err != nil {
+					errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
+					continue
+				}
 			}
 
 			logrus.Debugf("  appending project '%s' with it's members", project.PathWithNamespace)
