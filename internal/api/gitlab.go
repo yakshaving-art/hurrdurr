@@ -163,7 +163,20 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				continue
 			}
 
-			variables, err := m.fetchProjectVariables(project.PathWithNamespace)
+			variables := make(map[string]string)
+
+			// Skip projects what will return 403 trying to access variables:
+			// Archived and without pipelines
+			if project.Archived {
+				logrus.Debugf("  skipping variables for project '%s' because it's archived", project.PathWithNamespace)
+				continue
+			}
+			if !project.JobsEnabled {
+				logrus.Debugf("  skipping variables for project '%s': no jobs -- no variables", project.PathWithNamespace)
+				continue
+			}
+
+			variables, err = m.fetchProjectVariables(project.PathWithNamespace)
 			if err != nil {
 				errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
 				continue
