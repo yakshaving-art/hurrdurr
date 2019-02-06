@@ -204,11 +204,11 @@ project or group CI settings. It understands the following configuration:
 ```
 groups:
   group/subgroup:
-    secrets:
+    secret_variables:
       SOURCE_VAR: DST_VAR
 projects:
   group/subgroup/project:
-    secrets:
+    secret_variables:
       SOURCE_VAR_2: DST_VAR
 ```
 

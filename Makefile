@@ -45,5 +45,3 @@ test:	### run all the tests
 .PHONY: build
 build:
 	@go build -ldflags "-X gitlab.com/yakshaving.art/hurrdurr/version.Version=$(VERSION) -X gitlab.com/yakshaving.art/hurrdurr/version.Commit=$(COMMIT_ID) -X gitlab.com/yakshaving.art/hurrdurr/version.Date=$(COMMIT_DATE)"
-
-
