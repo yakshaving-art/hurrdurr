@@ -205,28 +205,29 @@ project or group CI settings. It understands the following configuration:
 groups:
   group/subgroup:
     secret_variables:
-      SOURCE_VAR: DST_VAR
+      GITLAB_DST_VAR: HURRDURR_SRC_VAR
 projects:
   group/subgroup/project:
     secret_variables:
-      SOURCE_VAR_2: DST_VAR
+      GITLAB_DST_VAR_2: HURRDURR_SRC_VAR_2
 ```
 
 In this configuration, HurrDurr will try to do the following:
-- for subgroup: lookup environmental variable `SOURCE_VAR`,
-   and set its _value_ as a secret variable named `DST_VAR` at subgroup level.
-- for project: lookup environmental variable `SOURCE_VAR_2`,
-   and set its _value_ as a secret variable named `DST_VAR` at project level.
+- for subgroup: lookup environmental variable `HURRDURR_SRC_VAR`,
+   and set its _value_ as a secret variable named `GITLAB_DST_VAR` at subgroup level.
+- for project: lookup environmental variable `HURRDURR_SRC_VAR_2`,
+   and set its _value_ as a secret variable named `GITLAB_DST_VAR_2` at project level.
 
 It is up to gitlab operator to figure out priorities of those variables and
 design acceptable overrides.
 
 #### Error handling
 
-- If there's no `SOURCE_VAR` set in the HurrDurr environment, it will
+- If there's no `HURRDURR_SRC_VAR` set in the HurrDurr environment, it will
   fail fast without making any changes. Dry run mode will complain about
   it and return non-zero code.
 
-- If the `DST_VAR` already exists:
+- If the `HURRDURR_SRC_VAR` already exists:
   - if the values match, then HurrDurr will do nothing.
-  - if the values don't match, then HurrDurr will exit with error, unless `--yes-yolo-force-secret-var-overwrite` is given.
+  - if the values don't match, then HurrDurr will exit with error, unless `-yolo-force-secrets-overwrite` is given,
+    in which case it will overwrite the variable with neither hesitation nor backups, as life's to short for that crap.
