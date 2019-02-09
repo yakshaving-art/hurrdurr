@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
@@ -41,8 +42,8 @@ func (d differ) prioritizedActions() []internal.Action {
 	for _, priority := range []internal.ActionPriority{
 		internal.UnblockUser,
 		internal.ManageAdminUser,
-		internal.ManageGroup,
 		internal.ManageProject,
+		internal.ManageGroup,
 		internal.BlockUser} {
 		if actions, ok := d.actions[priority]; ok {
 			for _, a := range actions {
@@ -92,7 +93,12 @@ func Diff(current, desired internal.State, args DiffArgs) ([]internal.Action, er
 func (d *differ) diffGroups() {
 	desiredGroups := d.desired.Groups()
 	sort.Slice(desiredGroups, func(i, j int) bool {
-		return desiredGroups[i].GetFullpath() < desiredGroups[j].GetFullpath()
+		l := strings.Count(desiredGroups[i].GetFullpath(), "/")
+		r := strings.Count(desiredGroups[j].GetFullpath(), "/")
+		if l == r {
+			return desiredGroups[i].GetFullpath() < desiredGroups[j].GetFullpath()
+		}
+		return l > r
 	})
 
 	for _, desiredGroup := range desiredGroups {

@@ -1,0 +1,15 @@
+---
+groups:
+  root_group:
+    owners:
+      - admin
+  root_group/subgroup1:
+    owners:
+      - admin
+  root_group/subgroup2:
+    owners:
+      - admin
+projects:
+  root_group/a_project:
+    developers:
+      - user2
