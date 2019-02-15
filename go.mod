@@ -1,6 +1,7 @@
 module gitlab.com/yakshaving.art/hurrdurr
 
 require (
+	github.com/onrik/logrus v0.2.2 // indirect
 	github.com/sirupsen/logrus v1.2.0
 	github.com/stretchr/testify v1.2.2
 	github.com/xanzy/go-gitlab v0.11.7

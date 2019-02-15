@@ -1,7 +1,6 @@
 package state_test
 
 import (
-	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
 	"sort"
 	"testing"
 
@@ -9,6 +8,7 @@ import (
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	hurrdurr "gitlab.com/yakshaving.art/hurrdurr/internal/state"
+	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
 )
 
 func TestLoadingState(t *testing.T) {
