@@ -1,10 +1,15 @@
 package util
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"sort"
+	"strings"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 
 	yaml "gopkg.in/yaml.v2"
@@ -45,6 +50,22 @@ func LoadConfig(filename string) (internal.Config, error) {
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return c, fmt.Errorf("failed to load state file %s: %s", filename, err)
+	}
+
+	md5hash, err := ioutil.ReadFile(fmt.Sprintf("%s.md5", filename))
+	if err == nil {
+		m := md5.New()
+		m.Write(content)
+		calculatedMD5 := hex.EncodeToString(m.Sum(nil))
+
+		if strings.TrimSpace(string(md5hash)) != calculatedMD5 {
+			return c, fmt.Errorf("configuration file calculated md5 '%s' does not match the provided md5 '%s'", calculatedMD5, md5hash)
+		}
+		logrus.Info("configuration md5 sum validated correctly")
+
+	} else if !os.IsNotExist(err) {
+		return c, fmt.Errorf("failed to read configuration hashsum file: %s", err)
+
 	}
 
 	if err := yaml.UnmarshalStrict(content, &c); err != nil {
