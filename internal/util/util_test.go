@@ -11,7 +11,7 @@ import (
 
 func TestLoadingValidMD5Check(t *testing.T) {
 	a := assert.New(t)
-	c, err := util.LoadConfig("fixtures/config-sample.yml")
+	c, err := util.LoadConfig("fixtures/config-sample.yml", true)
 
 	a.NoError(err)
 	a.EqualValues(internal.Config{}, c)
@@ -19,7 +19,7 @@ func TestLoadingValidMD5Check(t *testing.T) {
 
 func TestLoadingInvalidConfig(t *testing.T) {
 	a := assert.New(t)
-	_, err := util.LoadConfig("fixtures/invalid-config-sample.yml")
+	_, err := util.LoadConfig("fixtures/invalid-config-sample.yml", false)
 
 	a.EqualError(err, "failed to unmarshal state file fixtures/invalid-config-sample.yml: yaml: unmarshal errors:\n"+
 		"  line 4: field not-valid-key not found in type internal.Config")
@@ -27,14 +27,14 @@ func TestLoadingInvalidConfig(t *testing.T) {
 
 func TestLoadingNonExistingConfig(t *testing.T) {
 	a := assert.New(t)
-	_, err := util.LoadConfig("fixtures/non-existing-config.yml")
+	_, err := util.LoadConfig("fixtures/non-existing-config.yml", true)
 
 	a.EqualError(err, "failed to load state file fixtures/non-existing-config.yml: "+
 		"open fixtures/non-existing-config.yml: no such file or directory")
 }
 func TestLoadingValidWithoutMD5Check(t *testing.T) {
 	a := assert.New(t)
-	c, err := util.LoadConfig("fixtures/config-without-md5.yml")
+	c, err := util.LoadConfig("fixtures/config-without-md5.yml", false)
 
 	a.NoError(err)
 	a.EqualValues(internal.Config{}, c)
@@ -43,7 +43,7 @@ func TestLoadingValidWithoutMD5Check(t *testing.T) {
 func TestLoadingInvalidMD5Check(t *testing.T) {
 
 	a := assert.New(t)
-	_, err := util.LoadConfig("fixtures/config-wrong-md5.yml")
+	_, err := util.LoadConfig("fixtures/config-wrong-md5.yml", true)
 
 	a.EqualError(err, "configuration file calculated md5 'dbc6d0334ddedc38552cdd19cdbd83a3' "+
 		"does not match the provided md5 ' dbc6d0334ddedc38552cdd19cdbd83aa'")

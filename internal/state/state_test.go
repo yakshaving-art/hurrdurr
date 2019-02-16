@@ -273,7 +273,7 @@ func TestLoadingState(t *testing.T) {
 	}
 
 	loadState := func(filename string, querier internal.Querier) (internal.State, error) {
-		c, err := util.LoadConfig(filename)
+		c, err := util.LoadConfig(filename, false)
 		if err != nil {
 			return nil, err
 		}

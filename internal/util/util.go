@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"sort"
 	"strings"
 
@@ -44,7 +43,7 @@ func ToStringSliceIgnoring(m map[string]int, ignore string) []string {
 }
 
 // LoadConfig reads the given filename and parses it into a config struct
-func LoadConfig(filename string) (internal.Config, error) {
+func LoadConfig(filename string, checksumCheck bool) (internal.Config, error) {
 	c := internal.Config{}
 
 	content, err := ioutil.ReadFile(filename)
@@ -52,20 +51,19 @@ func LoadConfig(filename string) (internal.Config, error) {
 		return c, fmt.Errorf("failed to load state file %s: %s", filename, err)
 	}
 
-	md5hash, err := ioutil.ReadFile(fmt.Sprintf("%s.md5", filename))
-	if err == nil {
+	if checksumCheck {
+		md5hash, err := ioutil.ReadFile(fmt.Sprintf("%s.md5", filename))
+		if err != nil {
+			return c, fmt.Errorf("failed to read checksum configuration file: %s", err)
+		}
+
 		m := md5.New()
 		m.Write(content)
 		calculatedMD5 := hex.EncodeToString(m.Sum(nil))
-
 		if strings.TrimSpace(string(md5hash)) != calculatedMD5 {
 			return c, fmt.Errorf("configuration file calculated md5 '%s' does not match the provided md5 '%s'", calculatedMD5, md5hash)
 		}
 		logrus.Info("configuration md5 sum validated correctly")
-
-	} else if !os.IsNotExist(err) {
-		return c, fmt.Errorf("failed to read configuration hashsum file: %s", err)
-
 	}
 
 	if err := yaml.UnmarshalStrict(content, &c); err != nil {
