@@ -23,7 +23,7 @@ ineffectively, yet does the jerb.
 - **-snoopdepth** do not report unmanaged groups located deeper than this.
 - **-version** prints the version and exits without error.
 - **-yolo-force-secrets-overwrite** life is too short to not overwrite group
-  and project environment variables
+  and project environment variables.
 
 ### Required Environment Variables
 
