@@ -14,7 +14,7 @@ ineffectively, yet does the jerb.
 - **-config** the configuration file to use, by default HurrDurr will load
   *hurrdurr.yml* in the current working directory.
 - **-checksum-check** validates the configuration checksum reading it from a
-  file called as the configuratio file ended in .md5.
+  file called as the configuration file ended in `.md5`.
 - **-dryrun** don't actually change anything, only evaluates which changes
   should happen.
 - **-ghost-user** system wide GitLab ghost user. (default "ghost")
