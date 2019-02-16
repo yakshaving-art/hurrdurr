@@ -23,7 +23,7 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 
-	conf, err := util.LoadConfig(args.ConfigFile)
+	conf, err := util.LoadConfig(args.ConfigFile, args.ChecksumCheck)
 	if err != nil {
 		logrus.Fatalf("failed to load configuration: %s", err)
 	}

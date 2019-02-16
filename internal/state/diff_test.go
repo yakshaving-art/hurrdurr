@@ -37,7 +37,7 @@ var querier = querierMock{
 func TestDiffWithoutOneStateFails(t *testing.T) {
 	a := assert.New(t)
 
-	c, err := util.LoadConfig("fixtures/plain.yaml")
+	c, err := util.LoadConfig("fixtures/plain.yaml", false)
 	a.NoError(err)
 
 	s, err := state.LoadStateFromFile(c, querier)
@@ -53,13 +53,13 @@ func TestDiffWithoutOneStateFails(t *testing.T) {
 func TestDiffRemovingCurrentAdminUserFails(t *testing.T) {
 	a := assert.New(t)
 
-	sourceConfig, err := util.LoadConfig("fixtures/plain-with-admins.yaml")
+	sourceConfig, err := util.LoadConfig("fixtures/plain-with-admins.yaml", false)
 	a.NoError(err)
 
 	sourceState, err := state.LoadStateFromFile(sourceConfig, querier)
 	a.NoError(err)
 
-	desiredConfig, err := util.LoadConfig("fixtures/plain-without-current-user.yaml")
+	desiredConfig, err := util.LoadConfig("fixtures/plain-without-current-user.yaml", false)
 	a.NoError(err)
 
 	desiredState, err := state.LoadStateFromFile(desiredConfig, querier)
@@ -239,13 +239,13 @@ func TestDiffingStates(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			sourceConfig, err := util.LoadConfig(tc.sourceState)
+			sourceConfig, err := util.LoadConfig(tc.sourceState, false)
 			a.NoError(err, "source config")
 
 			sourceState, err := state.LoadStateFromFile(sourceConfig, querier)
 			a.NoError(err, "source state")
 
-			desiredConfig, err := util.LoadConfig(tc.desiredState)
+			desiredConfig, err := util.LoadConfig(tc.desiredState, false)
 			a.NoError(err, "desired config")
 
 			desiredState, err := state.LoadStateFromFile(desiredConfig, querier)
@@ -291,7 +291,7 @@ func TestDiffingStates(t *testing.T) {
 func TestLoadingStateWithoutEnvironmentSetFails(t *testing.T) {
 	a := assert.New(t)
 
-	desiredConfig, err := util.LoadConfig("fixtures/plain-with-project-with-secrets.yaml")
+	desiredConfig, err := util.LoadConfig("fixtures/plain-with-project-with-secrets.yaml", false)
 	a.NoError(err, "desired config")
 
 	_, err = state.LoadStateFromFile(desiredConfig, querier)
@@ -404,13 +404,13 @@ func TestDiffingVariablesWorksAsExpected(t *testing.T) {
 				}
 			}
 
-			sourceConfig, err := util.LoadConfig(tc.sourceState)
+			sourceConfig, err := util.LoadConfig(tc.sourceState, false)
 			a.NoError(err, "source config")
 
 			sourceState, err := state.LoadStateFromFile(sourceConfig, querier)
 			a.NoError(err, "source state")
 
-			desiredConfig, err := util.LoadConfig(tc.desiredState)
+			desiredConfig, err := util.LoadConfig(tc.desiredState, false)
 			a.NoError(err, "desired config")
 
 			desiredState, err := state.LoadStateFromFile(desiredConfig, querier)

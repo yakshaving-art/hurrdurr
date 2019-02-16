@@ -10,9 +10,11 @@ ineffectively, yet does the jerb.
 ### Arguments
 
 - **-autodevopsmode** where you have no admin rights but still do what you
-  gotta do
+  gotta do.
 - **-config** the configuration file to use, by default HurrDurr will load
   *hurrdurr.yml* in the current working directory.
+- **-checksum-check** validates the configuration checksum reading it from a
+  file called as the configuration file ended in `.md5`.
 - **-dryrun** don't actually change anything, only evaluates which changes
   should happen.
 - **-ghost-user** system wide GitLab ghost user. (default "ghost")
@@ -20,6 +22,8 @@ ineffectively, yet does the jerb.
 - **-manage-users** manage user properties, like adminness and blockedness.
 - **-snoopdepth** do not report unmanaged groups located deeper than this.
 - **-version** prints the version and exits without error.
+- **-yolo-force-secrets-overwrite** life is too short to not overwrite group
+  and project environment variables.
 
 ### Required Environment Variables
 
