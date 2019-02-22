@@ -650,7 +650,7 @@ func (m GitlabAPIClient) fetchProjectVariables(fullpath string) (map[string]stri
 }
 
 func (m GitlabAPIClient) fetchProject(fullpath string) (*gitlab.Project, error) {
-	p, _, err := m.client.Projects.GetProject(fullpath)
+	p, _, err := m.client.Projects.GetProject(fullpath, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch project '%s': %s", fullpath, err)
 	}
