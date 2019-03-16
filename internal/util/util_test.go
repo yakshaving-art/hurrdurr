@@ -14,7 +14,49 @@ func TestLoadingValidMD5Check(t *testing.T) {
 	c, err := util.LoadConfig("fixtures/config-sample.yml", true)
 
 	a.NoError(err)
-	a.EqualValues(internal.Config{}, c)
+	a.EqualValues(internal.Config{
+		Groups: map[string]internal.Acls{
+			"yakshavers": {
+				Owners: []string{"root"},
+			},
+		},
+		Projects: map[string]internal.Acls{
+			"someproject": {
+				Owners: []string{"root"},
+			},
+		},
+		Users: internal.Users{
+			Admins:  []string{"root"},
+			Blocked: []string{"bad_actor"},
+		},
+	}, c)
+}
+
+func TestLoadingMultifileConfig(t *testing.T) {
+	a := assert.New(t)
+	c, err := util.LoadConfig("fixtures/multifile-config.yml", true)
+
+	a.NoError(err)
+	a.EqualValues(internal.Config{
+		Groups: map[string]internal.Acls{
+			"yakshavers": {
+				Owners: []string{"root"},
+			},
+		},
+		Projects: map[string]internal.Acls{
+			"myproject": {
+				Owners: []string{"me"},
+			},
+			"someproject": {
+				Owners: []string{"root"},
+			},
+		},
+		Users: internal.Users{
+			Admins:  []string{"root"},
+			Blocked: []string{"bad_actor"},
+		},
+		Files: []string{"fixtures/config-sample.yml"},
+	}, c)
 }
 
 func TestLoadingInvalidConfig(t *testing.T) {
@@ -37,7 +79,14 @@ func TestLoadingValidWithoutMD5Check(t *testing.T) {
 	c, err := util.LoadConfig("fixtures/config-without-md5.yml", false)
 
 	a.NoError(err)
-	a.EqualValues(internal.Config{}, c)
+	a.EqualValues(internal.Config{
+		Groups:   map[string]internal.Acls{},
+		Projects: map[string]internal.Acls{},
+		Users: internal.Users{
+			Admins:  []string{},
+			Blocked: []string{},
+		},
+	}, c)
 }
 
 func TestLoadingInvalidMD5Check(t *testing.T) {

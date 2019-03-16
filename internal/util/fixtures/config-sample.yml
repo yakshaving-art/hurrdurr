@@ -1,3 +1,14 @@
 ---
 groups:
+  yakshavers:
+    owners:
+    - root
 projects:
+  someproject:
+    owners:
+    - root 
+users:
+  admins:
+  - root
+  blocked:
+  - bad_actor

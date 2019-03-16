@@ -135,6 +135,7 @@ type Config struct {
 	Groups   map[string]Acls `yaml:"groups,omitempty"`
 	Projects map[string]Acls `yaml:"projects,omitempty"`
 	Users    Users           `yaml:"users,omitempty"`
+	Files    []string        `yaml:"files,omitempty"`
 }
 
 // Acls represents a set of levels and users in each level in a configuration file
