@@ -91,11 +91,17 @@ type ActionPriority int
 
 // Priorities
 const (
-	UnblockUser     = 0
-	ManageAdminUser = 1
-	ManageGroup     = 2
-	ManageProject   = 3
-	BlockUser       = 4
+	UnblockUser            = 0
+	ManageAdminUser        = 1
+	ManageGroupVariables   = 2
+	ManageProjectVariables = 3
+	RemoveFromGroup        = 4
+	RemoveFromProject      = 5
+	ChangeInGroup          = 6
+	ChangeInProject        = 7
+	AddToProject           = 8
+	AddToGroup             = 9
+	BlockUser              = 10
 )
 
 // Action is an action to execute using the APIClient
