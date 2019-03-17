@@ -44,6 +44,51 @@ func ToStringSliceIgnoring(m map[string]int, ignore string) []string {
 
 // LoadConfig reads the given filename and parses it into a config struct
 func LoadConfig(filename string, checksumCheck bool) (internal.Config, error) {
+	c := internal.Config{
+		Groups:   make(map[string]internal.Acls, 0),
+		Projects: make(map[string]internal.Acls, 0),
+		Users: internal.Users{
+			Admins:  make([]string, 0),
+			Blocked: make([]string, 0),
+		},
+	}
+
+	cc, err := loadFile(filename, checksumCheck)
+	if err != nil {
+		return c, err
+	}
+	mergeConfigs(&c, cc)
+
+	c.Files = cc.Files
+	for _, f := range c.Files {
+		cc, err := loadFile(f, checksumCheck)
+		if err != nil {
+			return c, fmt.Errorf("failed to load file %s: %s", f, err)
+		}
+
+		mergeConfigs(&c, cc)
+	}
+
+	return c, nil
+}
+
+func mergeConfigs(c *internal.Config, cc internal.Config) {
+	for k, v := range cc.Groups {
+		c.Groups[k] = v
+	}
+	for k, v := range cc.Projects {
+		c.Projects[k] = v
+	}
+
+	for _, u := range cc.Users.Admins {
+		c.Users.Admins = append(c.Users.Admins, u)
+	}
+	for _, u := range cc.Users.Blocked {
+		c.Users.Blocked = append(c.Users.Blocked, u)
+	}
+}
+
+func loadFile(filename string, checksumCheck bool) (internal.Config, error) {
 	c := internal.Config{}
 
 	content, err := ioutil.ReadFile(filename)
@@ -69,5 +114,6 @@ func LoadConfig(filename string, checksumCheck bool) (internal.Config, error) {
 	if err := yaml.UnmarshalStrict(content, &c); err != nil {
 		return c, fmt.Errorf("failed to unmarshal state file %s: %s", filename, err)
 	}
+
 	return c, nil
 }

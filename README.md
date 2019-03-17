@@ -128,7 +128,22 @@ users:
   - manager_1
   blocked:
   - bad_actor_1
+files:
+  - moar_projects.yml
+  - moar_groups.yml
 ```
+
+#### Additional files
+
+Hurrdurr supports using secondary files to configure any of the blocks.
+
+This can be done using the files list. The way it works is hurrdurr loads the
+initial configuration file, and then it loads the rest of the files into the
+same configuration structure in the order they are added to the list,
+overriding any previous value.
+
+There is no support of splat expansions whatsoever, names of files have to
+exact.
 
 ### Using Queries
 
