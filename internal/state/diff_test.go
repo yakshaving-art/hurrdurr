@@ -226,10 +226,10 @@ func TestDiffingStates(t *testing.T) {
 			"fixtures/diff-root-with-multi-level-user.yaml",
 			"fixtures/diff-root-with-multi-level-admin.yaml",
 			[]string{
-				"remove 'user1' from 'root_group/a_project'",
 				"remove 'user1' from 'root_group/subgroup1'",
 				"remove 'user1' from 'root_group/subgroup2'",
 				"remove 'user1' from 'root_group'",
+				"remove 'user1' from 'root_group/a_project'",
 			},
 			true,
 		},
@@ -315,10 +315,10 @@ func TestDiffingVariablesWorksAsExpected(t *testing.T) {
 			"fixtures/plain-minimal.yaml",
 			"fixtures/plain-with-project-with-secrets.yaml",
 			[]string{
-				"add 'admin' to 'root_group/a_project' at level 'Owner'",
-				"create project variable 'mykey' in 'root_group/a_project'",
-				"add 'user2' to 'other_group' at level 'Owner'",
 				"create group variable 'mygroupkey' in 'other_group'",
+				"create project variable 'mykey' in 'root_group/a_project'",
+				"add 'admin' to 'root_group/a_project' at level 'Owner'",
+				"add 'user2' to 'other_group' at level 'Owner'",
 			},
 			map[string]string{
 				"myenvkey":      "value",
@@ -332,8 +332,8 @@ func TestDiffingVariablesWorksAsExpected(t *testing.T) {
 			"fixtures/plain-with-project-without-variables.yaml",
 			"fixtures/plain-with-project-with-secrets.yaml",
 			[]string{
-				"create project variable 'mykey' in 'root_group/a_project'",
 				"create group variable 'mygroupkey' in 'other_group'",
+				"create project variable 'mykey' in 'root_group/a_project'",
 			},
 			map[string]string{
 				"myenvkey":      "value",
@@ -361,8 +361,8 @@ func TestDiffingVariablesWorksAsExpected(t *testing.T) {
 			"fixtures/plain-with-project-with-secrets.yaml",
 			"fixtures/plain-with-project-with-other-secrets.yaml",
 			[]string{
-				"update project variable 'mykey' in 'root_group/a_project'",
 				"update group variable 'mygroupkey' in 'other_group'",
+				"update project variable 'mykey' in 'root_group/a_project'",
 			},
 			map[string]string{
 				"myenvkey":           "value",

@@ -42,9 +42,16 @@ func (d differ) prioritizedActions() []internal.Action {
 	for _, priority := range []internal.ActionPriority{
 		internal.UnblockUser,
 		internal.ManageAdminUser,
-		internal.ManageProject,
-		internal.ManageGroup,
-		internal.BlockUser} {
+		internal.ManageGroupVariables,
+		internal.ManageProjectVariables,
+		internal.RemoveFromGroup,
+		internal.RemoveFromProject,
+		internal.ChangeInGroup,
+		internal.ChangeInProject,
+		internal.AddToProject,
+		internal.AddToGroup,
+		internal.BlockUser,
+	} {
 		if actions, ok := d.actions[priority]; ok {
 			for _, a := range actions {
 				pactions = append(pactions, a)
@@ -404,7 +411,7 @@ func (s changeGroupMembership) Execute(c internal.APIClient) error {
 }
 
 func (changeGroupMembership) Priority() internal.ActionPriority {
-	return internal.ManageGroup
+	return internal.ChangeInGroup
 }
 
 type addGroupMembership struct {
@@ -418,7 +425,7 @@ func (s addGroupMembership) Execute(c internal.APIClient) error {
 }
 
 func (addGroupMembership) Priority() internal.ActionPriority {
-	return internal.ManageGroup
+	return internal.AddToGroup
 }
 
 type removeGroupMembership struct {
@@ -431,7 +438,7 @@ func (r removeGroupMembership) Execute(c internal.APIClient) error {
 }
 
 func (removeGroupMembership) Priority() internal.ActionPriority {
-	return internal.ManageGroup
+	return internal.RemoveFromGroup
 }
 
 type createGroupVariable struct {
@@ -445,7 +452,7 @@ func (p createGroupVariable) Execute(c internal.APIClient) error {
 }
 
 func (createGroupVariable) Priority() internal.ActionPriority {
-	return internal.ManageGroup
+	return internal.ManageGroupVariables
 }
 
 type updateGroupVariable struct {
@@ -459,7 +466,7 @@ func (p updateGroupVariable) Execute(c internal.APIClient) error {
 }
 
 func (updateGroupVariable) Priority() internal.ActionPriority {
-	return internal.ManageGroup
+	return internal.ManageGroupVariables
 }
 
 type shareProjectWithGroup struct {
@@ -473,7 +480,7 @@ func (r shareProjectWithGroup) Execute(c internal.APIClient) error {
 }
 
 func (shareProjectWithGroup) Priority() internal.ActionPriority {
-	return internal.ManageProject
+	return internal.ChangeInProject
 }
 
 type removeProjectGroupSharing struct {
@@ -486,7 +493,7 @@ func (r removeProjectGroupSharing) Execute(c internal.APIClient) error {
 }
 
 func (removeProjectGroupSharing) Priority() internal.ActionPriority {
-	return internal.ManageProject
+	return internal.ChangeInGroup
 }
 
 type addProjectMembership struct {
@@ -500,7 +507,7 @@ func (r addProjectMembership) Execute(c internal.APIClient) error {
 }
 
 func (addProjectMembership) Priority() internal.ActionPriority {
-	return internal.ManageProject
+	return internal.AddToProject
 }
 
 type changeProjectMembership struct {
@@ -514,7 +521,7 @@ func (r changeProjectMembership) Execute(c internal.APIClient) error {
 }
 
 func (changeProjectMembership) Priority() internal.ActionPriority {
-	return internal.ManageProject
+	return internal.ChangeInProject
 }
 
 type removeProjectMembership struct {
@@ -527,7 +534,7 @@ func (r removeProjectMembership) Execute(c internal.APIClient) error {
 }
 
 func (removeProjectMembership) Priority() internal.ActionPriority {
-	return internal.ManageProject
+	return internal.RemoveFromProject
 }
 
 type createProjectVariable struct {
@@ -541,7 +548,7 @@ func (p createProjectVariable) Execute(c internal.APIClient) error {
 }
 
 func (createProjectVariable) Priority() internal.ActionPriority {
-	return internal.ManageProject
+	return internal.ManageProjectVariables
 }
 
 type updateProjectVariable struct {
@@ -555,7 +562,7 @@ func (p updateProjectVariable) Execute(c internal.APIClient) error {
 }
 
 func (updateProjectVariable) Priority() internal.ActionPriority {
-	return internal.ManageProject
+	return internal.ManageProjectVariables
 }
 
 type setAdminUser struct {
