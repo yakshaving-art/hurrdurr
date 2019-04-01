@@ -154,7 +154,12 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 			groups := make(map[string]internal.Level, 0)
 
 			for _, g := range project.SharedWithGroups {
-				groups[g.GroupName] = internal.Level(g.GroupAccessLevel)
+				group, _, err := m.client.Groups.GetGroup(g.GroupID)
+				if err != nil {
+					errs.Append(fmt.Errorf("failed to fetch group %s: %s", g.GroupName, err))
+					continue
+				}
+				groups[group.FullPath] = internal.Level(g.GroupAccessLevel)
 			}
 
 			members, err := m.fetchProjectMembers(project.PathWithNamespace)
