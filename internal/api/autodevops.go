@@ -37,9 +37,16 @@ func LoadPartialGitlabState(cnf internal.Config, client GitlabAPIClient) (intern
 			continue
 		}
 
+		vars, err := client.fetchGroupVariables(g.FullPath)
+		if err != nil {
+			errs.Append(fmt.Errorf("failed to fetch variables for group '%s'", err))
+			continue
+		}
+
 		groups[g.FullPath] = GitlabGroup{
-			fullpath: g.FullPath,
-			members:  members,
+			fullpath:  g.FullPath,
+			members:   members,
+			variables: vars,
 		}
 	}
 
@@ -60,6 +67,12 @@ func LoadPartialGitlabState(cnf internal.Config, client GitlabAPIClient) (intern
 			continue
 		}
 
+		vars, err := client.fetchProjectVariables(p)
+		if err != nil {
+			errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
+			continue
+		}
+
 		groups := make(map[string]internal.Level, 0)
 
 		for _, g := range project.SharedWithGroups {
@@ -70,6 +83,7 @@ func LoadPartialGitlabState(cnf internal.Config, client GitlabAPIClient) (intern
 			fullpath:   p,
 			sharedWith: groups,
 			members:    members,
+			variables:  vars,
 		}
 	}
 
