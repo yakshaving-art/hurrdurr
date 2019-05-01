@@ -39,8 +39,12 @@ func LoadPartialGitlabState(cnf internal.Config, client GitlabAPIClient) (intern
 
 		vars, err := client.fetchGroupVariables(g.FullPath)
 		if err != nil {
-			errs.Append(fmt.Errorf("failed to fetch variables for group '%s'", err))
-			continue
+			if err == ErrForbiddenAction {
+				logrus.Debugf("User is not allowed to read group variables from %s", g.FullPath)
+			} else {
+				errs.Append(fmt.Errorf("failed to fetch variables for group '%s': %s", g.FullPath, err))
+				continue
+			}
 		}
 
 		groups[g.FullPath] = GitlabGroup{
@@ -69,8 +73,12 @@ func LoadPartialGitlabState(cnf internal.Config, client GitlabAPIClient) (intern
 
 		vars, err := client.fetchProjectVariables(p)
 		if err != nil {
-			errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
-			continue
+			if err == ErrForbiddenAction {
+				logrus.Debugf("User is not allowed to read project variables from %s", project.PathWithNamespace)
+			} else {
+				errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
+				continue
+			}
 		}
 
 		groups := make(map[string]internal.Level, 0)

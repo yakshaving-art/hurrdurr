@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 	"sync"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
@@ -28,6 +29,10 @@ type GitlabAPIClientArgs struct {
 	GitlabBaseURL   string
 	GitlabGhostUser string
 }
+
+// ErrForbiddenAction is used to indicate that an error is triggered due to the
+// user performing an action it's not allowed to
+var ErrForbiddenAction = fmt.Errorf("The user is not allowed to run this command")
 
 // NewGitlabAPIClient create a new Gitlab API Client
 func NewGitlabAPIClient(args GitlabAPIClientArgs) GitlabAPIClient {
@@ -571,8 +576,11 @@ func (m GitlabAPIClient) fetchGroupMembers(fullpath string) (map[string]internal
 func (m GitlabAPIClient) fetchGroupVariables(fullpath string) (map[string]string, error) {
 	variables := make(map[string]string)
 
-	vars, _, err := m.client.GroupVariables.ListVariables(fullpath)
+	vars, resp, err := m.client.GroupVariables.ListVariables(fullpath)
 	if err != nil {
+		if resp.StatusCode == http.StatusForbidden {
+			return nil, ErrForbiddenAction
+		}
 		return nil, fmt.Errorf("failed to list group variables for %s: %s", fullpath, err)
 	}
 
@@ -644,8 +652,11 @@ func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]intern
 func (m GitlabAPIClient) fetchProjectVariables(fullpath string) (map[string]string, error) {
 	projectVariables := make(map[string]string)
 
-	vars, _, err := m.client.ProjectVariables.ListVariables(fullpath)
+	vars, resp, err := m.client.ProjectVariables.ListVariables(fullpath)
 	if err != nil {
+		if resp.StatusCode == http.StatusForbidden {
+			return nil, ErrForbiddenAction
+		}
 		return nil, fmt.Errorf("failed to list project variables for %s: %s", fullpath, err)
 	}
 	for _, v := range vars {
