@@ -367,15 +367,15 @@ func configToLocalState(c internal.Config, q internal.Querier) (localState, erro
 		}
 	}
 
-Loop:
-	for _, localGroup := range l.groups {
-		for _, level := range localGroup.Members {
-			if level == internal.Owner {
-				continue Loop
-			}
-		}
-		errs.Append(fmt.Errorf("no owner in group '%s'", localGroup.Fullpath))
-	}
+	// Loop:
+	// 	for _, localGroup := range l.groups {
+	// 		for _, level := range localGroup.Members {
+	// 			if level == internal.Owner {
+	// 				continue Loop
+	// 			}
+	// 		}
+	// 		errs.Append(fmt.Errorf("no owner in group '%s'", localGroup.Fullpath))
+	// 	}
 
 	for _, u := range c.Users.Admins {
 		l.admins[u] = 1
