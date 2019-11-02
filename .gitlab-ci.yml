@@ -29,7 +29,7 @@ build-binary:
   before_script:
     - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin registry.gitlab.com
   after_script:
-    - docker logout
+    - docker logout registry.gitlab.com
 
 build_docker:
   <<: *build-image
