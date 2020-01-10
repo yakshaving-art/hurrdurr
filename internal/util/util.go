@@ -51,6 +51,7 @@ func LoadConfig(filename string, checksumCheck bool) (internal.Config, error) {
 			Admins:  make([]string, 0),
 			Blocked: make([]string, 0),
 		},
+		Bots: make([]internal.Bot, 0),
 	}
 
 	cc, err := loadFile(filename, checksumCheck)
@@ -85,6 +86,9 @@ func mergeConfigs(c *internal.Config, cc internal.Config) {
 	}
 	for _, u := range cc.Users.Blocked {
 		c.Users.Blocked = append(c.Users.Blocked, u)
+	}
+	for _, b := range cc.Bots {
+		c.Bots = append(c.Bots, b)
 	}
 }
 

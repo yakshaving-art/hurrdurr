@@ -29,6 +29,12 @@ func TestLoadingValidMD5Check(t *testing.T) {
 			Admins:  []string{"root"},
 			Blocked: []string{"bad_actor"},
 		},
+		Bots: []internal.Bot{
+			internal.Bot{
+				Username: "bot_one",
+				Email:    "bot@bot.com",
+			},
+		},
 	}, c)
 }
 
@@ -56,6 +62,12 @@ func TestLoadingMultifileConfig(t *testing.T) {
 			Blocked: []string{"bad_actor"},
 		},
 		Files: []string{"fixtures/config-sample.yml"},
+		Bots: []internal.Bot{
+			internal.Bot{
+				Username: "bot_one",
+				Email:    "bot@bot.com",
+			},
+		},
 	}, c)
 }
 
@@ -86,6 +98,7 @@ func TestLoadingValidWithoutMD5Check(t *testing.T) {
 			Admins:  []string{},
 			Blocked: []string{},
 		},
+		Bots: []internal.Bot{},
 	}, c)
 }
 

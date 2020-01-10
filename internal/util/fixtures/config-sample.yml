@@ -2,13 +2,16 @@
 groups:
   yakshavers:
     owners:
-    - root
+      - root
 projects:
   someproject:
     owners:
-    - root 
+      - root
 users:
   admins:
-  - root
+    - root
   blocked:
-  - bad_actor
+    - bad_actor
+bots:
+  - username: bot_one
+    email: bot@bot.com

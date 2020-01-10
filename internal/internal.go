@@ -142,8 +142,10 @@ type APIClient interface {
 type Config struct {
 	Groups   map[string]Acls `yaml:"groups,omitempty"`
 	Projects map[string]Acls `yaml:"projects,omitempty"`
-	Users    Users           `yaml:"users,omitempty"`
-	Files    []string        `yaml:"files,omitempty"`
+
+	Users Users    `yaml:"users,omitempty"`
+	Files []string `yaml:"files,omitempty"`
+	Bots  []Bot    `yaml:"bots,omitempty"`
 }
 
 // Acls represents a set of levels and users in each level in a configuration file
@@ -160,4 +162,10 @@ type Acls struct {
 type Users struct {
 	Admins  []string `yaml:"admins,omitempty"`
 	Blocked []string `yaml:"blocked,omitempty"`
+}
+
+// Bot represents a bot user definition
+type Bot struct {
+	Username string `yaml:"username"`
+	Email    string `yaml:"email"`
 }
