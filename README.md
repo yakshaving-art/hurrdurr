@@ -52,27 +52,27 @@ reality into.
 
 ### Concepts
 
-HurrDurr understands 4 basic elements that it uses to build ACLs and apply
+HurrDurr understands 7 basic elements that it uses to build ACLs and apply
 them to a GitLab instance.
 
-* #### Member
+- #### Member
 
   A member is a user, it is defined by the username and must exist in the
   instance. If the declared user does not exist, HurrDurr will fail the
   execution.
 
-* #### Group
+- #### Group
 
   A GitLab group whose members are managed by HurrDurr. HurrDurr will only
   manage the groups that are declared in the configuration, other groups will
   be ignored.
 
-* #### Project
+- #### Project
 
   A GitLab project can be shared with a group at any ACL level. Projects can
   also have members added to it the same way we do with groups.
 
-* #### Level
+- #### Level
 
   A level setting in GitLab. The levels, sorted by decreasing access rights,
   are:
@@ -83,15 +83,20 @@ them to a GitLab instance.
   - Reporter
   - Guest
 
-* #### Query
+- #### Query
 
   A lazy definition of a group. It is expanded into members. Read
   [below](#using-queries) for the details.
 
-* #### User
+- #### User
 
- A GitLab user that is being specifically managed by HurrDurr. They can
- either be set admins, or can be blocked.
+  A GitLab user that is being specifically managed by HurrDurr. They can
+  either be set admins, or can be blocked.
+
+- #### Bots
+
+  A Gitlab user that is automatically created by hurrdurr, with a random
+  password to be used as an unpersonalized bot user.
 
 ### Full Sample
 
@@ -128,6 +133,9 @@ users:
   - manager_1
   blocked:
   - bad_actor_1
+bots:
+  - username: bot1
+    email: bot1@amazeballs.skills
 files:
   - moar_projects.yml
   - moar_groups.yml
@@ -220,7 +228,7 @@ projects:
 HurrDurr can grab secret variables from one location and update them under
 project or group CI settings. It understands the following configuration:
 
-```
+```yaml
 groups:
   group/subgroup:
     secret_variables:
@@ -232,6 +240,7 @@ projects:
 ```
 
 In this configuration, HurrDurr will try to do the following:
+
 - for subgroup: lookup environmental variable `HURRDURR_SRC_VAR`,
    and set its _value_ as a secret variable named `GITLAB_DST_VAR` at subgroup level.
 - for project: lookup environmental variable `HURRDURR_SRC_VAR_2`,
@@ -250,3 +259,18 @@ design acceptable overrides.
   - if the values match, then HurrDurr will do nothing.
   - if the values don't match, then HurrDurr will exit with error, unless `-yolo-force-secrets-overwrite` is given,
     in which case it will overwrite the variable with neither hesitation nor backups, as life's to short for that crap.
+
+### Managing Bot users
+
+Hurrdurr supports creating bot users to provide depersonalized accounts for automations.
+
+To create a bot you will need to use the `-manage-bots` flag, in conjuntion
+with the `BOT_USERNAME_REGEX` environment variable.
+
+This variable is used to enforce some sanity into these users to make them easy to spot.
+
+Just define this variable, enable the flag, and create as many bots as you
+want. They will not require an email validation, will not have 2FA enabled
+(there is nothing in the API to do it), and will have a random password set.
+
+Just login as an admin, impersonate, and configure them.

@@ -61,7 +61,7 @@ func parseArgs() Args {
 
 	args.GitlabToken = os.Getenv("GITLAB_TOKEN")
 	args.GitlabBaseURL = os.Getenv("GITLAB_BASEURL")
-	args.BotUsernameRegex = os.Getenv("BOT_USER_REGEX")
+	args.BotUsernameRegex = os.Getenv("BOT_USERNAME_REGEX")
 
 	if args.ShowVersion {
 		logrus.Printf(version.GetVersion())
