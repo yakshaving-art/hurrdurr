@@ -8,6 +8,7 @@ import (
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
+	"gitlab.com/yakshaving.art/hurrdurr/pkg/random"
 
 	"github.com/sirupsen/logrus"
 	gitlab "github.com/xanzy/go-gitlab"
@@ -452,6 +453,23 @@ func (m GitlabAPIClient) UpdateProjectVariable(fullpath, key, value string) erro
 		return fmt.Errorf("failed to update project variable '%s' in group '%s'", key, fullpath)
 	}
 	fmt.Printf("[apply] variable '%s' in project '%s' was updated\n", key, fullpath)
+	return nil
+}
+
+// CreateBotUser creates a bot user
+func (m GitlabAPIClient) CreateBotUser(username, email string) error {
+	p := random.Password(32)
+	name := fmt.Sprintf("[BOT] %s", username)
+	_, _, err := m.client.Users.CreateUser(&gitlab.CreateUserOptions{
+		Username:         &username,
+		Password:         &p,
+		Name:             &name,
+		SkipConfirmation: b(true),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create bot user '%s': %s", username, err)
+	}
+	fmt.Printf("[apply] bot user '%s' created", username)
 	return nil
 }
 
@@ -905,4 +923,8 @@ func (g GitlabProject) VariableEquals(key, value string) bool {
 // GetVariables implements internal.GetVariables interface
 func (g GitlabProject) GetVariables() map[string]string {
 	return g.variables
+}
+
+func b(bb bool) *bool {
+	return &bb
 }
