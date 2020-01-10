@@ -155,6 +155,7 @@ type localState struct {
 	admins          map[string]int
 	blocked         map[string]int
 	unhandledGroups []string
+	bots            map[string]string
 }
 
 func (s localState) addGroup(g *LocalGroup) {
@@ -205,6 +206,10 @@ func (s localState) IsBlocked(username string) bool {
 	return ok
 }
 
+func (s localState) IsUser(username string) bool {
+	return s.IsAdmin(username)
+}
+
 func (s localState) CurrentUser() string {
 	return s.currentUser
 }
@@ -219,13 +224,18 @@ func (s localState) Blocked() []string {
 	return util.ToStringSlice(s.blocked)
 }
 
+func (s localState) BotUsers() map[string]string {
+	return s.bots
+}
+
 func configToLocalState(c internal.Config, q internal.Querier) (localState, error) {
 	l := localState{
 		currentUser: q.CurrentUser(),
-		groups:      make(map[string]*LocalGroup, 0),
-		projects:    make(map[string]*LocalProject, 0),
-		admins:      make(map[string]int, 0),
-		blocked:     make(map[string]int, 0),
+		groups:      make(map[string]*LocalGroup),
+		projects:    make(map[string]*LocalProject),
+		admins:      make(map[string]int),
+		blocked:     make(map[string]int),
+		bots:        make(map[string]string),
 	}
 
 	errs := errors.New() // This object aggregates all the errors to dump them all at the end
@@ -367,22 +377,16 @@ func configToLocalState(c internal.Config, q internal.Querier) (localState, erro
 		}
 	}
 
-	// Loop:
-	// 	for _, localGroup := range l.groups {
-	// 		for _, level := range localGroup.Members {
-	// 			if level == internal.Owner {
-	// 				continue Loop
-	// 			}
-	// 		}
-	// 		errs.Append(fmt.Errorf("no owner in group '%s'", localGroup.Fullpath))
-	// 	}
-
 	for _, u := range c.Users.Admins {
 		l.admins[u] = 1
 	}
 
 	for _, u := range c.Users.Blocked {
 		l.blocked[u] = 1
+	}
+
+	for _, b := range c.Bots {
+		l.bots[b.Username] = b.Email
 	}
 
 	return l, errs.ErrorOrNil()

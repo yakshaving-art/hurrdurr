@@ -21,11 +21,22 @@ func main() {
 
 	if args.Debug {
 		logrus.SetLevel(logrus.DebugLevel)
+		logrus.SetFormatter(&logrus.TextFormatter{
+			DisableTimestamp: true,
+		})
+		logrus.Debugf("Enabling debug level logging, with timestamps")
 	}
 
 	conf, err := util.LoadConfig(args.ConfigFile, args.ChecksumCheck)
 	if err != nil {
 		logrus.Fatalf("failed to load configuration: %s", err)
+	}
+	logrus.Debugf("Configuration loaded from file %s", args.ConfigFile)
+
+	if args.ManageBots {
+		if err := util.ValidateBots(conf.Bots, args.BotUsernameRegex); err != nil {
+			logrus.Fatalf("Failed validating bots users: %s", err)
+		}
 	}
 
 	client := api.NewGitlabAPIClient(
@@ -47,6 +58,7 @@ func main() {
 			logrus.Fatalf("Failed to load partial live state from gitlab instance: %s", err)
 		}
 
+		logrus.Debugf("Loaded partial state from gitlab")
 	} else {
 		err := api.CreatePreloadedQuerier(&client)
 		if err != nil {
@@ -57,6 +69,8 @@ func main() {
 		if err != nil {
 			logrus.Fatalf("Failed to load full live state from gitlab instance: %s", err)
 		}
+
+		logrus.Debugf("Loaded full state from gitlab")
 	}
 
 	desiredState, err := state.LoadStateFromFile(conf, client.Querier)
@@ -64,16 +78,21 @@ func main() {
 		logrus.Fatalf("Failed to load desired state from file %s: %s", args.ConfigFile, err)
 	}
 
+	logrus.Debugf("Loaded desired state from file %s", args.ConfigFile)
+
 	actions, err := state.Diff(currentState, desiredState, state.DiffArgs{
 		DiffGroups:   args.ManageACLs,
 		DiffProjects: args.ManageACLs,
 		DiffUsers:    args.ManageUsers,
+		DiffBots:     args.ManageBots,
 
 		Yolo: args.YoloMode,
 	})
 	if err != nil {
 		logrus.Fatalf("Failed to diff current and desired state: %s", err)
 	}
+
+	logrus.Debugf("Diff calculated")
 
 	var actionClient internal.APIClient
 
@@ -85,7 +104,7 @@ func main() {
 			},
 		}
 	} else {
-		fmt.Println("Changes:")
+		fmt.Println("Executing Changes:")
 		actionClient = client
 	}
 
@@ -98,6 +117,8 @@ func main() {
 		}
 	}
 
+	logrus.Debugf("All actions executed")
+
 	if len(desiredState.UnhandledGroups()) > 0 {
 		fmt.Println("Unhandled groups detected:")
 		for _, ug := range desiredState.UnhandledGroups() {
@@ -106,4 +127,6 @@ func main() {
 			}
 		}
 	}
+
+	logrus.Debugf("Done")
 }

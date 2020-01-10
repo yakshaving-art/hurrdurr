@@ -65,6 +65,9 @@ type State interface {
 	IsBlocked(string) bool
 
 	CurrentUser() string
+	IsUser(string) bool
+
+	BotUsers() map[string]string
 }
 
 // Querier represents an object which can be used to query a live instance to validate data
@@ -91,17 +94,18 @@ type ActionPriority int
 
 // Priorities
 const (
-	UnblockUser            = 0
-	ManageAdminUser        = 1
-	ManageGroupVariables   = 2
-	ManageProjectVariables = 3
-	RemoveFromGroup        = 4
-	RemoveFromProject      = 5
-	ChangeInGroup          = 6
-	ChangeInProject        = 7
-	AddToProject           = 8
-	AddToGroup             = 9
-	BlockUser              = 10
+	CreateBotUser          = 0
+	UnblockUser            = 1
+	ManageAdminUser        = 2
+	ManageGroupVariables   = 3
+	ManageProjectVariables = 4
+	RemoveFromGroup        = 5
+	RemoveFromProject      = 6
+	ChangeInGroup          = 7
+	ChangeInProject        = 8
+	AddToProject           = 9
+	AddToGroup             = 10
+	BlockUser              = 11
 )
 
 // Action is an action to execute using the APIClient

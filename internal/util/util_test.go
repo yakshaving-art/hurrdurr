@@ -132,3 +132,19 @@ func TestToStringSliceIgnoring(t *testing.T) {
 	a := assert.New(t)
 	a.EqualValues(s, []string{"a", "b"})
 }
+
+func TestBotUsernames(t *testing.T) {
+	a := assert.New(t)
+
+	a.NoError(util.ValidateBots([]internal.Bot{
+		{Username: "bot1", Email: "myemail"},
+	}, "^bot.+$"))
+
+	a.EqualError(util.ValidateBots([]internal.Bot{
+		{Username: "nobot1", Email: "myemail"},
+	}, "^bot.+$"), "invalid bot username nobot1")
+
+	a.EqualError(util.ValidateBots([]internal.Bot{
+		{Username: "bot1", Email: ""},
+	}, "^bot.+$"), "bot bot1 has an empty email")
+}

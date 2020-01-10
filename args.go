@@ -26,6 +26,9 @@ type Args struct {
 	ManageACLs  bool
 	ManageUsers bool
 
+	ManageBots       bool
+	BotUsernameRegex string
+
 	AutoDevOpsMode bool
 	YoloMode       bool
 
@@ -46,6 +49,8 @@ func parseArgs() Args {
 
 	flag.BoolVar(&args.ManageACLs, "manage-acls", false, "performs diffs of groups and projects")
 	flag.BoolVar(&args.ManageUsers, "manage-users", false, "performs diffs of user attributes")
+	flag.BoolVar(&args.ManageBots, "manage-bots", false, "manage bot users")
+
 	flag.BoolVar(&args.AutoDevOpsMode, "autodevopsmode", false,
 		"where you have no admin rights but still do what you gotta do")
 	flag.BoolVar(&args.YoloMode, "yolo-force-secrets-overwrite", false,
@@ -56,6 +61,7 @@ func parseArgs() Args {
 
 	args.GitlabToken = os.Getenv("GITLAB_TOKEN")
 	args.GitlabBaseURL = os.Getenv("GITLAB_BASEURL")
+	args.BotUsernameRegex = os.Getenv("BOT_USER_REGEX")
 
 	if args.ShowVersion {
 		logrus.Printf(version.GetVersion())
@@ -79,6 +85,10 @@ func parseArgs() Args {
 
 	if !(args.ManageACLs || args.ManageUsers) {
 		logrus.Fatal("Nothing to manage, set one of -manage-acls or -manage-users")
+	}
+
+	if args.ManageBots && args.BotUsernameRegex == "" {
+		logrus.Fatalf("bot user validation regex can't be empty when managing bots")
 	}
 
 	return args

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -120,4 +121,22 @@ func loadFile(filename string, checksumCheck bool) (internal.Config, error) {
 	}
 
 	return c, nil
+}
+
+// ValidateBots validates bots, duh
+func ValidateBots(bots []internal.Bot, usernameRegex string) error {
+	r, err := regexp.Compile(usernameRegex)
+	if err != nil {
+		return fmt.Errorf("invalid bot username regex validator: %s", err)
+	}
+
+	for _, b := range bots {
+		if !r.MatchString(b.Username) {
+			return fmt.Errorf("invalid bot username %s", b.Username)
+		}
+		if b.Email == "" {
+			return fmt.Errorf("bot %s has an empty email", b.Username)
+		}
+	}
+	return nil
 }

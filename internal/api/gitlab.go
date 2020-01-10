@@ -830,8 +830,13 @@ func (s GitlabState) Projects() []internal.Project {
 }
 
 // UnhandledGroups implements internal.State interface
-func (s GitlabState) UnhandledGroups() []string {
+func (GitlabState) UnhandledGroups() []string {
 	return []string{}
+}
+
+// BotUsers returns an empty list of bots
+func (GitlabState) BotUsers() map[string]string {
+	return make(map[string]string)
 }
 
 // GitlabGroup represents a group in a live instance with it's members
