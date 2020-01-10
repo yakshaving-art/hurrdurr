@@ -1,20 +1,22 @@
 image: registry.gitlab.com/yakshaving.art/dockerfiles/go-builder:0.0.2
 stages:
   - build
-  - docker_image
   - release
 
 build-binary:
   stage: build
   coverage: '/^total:\s+\(statements\)\s+(\d+.\d+)%$/'
+  variables:
+    CGO_ENABLED: 0
+    GOCACHE: ${CI_PROJECT_DIR}/.cache/go-build
   cache:
+    key: build-cache
     paths:
-    - vendor
+      - .cache/go-build
   artifacts:
     paths:
-    - hurrdurr
+      - hurrdurr
   script:
-    - go mod download
     - make test build
 
 .build-image: &build-image
@@ -23,74 +25,23 @@ build-binary:
   services:
     - docker:dind
   variables:
-    CONTAINER_IMAGE: registry.gitlab.com/$CI_PROJECT_PATH
     DOCKER_HOST: tcp://docker:2375
     DOCKER_DRIVER: overlay2
   before_script:
-    - echo $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin registry.gitlab.com
+    - echo ${CI_JOB_TOKEN} | docker login -u gitlab-ci-token --password-stdin ${CI_REGISTRY}
   after_script:
-    - docker logout registry.gitlab.com
-
-build_docker:
-  <<: *build-image
-  script:
-    - ln -s Dockerfile.amd64 Dockerfile
-    - docker build --cache-from ${CONTAINER_IMAGE}:latest
-      --tag ${CONTAINER_IMAGE}:${CI_COMMIT_SHA}
-      --tag ${CONTAINER_IMAGE}:latest .
-  except:
-  - master
-
-build_docker_ci:
-  <<: *build-image
-  script:
-    - ln -s Dockerfile-CI.amd64 Dockerfile
-    - docker build --cache-from ${CONTAINER_IMAGE}:latest
-      --tag ${CONTAINER_IMAGE}:${CI_COMMIT_SHA}-CI
-      --tag ${CONTAINER_IMAGE}:latest-ci .
-  except:
-  - master
+    - docker logout ${CI_REGISTRY}
 
 release_latest:
   <<: *build-image
   script:
-    - ln -s Dockerfile.amd64 Dockerfile
-    - docker build --cache-from ${CONTAINER_IMAGE}:latest
-      --tag ${CONTAINER_IMAGE}:${CI_COMMIT_SHA}
-      --tag ${CONTAINER_IMAGE}:latest .
-    - docker push ${CONTAINER_IMAGE}:${CI_COMMIT_SHA}
-    - docker push ${CONTAINER_IMAGE}:latest
-  only:
-  - master
-
-release_latest_ci:
-  <<: *build-image
-  script:
-    - ln -s Dockerfile-CI.amd64 Dockerfile
-    - docker build --cache-from ${CONTAINER_IMAGE}:latest-ci
-      --tag ${CONTAINER_IMAGE}:${CI_COMMIT_SHA}-CI
-      --tag ${CONTAINER_IMAGE}:latest-ci .
-    - docker push ${CONTAINER_IMAGE}:${CI_COMMIT_SHA}-CI
-    - docker push ${CONTAINER_IMAGE}:latest-ci
-  only:
-  - master
+    - docker build --cache-from ${CI_REGISTRY_IMAGE}:latest
+      --tag ${CI_REGISTRY_IMAGE}:latest .
 
 release_tag:
   <<: *build-image
   script:
-    - ln -s Dockerfile.amd64 Dockerfile
-    - docker build --cache-from ${CONTAINER_IMAGE}:latest
-      --tag ${CONTAINER_IMAGE}:${CI_COMMIT_TAG} .
-    - docker push ${CONTAINER_IMAGE}:${CI_COMMIT_TAG}
+    - docker build --cache-from ${CI_REGISTRY_IMAGE}:latest
+      --tag ${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG} .
   only:
-  - tags
-
-release_tag_ci:
-  <<: *build-image
-  script:
-    - ln -s Dockerfile-CI.amd64 Dockerfile
-    - docker build --cache-from ${CONTAINER_IMAGE}:latest-ci
-      --tag ${CONTAINER_IMAGE}:${CI_COMMIT_TAG}-CI .
-    - docker push ${CONTAINER_IMAGE}:${CI_COMMIT_TAG}-CI
-  only:
-  - tags
+    - tags
