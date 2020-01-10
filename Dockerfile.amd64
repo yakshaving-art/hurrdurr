@@ -1,7 +1,7 @@
-FROM alpine:3.9
+FROM alpine:3.10
 
-RUN apk --no-cache add ca-certificates=20190108-r0 libc6-compat=1.1.20-r5
+RUN apk --no-cache add ca-certificates libc6-compat
 
-COPY hurrdurr /
+COPY hurrdurr /bin
  
-ENTRYPOINT [ "/hurrdurr" ]
+CMD [ "/bin/hurrdurr" ]
