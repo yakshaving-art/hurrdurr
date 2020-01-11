@@ -464,6 +464,7 @@ func (m GitlabAPIClient) CreateBotUser(username, email string) error {
 		Username:         &username,
 		Password:         &p,
 		Name:             &name,
+		Email:            &email,
 		SkipConfirmation: b(true),
 	})
 	if err != nil {
