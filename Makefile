@@ -35,3 +35,4 @@ test:	### run all the tests
 
 build:  ### build the binary
 	@go build -ldflags "-X gitlab.com/yakshaving.art/hurrdurr/version.Version=$(VERSION) -X gitlab.com/yakshaving.art/hurrdurr/version.Commit=$(COMMIT_ID) -X gitlab.com/yakshaving.art/hurrdurr/version.Date=$(COMMIT_DATE)"
+	@strip hurrdurr
