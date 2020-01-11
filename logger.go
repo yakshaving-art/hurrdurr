@@ -24,7 +24,7 @@ type plainFormatter struct {
 func (f *plainFormatter) Format(entry *log.Entry) ([]byte, error) {
 	prefix := ""
 	if f.debug {
-		prefix = fmt.Sprintf("[%s] ", time.Now().Format(time.RFC3339))
+		prefix = fmt.Sprintf("[%s] ", time.Now().Format(time.RFC3339Nano))
 	}
 	return []byte(fmt.Sprintf("%s%s\n", prefix, entry.Message)), nil
 }
