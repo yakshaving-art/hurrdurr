@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
@@ -19,13 +18,7 @@ func main() {
 
 	args := parseArgs()
 
-	if args.Debug {
-		logrus.SetLevel(logrus.DebugLevel)
-		logrus.SetFormatter(&logrus.TextFormatter{
-			DisableTimestamp: true,
-		})
-		logrus.Debugf("Enabling debug level logging, with timestamps")
-	}
+	SetupLogger(args.Debug)
 
 	conf, err := util.LoadConfig(args.ConfigFile, args.ChecksumCheck)
 	if err != nil {
@@ -97,19 +90,19 @@ func main() {
 	var actionClient internal.APIClient
 
 	if args.DryRun {
-		fmt.Println("Changes proposed [dryrun]:")
+		logrus.Println("Changes proposed [dryrun]:")
 		actionClient = api.DryRunAPIClient{
 			Append: func(change string) {
-				fmt.Printf("  %s\n", change)
+				logrus.Printf("  %s", change)
 			},
 		}
 	} else {
-		fmt.Println("Executing Changes:")
+		logrus.Print("Executing Changes:")
 		actionClient = client
 	}
 
 	if len(actions) == 0 {
-		fmt.Println("  No changes necessary")
+		logrus.Print("  No changes necessary")
 	}
 	for _, action := range actions {
 		if err := action.Execute(actionClient); err != nil {
@@ -120,7 +113,7 @@ func main() {
 	logrus.Debugf("All actions executed")
 
 	if len(desiredState.UnhandledGroups()) > 0 {
-		fmt.Println("Unhandled groups detected:")
+		logrus.Print("Unhandled groups detected:")
 		for _, ug := range desiredState.UnhandledGroups() {
 			if args.SnoopDepth == 0 || strings.Count(ug, "/") <= args.SnoopDepth {
 				logrus.Infof("  %s", ug)
