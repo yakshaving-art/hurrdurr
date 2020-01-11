@@ -29,6 +29,12 @@ func TestLoadingValidMD5Check(t *testing.T) {
 			Admins:  []string{"root"},
 			Blocked: []string{"bad_actor"},
 		},
+		Bots: []internal.Bot{
+			internal.Bot{
+				Username: "bot_one",
+				Email:    "bot@bot.com",
+			},
+		},
 	}, c)
 }
 
@@ -56,6 +62,12 @@ func TestLoadingMultifileConfig(t *testing.T) {
 			Blocked: []string{"bad_actor"},
 		},
 		Files: []string{"fixtures/config-sample.yml"},
+		Bots: []internal.Bot{
+			internal.Bot{
+				Username: "bot_one",
+				Email:    "bot@bot.com",
+			},
+		},
 	}, c)
 }
 
@@ -86,6 +98,7 @@ func TestLoadingValidWithoutMD5Check(t *testing.T) {
 			Admins:  []string{},
 			Blocked: []string{},
 		},
+		Bots: []internal.Bot{},
 	}, c)
 }
 
@@ -118,4 +131,20 @@ func TestToStringSliceIgnoring(t *testing.T) {
 
 	a := assert.New(t)
 	a.EqualValues(s, []string{"a", "b"})
+}
+
+func TestBotUsernames(t *testing.T) {
+	a := assert.New(t)
+
+	a.NoError(util.ValidateBots([]internal.Bot{
+		{Username: "bot1", Email: "myemail"},
+	}, "^bot.+$"))
+
+	a.EqualError(util.ValidateBots([]internal.Bot{
+		{Username: "nobot1", Email: "myemail"},
+	}, "^bot.+$"), "invalid bot username nobot1")
+
+	a.EqualError(util.ValidateBots([]internal.Bot{
+		{Username: "bot1", Email: ""},
+	}, "^bot.+$"), "bot bot1 has an empty email")
 }

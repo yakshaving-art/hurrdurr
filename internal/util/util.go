@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -51,6 +52,7 @@ func LoadConfig(filename string, checksumCheck bool) (internal.Config, error) {
 			Admins:  make([]string, 0),
 			Blocked: make([]string, 0),
 		},
+		Bots: make([]internal.Bot, 0),
 	}
 
 	cc, err := loadFile(filename, checksumCheck)
@@ -86,6 +88,9 @@ func mergeConfigs(c *internal.Config, cc internal.Config) {
 	for _, u := range cc.Users.Blocked {
 		c.Users.Blocked = append(c.Users.Blocked, u)
 	}
+	for _, b := range cc.Bots {
+		c.Bots = append(c.Bots, b)
+	}
 }
 
 func loadFile(filename string, checksumCheck bool) (internal.Config, error) {
@@ -116,4 +121,22 @@ func loadFile(filename string, checksumCheck bool) (internal.Config, error) {
 	}
 
 	return c, nil
+}
+
+// ValidateBots validates bots, duh
+func ValidateBots(bots []internal.Bot, usernameRegex string) error {
+	r, err := regexp.Compile(usernameRegex)
+	if err != nil {
+		return fmt.Errorf("invalid bot username regex validator: %s", err)
+	}
+
+	for _, b := range bots {
+		if !r.MatchString(b.Username) {
+			return fmt.Errorf("invalid bot username %s", b.Username)
+		}
+		if b.Email == "" {
+			return fmt.Errorf("bot %s has an empty email", b.Username)
+		}
+	}
+	return nil
 }

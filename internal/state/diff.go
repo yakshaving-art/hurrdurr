@@ -16,6 +16,7 @@ type DiffArgs struct {
 	DiffGroups   bool
 	DiffProjects bool
 	DiffUsers    bool
+	DiffBots     bool
 
 	Yolo bool
 }
@@ -40,6 +41,7 @@ func (d *differ) Action(a internal.Action) {
 func (d differ) prioritizedActions() []internal.Action {
 	pactions := make([]internal.Action, 0)
 	for _, priority := range []internal.ActionPriority{
+		internal.CreateBotUser,
 		internal.UnblockUser,
 		internal.ManageAdminUser,
 		internal.ManageGroupVariables,
@@ -92,6 +94,9 @@ func Diff(current, desired internal.State, args DiffArgs) ([]internal.Action, er
 	}
 	if args.DiffUsers {
 		differ.diffUsers()
+	}
+	if args.DiffBots {
+		differ.diffBots()
 	}
 
 	return differ.prioritizedActions(), differ.errs.ErrorOrNil()
@@ -400,6 +405,17 @@ func (d *differ) diffUsers() {
 	}
 }
 
+func (d *differ) diffBots() {
+	for u, e := range d.desired.BotUsers() {
+		if !d.current.IsUser(u) {
+			d.Action(createBotUser{
+				Username: u,
+				Email:    e,
+			})
+		}
+	}
+}
+
 type changeGroupMembership struct {
 	Username string
 	Group    string
@@ -611,6 +627,19 @@ func (r unblockUser) Execute(c internal.APIClient) error {
 
 func (unblockUser) Priority() internal.ActionPriority {
 	return internal.UnblockUser
+}
+
+type createBotUser struct {
+	Username string
+	Email    string
+}
+
+func (r createBotUser) Execute(c internal.APIClient) error {
+	return c.CreateBotUser(r.Username, r.Email)
+}
+
+func (r createBotUser) Priority() internal.ActionPriority {
+	return internal.CreateBotUser
 }
 
 type member struct {

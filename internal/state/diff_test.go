@@ -233,6 +233,15 @@ func TestDiffingStates(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"adding a bot works",
+			"fixtures/plain-minimal.yaml",
+			"fixtures/plain-bots.yaml",
+			[]string{
+				"create bot user 'bot1' with email 'bot@bot.com",
+			},
+			true,
+		},
 	}
 
 	for _, tc := range tt {
@@ -255,6 +264,7 @@ func TestDiffingStates(t *testing.T) {
 				DiffGroups:   true,
 				DiffProjects: true,
 				DiffUsers:    true,
+				DiffBots:     true,
 			})
 			a.NoError(err, "diff")
 			a.NotNil(actions, "actions")

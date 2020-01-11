@@ -107,3 +107,9 @@ func (m DryRunAPIClient) UpdateProjectVariable(fullpath, key, value string) erro
 	m.Append(fmt.Sprintf("update project variable '%s' in '%s'", key, fullpath))
 	return nil
 }
+
+// CreateBotUser implements APIClient interface
+func (m DryRunAPIClient) CreateBotUser(username, email string) error {
+	m.Append(fmt.Sprintf("create bot user '%s' with email '%s", username, email))
+	return nil
+}

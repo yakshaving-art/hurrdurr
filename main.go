@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
@@ -19,13 +18,18 @@ func main() {
 
 	args := parseArgs()
 
-	if args.Debug {
-		logrus.SetLevel(logrus.DebugLevel)
-	}
+	SetupLogger(args.Debug)
 
 	conf, err := util.LoadConfig(args.ConfigFile, args.ChecksumCheck)
 	if err != nil {
 		logrus.Fatalf("failed to load configuration: %s", err)
+	}
+	logrus.Debugf("Configuration loaded from file %s", args.ConfigFile)
+
+	if args.ManageBots {
+		if err := util.ValidateBots(conf.Bots, args.BotUsernameRegex); err != nil {
+			logrus.Fatalf("Failed validating bots users: %s", err)
+		}
 	}
 
 	client := api.NewGitlabAPIClient(
@@ -47,6 +51,7 @@ func main() {
 			logrus.Fatalf("Failed to load partial live state from gitlab instance: %s", err)
 		}
 
+		logrus.Debugf("Loaded partial state from gitlab")
 	} else {
 		err := api.CreatePreloadedQuerier(&client)
 		if err != nil {
@@ -57,6 +62,8 @@ func main() {
 		if err != nil {
 			logrus.Fatalf("Failed to load full live state from gitlab instance: %s", err)
 		}
+
+		logrus.Debugf("Loaded full state from gitlab")
 	}
 
 	desiredState, err := state.LoadStateFromFile(conf, client.Querier)
@@ -64,10 +71,13 @@ func main() {
 		logrus.Fatalf("Failed to load desired state from file %s: %s", args.ConfigFile, err)
 	}
 
+	logrus.Debugf("Loaded desired state from file %s", args.ConfigFile)
+
 	actions, err := state.Diff(currentState, desiredState, state.DiffArgs{
 		DiffGroups:   args.ManageACLs,
 		DiffProjects: args.ManageACLs,
 		DiffUsers:    args.ManageUsers,
+		DiffBots:     args.ManageBots,
 
 		Yolo: args.YoloMode,
 	})
@@ -75,22 +85,24 @@ func main() {
 		logrus.Fatalf("Failed to diff current and desired state: %s", err)
 	}
 
+	logrus.Debugf("Diff calculated")
+
 	var actionClient internal.APIClient
 
 	if args.DryRun {
-		fmt.Println("Changes proposed [dryrun]:")
+		logrus.Println("Changes proposed [dryrun]:")
 		actionClient = api.DryRunAPIClient{
 			Append: func(change string) {
-				fmt.Printf("  %s\n", change)
+				logrus.Printf("  %s", change)
 			},
 		}
 	} else {
-		fmt.Println("Changes:")
+		logrus.Print("Executing Changes:")
 		actionClient = client
 	}
 
 	if len(actions) == 0 {
-		fmt.Println("  No changes necessary")
+		logrus.Print("  No changes necessary")
 	}
 	for _, action := range actions {
 		if err := action.Execute(actionClient); err != nil {
@@ -98,12 +110,16 @@ func main() {
 		}
 	}
 
+	logrus.Debugf("All actions executed")
+
 	if len(desiredState.UnhandledGroups()) > 0 {
-		fmt.Println("Unhandled groups detected:")
+		logrus.Print("Unhandled groups detected:")
 		for _, ug := range desiredState.UnhandledGroups() {
 			if args.SnoopDepth == 0 || strings.Count(ug, "/") <= args.SnoopDepth {
 				logrus.Infof("  %s", ug)
 			}
 		}
 	}
+
+	logrus.Debugf("Done")
 }

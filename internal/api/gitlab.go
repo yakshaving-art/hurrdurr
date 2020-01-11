@@ -8,6 +8,7 @@ import (
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
+	"gitlab.com/yakshaving.art/hurrdurr/pkg/random"
 
 	"github.com/sirupsen/logrus"
 	gitlab "github.com/xanzy/go-gitlab"
@@ -232,7 +233,7 @@ func (m GitlabAPIClient) AddGroupMembership(username, group string, level intern
 	if err != nil {
 		return fmt.Errorf("failed to add user '%s' to group '%s': %s", username, group, err)
 	}
-	fmt.Printf("[apply] '%s' to '%s' at level '%s'\n", username, group, level)
+	logrus.Printf("[apply] '%s' to '%s' at level '%s'\n", username, group, level)
 	return nil
 }
 
@@ -249,7 +250,7 @@ func (m GitlabAPIClient) ChangeGroupMembership(username, group string, level int
 		return fmt.Errorf("failed to change user '%s' in group '%s': %s", username, group, err)
 	}
 
-	fmt.Printf("[apply] changed '%s' in '%s' at level '%s'\n", username, group, level)
+	logrus.Printf("[apply] changed '%s' in '%s' at level '%s'\n", username, group, level)
 	return nil
 }
 
@@ -261,7 +262,7 @@ func (m GitlabAPIClient) RemoveGroupMembership(username, group string) error {
 	if err != nil {
 		return fmt.Errorf("failed to remove user '%s' from group '%s': %s", username, group, err)
 	}
-	fmt.Printf("[apply] removed '%s' from '%s'\n", username, group)
+	logrus.Printf("[apply] removed '%s' from '%s'\n", username, group)
 	return nil
 }
 
@@ -278,7 +279,7 @@ func (m GitlabAPIClient) AddProjectSharing(project, group string, level internal
 	if err != nil {
 		return fmt.Errorf("failed to share project '%s' with group '%s': %s", project, group, err)
 	}
-	fmt.Printf("[apply] project '%s' shared with '%s' at level '%s'\n", project, group, level)
+	logrus.Printf("[apply] project '%s' shared with '%s' at level '%s'\n", project, group, level)
 	return nil
 }
 
@@ -290,7 +291,7 @@ func (m GitlabAPIClient) RemoveProjectSharing(project, group string) error {
 	if err != nil {
 		return fmt.Errorf("failed to remove project '%s' sharing with '%s': %s", project, group, err)
 	}
-	fmt.Printf("[apply] project '%s' is not shared with '%s' anymore\n", project, group)
+	logrus.Printf("[apply] project '%s' is not shared with '%s' anymore\n", project, group)
 	return nil
 }
 
@@ -308,7 +309,7 @@ func (m GitlabAPIClient) AddProjectMembership(username, project string, level in
 	if err != nil {
 		return fmt.Errorf("failed to add user '%s' to project '%s': %s", username, project, err)
 	}
-	fmt.Printf("[apply] added '%s' to '%s' at level '%s'\n", username, project, level)
+	logrus.Printf("[apply] added '%s' to '%s' at level '%s'\n", username, project, level)
 	return nil
 }
 
@@ -325,7 +326,7 @@ func (m GitlabAPIClient) ChangeProjectMembership(username, project string, level
 		return fmt.Errorf("failed to change user '%s' in project '%s': %s", username, project, err)
 	}
 
-	fmt.Printf("[apply] user '%s' changed in '%s' to level '%s'\n", username, project, level)
+	logrus.Printf("[apply] user '%s' changed in '%s' to level '%s'\n", username, project, level)
 	return nil
 }
 
@@ -337,7 +338,7 @@ func (m GitlabAPIClient) RemoveProjectMembership(username, project string) error
 	if err != nil {
 		return fmt.Errorf("failed to remove user '%s' from project '%s': %s", username, project, err)
 	}
-	fmt.Printf("[apply] user '%s' removed from '%s'\n", username, project)
+	logrus.Printf("[apply] user '%s' removed from '%s'\n", username, project)
 	return nil
 }
 
@@ -349,7 +350,7 @@ func (m GitlabAPIClient) BlockUser(username string) error {
 	if err != nil {
 		return fmt.Errorf("failed to block user '%s': %s", username, err)
 	}
-	fmt.Printf("[apply] user '%s' is blocked\n", username)
+	logrus.Printf("[apply] user '%s' is blocked\n", username)
 
 	return nil
 }
@@ -362,7 +363,7 @@ func (m GitlabAPIClient) UnblockUser(username string) error {
 	if err != nil {
 		return fmt.Errorf("failed to unblock user '%s': %s", username, err)
 	}
-	fmt.Printf("[apply] user '%s' is unblocked\n", username)
+	logrus.Printf("[apply] user '%s' is unblocked\n", username)
 
 	return nil
 }
@@ -379,7 +380,7 @@ func (m GitlabAPIClient) SetAdminUser(username string) error {
 	if err != nil {
 		return fmt.Errorf("failed to set user '%s' as admin: %s", username, err)
 	}
-	fmt.Printf("[apply] user '%s' is admin now\n", username)
+	logrus.Printf("[apply] user '%s' is admin now\n", username)
 
 	return nil
 }
@@ -396,7 +397,7 @@ func (m GitlabAPIClient) UnsetAdminUser(username string) error {
 	if err != nil {
 		return fmt.Errorf("failed to unset user '%s' as admin: %s", username, err)
 	}
-	fmt.Printf("[apply] user '%s' is not admin anymore\n", username)
+	logrus.Printf("[apply] user '%s' is not admin anymore\n", username)
 
 	return nil
 }
@@ -411,7 +412,7 @@ func (m GitlabAPIClient) CreateGroupVariable(group, key, value string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create group variable '%s' in group '%s'", key, group)
 	}
-	fmt.Printf("[apply] variable '%s' in group '%s' was created\n", key, group)
+	logrus.Printf("[apply] variable '%s' in group '%s' was created\n", key, group)
 	return nil
 }
 
@@ -424,7 +425,7 @@ func (m GitlabAPIClient) UpdateGroupVariable(group, key, value string) error {
 	if err != nil {
 		return fmt.Errorf("failed to update group variable '%s' in group '%s'", key, group)
 	}
-	fmt.Printf("[apply] variable '%s' in group '%s' was updated\n", key, group)
+	logrus.Printf("[apply] variable '%s' in group '%s' was updated\n", key, group)
 	return nil
 }
 
@@ -438,7 +439,7 @@ func (m GitlabAPIClient) CreateProjectVariable(fullpath, key, value string) erro
 	if err != nil {
 		return fmt.Errorf("failed to create project variable '%s' in group '%s'", key, fullpath)
 	}
-	fmt.Printf("[apply] variable '%s' in project '%s' was created\n", key, fullpath)
+	logrus.Printf("[apply] variable '%s' in project '%s' was created\n", key, fullpath)
 	return nil
 }
 
@@ -451,7 +452,25 @@ func (m GitlabAPIClient) UpdateProjectVariable(fullpath, key, value string) erro
 	if err != nil {
 		return fmt.Errorf("failed to update project variable '%s' in group '%s'", key, fullpath)
 	}
-	fmt.Printf("[apply] variable '%s' in project '%s' was updated\n", key, fullpath)
+	logrus.Printf("[apply] variable '%s' in project '%s' was updated\n", key, fullpath)
+	return nil
+}
+
+// CreateBotUser creates a bot user
+func (m GitlabAPIClient) CreateBotUser(username, email string) error {
+	p := random.Password(32)
+	name := fmt.Sprintf("[BOT] %s", username)
+	_, _, err := m.client.Users.CreateUser(&gitlab.CreateUserOptions{
+		Username:         &username,
+		Password:         &p,
+		Name:             &name,
+		Email:            &email,
+		SkipConfirmation: b(true),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create bot user '%s': %s", username, err)
+	}
+	logrus.Printf("[apply] bot user '%s' created", username)
 	return nil
 }
 
@@ -812,8 +831,13 @@ func (s GitlabState) Projects() []internal.Project {
 }
 
 // UnhandledGroups implements internal.State interface
-func (s GitlabState) UnhandledGroups() []string {
+func (GitlabState) UnhandledGroups() []string {
 	return []string{}
+}
+
+// BotUsers returns an empty list of bots
+func (GitlabState) BotUsers() map[string]string {
+	return make(map[string]string)
 }
 
 // GitlabGroup represents a group in a live instance with it's members
@@ -905,4 +929,8 @@ func (g GitlabProject) VariableEquals(key, value string) bool {
 // GetVariables implements internal.GetVariables interface
 func (g GitlabProject) GetVariables() map[string]string {
 	return g.variables
+}
+
+func b(bb bool) *bool {
+	return &bb
 }
