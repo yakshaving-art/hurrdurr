@@ -91,7 +91,7 @@ func TestLoadingState(t *testing.T) {
 			"fixtures/non_existing.yaml",
 			"failed to build local state: " +
 				"2 errors: Group 'non_existing_group' does not exist; " +
-				"User 'non_exiting' does not exists for group 'root_group'",
+				"User 'non_existing' does not exist for group 'root_group'",
 			nil,
 			nil,
 			nil,
