@@ -373,7 +373,7 @@ func configToLocalState(c internal.Config, q internal.Querier) (localState, erro
 
 	for _, query := range queries {
 		if err := query.Execute(l, q); err != nil {
-			errs.Append(fmt.Errorf("Failed to execute query %s: %s", query, err))
+			errs.Append(fmt.Errorf("failed to execute query %s: %s", query, err))
 		}
 	}
 
