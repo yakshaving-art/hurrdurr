@@ -279,7 +279,7 @@ func configToLocalState(c internal.Config, q internal.Querier) (localState, erro
 					continue
 				}
 				if !q.IsUser(member) && !q.IsAdmin(member) {
-					errs.Append(fmt.Errorf("User '%s' does not exists for group '%s'", member, fullpath))
+					errs.Append(fmt.Errorf("User '%s' does not exist for group '%s'", member, fullpath))
 					continue
 				}
 
@@ -311,7 +311,7 @@ func configToLocalState(c internal.Config, q internal.Querier) (localState, erro
 
 	for projectPath, acls := range c.Projects {
 		if !q.ProjectExists(projectPath) {
-			errs.Append(fmt.Errorf("project '%s' does not exist", projectPath))
+			errs.Append(fmt.Errorf("Project '%s' does not exist", projectPath))
 			continue
 		}
 
@@ -373,7 +373,7 @@ func configToLocalState(c internal.Config, q internal.Querier) (localState, erro
 
 	for _, query := range queries {
 		if err := query.Execute(l, q); err != nil {
-			errs.Append(fmt.Errorf("failed to execute query %s: %s", query, err))
+			errs.Append(fmt.Errorf("Failed to execute query %s: %s", query, err))
 		}
 	}
 

@@ -61,7 +61,7 @@ func LoadPartialGitlabState(cnf internal.Config, client GitlabAPIClient) (intern
 			continue
 		}
 		if project == nil {
-			errs.Append(fmt.Errorf("project '%s' does not exists", p))
+			errs.Append(fmt.Errorf("project '%s' does not exist", p))
 			continue
 		}
 
