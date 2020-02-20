@@ -182,8 +182,8 @@ func TestLoadingState(t *testing.T) {
 						"other_group": internal.Developer,
 					},
 					Members: map[string]internal.Level{
-						"admin": internal.Owner,
-						"user2": internal.Maintainer,
+						"admin": internal.Maintainer,
+						"user2": internal.Developer,
 					},
 					Variables: map[string]string{},
 				},
