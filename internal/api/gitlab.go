@@ -37,7 +37,7 @@ var ErrForbiddenAction = fmt.Errorf("The user is not allowed to run this command
 
 // NewGitlabAPIClient create a new Gitlab API Client
 func NewGitlabAPIClient(args GitlabAPIClientArgs) GitlabAPIClient {
-	gitlabClient := gitlab.NewClient(nil, args.GitlabToken)
+	gitlabClient := gitlab.NewClient(newBackoffTransport(), args.GitlabToken)
 	if err := gitlabClient.SetBaseURL(args.GitlabBaseURL); err != nil {
 		logrus.Fatalf("Could not set base URL '%s' to GitLab Client: '%s'", args.GitlabBaseURL, err)
 	}
