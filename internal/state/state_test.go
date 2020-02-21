@@ -393,3 +393,7 @@ func (querierMock) GetGroupID(_ string) int {
 func (querierMock) GetUserID(_ string) int {
 	return -1
 }
+
+func (querierMock) GetUserEmail(string) (string, bool) {
+	return "", false
+}

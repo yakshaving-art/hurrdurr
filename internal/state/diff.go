@@ -52,6 +52,7 @@ func (d differ) prioritizedActions() []internal.Action {
 		internal.ChangeInProject,
 		internal.AddToProject,
 		internal.AddToGroup,
+		internal.ChangeBotEmail,
 		internal.BlockUser,
 	} {
 		if actions, ok := d.actions[priority]; ok {
@@ -60,6 +61,7 @@ func (d differ) prioritizedActions() []internal.Action {
 			}
 		}
 	}
+	// TODO: control that the number of actions is the same before and after prioritizing
 
 	return pactions
 }
@@ -406,20 +408,25 @@ func (d *differ) diffUsers() {
 }
 
 func (d *differ) diffBots() {
-	for desiredBotUser, desiredEmail := range d.desired.BotUsers() {
-		if !d.current.IsBot(desiredBotUser) {
+	for botUser, desiredEmail := range d.desired.BotUsers() {
+		if !d.current.IsBot(botUser) {
 			d.Action(createBotUser{
-				Username: desiredBotUser,
+				Username: botUser,
 				Email:    desiredEmail,
 			})
 			return
 		}
 
-		currentEmail := d.current.BotUsers()[desiredBotUser]
+		currentEmail, ok := d.current.GetUserEmail(botUser)
+		if !ok {
+			logrus.Fatalf("could not find bot user %s current email", botUser)
+		}
+
 		logrus.Debugf("email before %s, after %s", currentEmail, desiredEmail)
 		if currentEmail != desiredEmail {
+			logrus.Debugf("appending email change for bot from %s, to %s", currentEmail, desiredEmail)
 			d.Action(updateBotEmail{
-				Username: desiredBotUser,
+				Username: botUser,
 				Email:    desiredEmail,
 			})
 		}

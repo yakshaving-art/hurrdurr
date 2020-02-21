@@ -69,6 +69,8 @@ type State interface {
 
 	BotUsers() map[string]string
 	IsBot(string) bool
+
+	GetUserEmail(string) (string, bool)
 }
 
 // Querier represents an object which can be used to query a live instance to validate data
@@ -76,6 +78,8 @@ type Querier interface {
 	IsUser(string) bool
 	IsAdmin(string) bool
 	IsBlocked(u string) bool
+	GetUserEmail(string) (string, bool)
+
 	GroupExists(string) bool
 	ProjectExists(string) bool
 

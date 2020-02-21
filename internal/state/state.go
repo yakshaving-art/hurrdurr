@@ -233,6 +233,11 @@ func (s localState) BotUsers() map[string]string {
 	return s.bots
 }
 
+func (s localState) GetUserEmail(username string) (string, bool) {
+	u, ok := s.bots[username]
+	return u, ok
+}
+
 func configToLocalState(c internal.Config, q internal.Querier) (localState, error) {
 	l := localState{
 		currentUser: q.CurrentUser(),
