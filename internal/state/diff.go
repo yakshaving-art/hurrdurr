@@ -406,11 +406,20 @@ func (d *differ) diffUsers() {
 }
 
 func (d *differ) diffBots() {
-	for u, e := range d.desired.BotUsers() {
-		if !d.current.IsUser(u) {
+	for desiredBotUser, desiredEmail := range d.desired.BotUsers() {
+		if !d.current.IsBot(desiredBotUser) {
 			d.Action(createBotUser{
-				Username: u,
-				Email:    e,
+				Username: desiredBotUser,
+				Email:    desiredEmail,
+			})
+			return
+		}
+
+		currentEmail := d.current.BotUsers()[desiredBotUser]
+		if currentEmail != desiredEmail {
+			d.Action(updateBotEmail{
+				Username: desiredBotUser,
+				Email:    desiredEmail,
 			})
 		}
 	}
@@ -640,6 +649,19 @@ func (r createBotUser) Execute(c internal.APIClient) error {
 
 func (r createBotUser) Priority() internal.ActionPriority {
 	return internal.CreateBotUser
+}
+
+type updateBotEmail struct {
+	Username string
+	Email    string
+}
+
+func (r updateBotEmail) Execute(c internal.APIClient) error {
+	return c.UpdateBotEmail(r.Username, r.Email)
+}
+
+func (r updateBotEmail) Priority() internal.ActionPriority {
+	return internal.ChangeBotEmail
 }
 
 type member struct {

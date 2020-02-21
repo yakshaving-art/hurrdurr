@@ -210,6 +210,11 @@ func (s localState) IsUser(username string) bool {
 	return s.IsAdmin(username)
 }
 
+func (s localState) IsBot(username string) bool {
+	_, ok := s.bots[username]
+	return ok
+}
+
 func (s localState) CurrentUser() string {
 	return s.currentUser
 }

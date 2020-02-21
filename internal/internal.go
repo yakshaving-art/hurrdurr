@@ -68,6 +68,7 @@ type State interface {
 	IsUser(string) bool
 
 	BotUsers() map[string]string
+	IsBot(string) bool
 }
 
 // Querier represents an object which can be used to query a live instance to validate data
@@ -105,7 +106,8 @@ const (
 	ChangeInProject        = 8
 	AddToProject           = 9
 	AddToGroup             = 10
-	BlockUser              = 11
+	ChangeBotEmail         = 11
+	BlockUser              = 12
 )
 
 // Action is an action to execute using the APIClient
@@ -140,6 +142,7 @@ type APIClient interface {
 	UnsetAdminUser(username string) error
 
 	CreateBotUser(username, email string) error
+	UpdateBotEmail(username, email string) error
 }
 
 // Config represents the configuration structure supporter by hurrdurr

@@ -474,6 +474,20 @@ func (m GitlabAPIClient) CreateBotUser(username, email string) error {
 	return nil
 }
 
+// UpdateBotEmail implements APIClient interface
+func (m GitlabAPIClient) UpdateBotEmail(username, email string) error {
+	_, _, err := m.client.Users.ModifyUser(
+		m.Querier.GetUserID(username),
+		&gitlab.ModifyUserOptions{
+			Email: &email,
+		})
+	if err != nil {
+		return fmt.Errorf("failed to update bot user '%s' email to '%s': %s", username, email, err)
+	}
+	logrus.Printf("[apply] bot user '%s' email changed to '%s'", username, email)
+	return nil
+}
+
 // ########################
 // PRIVATE GITLAB API usage
 // ########################
@@ -838,6 +852,11 @@ func (GitlabState) UnhandledGroups() []string {
 // BotUsers returns an empty list of bots
 func (GitlabState) BotUsers() map[string]string {
 	return make(map[string]string)
+}
+
+// IsBot implements Querier interface
+func (g GitlabState) IsBot(u string) bool {
+	return g.GetUserID(u) != -1 // may be a bot
 }
 
 // GitlabGroup represents a group in a live instance with it's members
