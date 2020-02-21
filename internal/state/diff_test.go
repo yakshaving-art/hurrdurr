@@ -246,7 +246,9 @@ func TestDiffingStates(t *testing.T) {
 			"changing a bot email",
 			"fixtures/plain-bots.yaml",
 			"fixtures/plain-bots-with-other-email.yaml",
-			[]string{},
+			[]string{
+				"something changed",
+			},
 			true,
 		},
 	}

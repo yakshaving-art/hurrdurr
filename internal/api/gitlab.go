@@ -855,8 +855,8 @@ func (GitlabState) BotUsers() map[string]string {
 }
 
 // IsBot implements Querier interface
-func (g GitlabState) IsBot(u string) bool {
-	return g.GetUserID(u) != -1 // may be a bot
+func (s GitlabState) IsBot(u string) bool {
+	return s.GetUserID(u) != -1 // may be a bot
 }
 
 // GitlabGroup represents a group in a live instance with it's members

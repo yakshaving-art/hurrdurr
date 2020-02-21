@@ -416,6 +416,7 @@ func (d *differ) diffBots() {
 		}
 
 		currentEmail := d.current.BotUsers()[desiredBotUser]
+		logrus.Debugf("email before %s, after %s", currentEmail, desiredEmail)
 		if currentEmail != desiredEmail {
 			d.Action(updateBotEmail{
 				Username: desiredBotUser,
