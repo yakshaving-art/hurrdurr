@@ -1,7 +1,8 @@
-FROM alpine:3.10
+FROM registry.gitlab.com/yakshaving.art/dockerfiles/base:master
 
-RUN apk --no-cache add ca-certificates libc6-compat
+# hadolint ignore=DL3018
+RUN apk --no-cache add libc6-compat
 
 COPY hurrdurr /bin
- 
+
 CMD [ "/bin/hurrdurr" ]

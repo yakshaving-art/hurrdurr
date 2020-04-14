@@ -1,0 +1,4 @@
+---
+file:
+  /etc/passwd:
+    exists: true

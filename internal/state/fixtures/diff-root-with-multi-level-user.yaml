@@ -1,22 +1,22 @@
 ---
 groups:
   root_group:
-    owners:
-      - admin
     developers:
-      - user1
+    - user1
+    owners:
+    - admin
   root_group/subgroup1:
-    owners:
-      - admin
     developers:
-      - user1
+    - user1
+    owners:
+    - admin
   root_group/subgroup2:
-    owners:
-      - admin
     developers:
-      - user1
+    - user1
+    owners:
+    - admin
 projects:
   root_group/a_project:
     developers:
-      - user1
-      - user2
+    - user1
+    - user2
