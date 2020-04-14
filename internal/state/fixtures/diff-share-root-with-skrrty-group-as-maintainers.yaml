@@ -4,14 +4,14 @@ groups:
     owners:
     - user1
   skrrty:
-    owners:
-    - admin
     developers:
     - user1
     - user2
+    owners:
+    - admin
 projects:
   root_group/myawesomeproject:
-    maintainers:
-    - 'share_with: skrrty'
     developers:
     - 'query: owners in root_group'
+    maintainers:
+    - 'share_with: skrrty'

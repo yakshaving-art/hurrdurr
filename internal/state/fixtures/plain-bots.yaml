@@ -1,8 +1,9 @@
 ---
+bots:
+- email: bot@bot.com
+  username: bot1
+
 groups:
   root_group:
     owners:
-      - admin
-bots:
-  - username: bot1
-    email: bot@bot.com
+    - admin

@@ -1,9 +1,9 @@
 ---
 groups:
   root_group:
+    developers:
+    - admin
     guests:
     - "query: admins"
     owners:
-    - admin
-    developers:
     - admin

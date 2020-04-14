@@ -1,7 +1,8 @@
+---
 groups:
-  skrrty:
-    owners:
-    - "query: developers in root_group"
   root_group:
     owners:
     - admin
+  skrrty:
+    owners:
+    - "query: developers in root_group"

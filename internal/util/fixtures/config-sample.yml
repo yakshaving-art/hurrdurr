@@ -1,17 +1,20 @@
 ---
+bots:
+- email: bot@bot.com
+  username: bot_one
+
 groups:
   yakshavers:
     owners:
-      - root
+    - root
+
 projects:
   someproject:
     owners:
-      - root
+    - root
+
 users:
   admins:
-    - root
+  - root
   blocked:
-    - bad_actor
-bots:
-  - username: bot_one
-    email: bot@bot.com
+  - bad_actor
