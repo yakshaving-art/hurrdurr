@@ -13,7 +13,6 @@ projects:
   root_group/a_project:
     developers:
     - 'share_with: other_group'
-    maintainers:
     - user2
-    owners:
+    maintainers:
     - "query: admins"

@@ -8,5 +8,5 @@ groups:
     - admin
 projects:
   root_group/a_project:
-    owners:
+    maintainers:
     - admin

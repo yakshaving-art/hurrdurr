@@ -358,6 +358,12 @@ func configToLocalState(c internal.Config, q internal.Querier) (localState, erro
 					continue
 				}
 
+				if level == internal.Owner {
+					errs.Append(fmt.Errorf("User '%s' cannot be assigned as project owner of '%s', use groups for this level instead",
+						member, project))
+					continue
+				}
+
 				project.addMember(member, level)
 			}
 		}

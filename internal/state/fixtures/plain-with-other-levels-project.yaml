@@ -8,12 +8,13 @@ groups:
     - user1
     owners:
     - admin
+
 projects:
   root_group/a_project:
     developers:
     - user1
-    - user2
-    owners:
+    maintainers:
     - admin
+    - user2
     reporters:
     - user3
