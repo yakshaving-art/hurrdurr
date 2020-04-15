@@ -4,17 +4,17 @@ groups:
     owners:
     - user2
   root_group:
-    owners:
-    - admin
     developers:
     - user1
+    owners:
+    - admin
 
 projects:
   root_group/a_project:
     developers:
-      - user1
-    reporters:
-      - user3
+    - user1
     maintainers:
-      - admin
-      - user2
+    - admin
+    - user2
+    reporters:
+    - user3
