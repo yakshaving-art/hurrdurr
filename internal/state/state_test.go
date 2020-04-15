@@ -73,7 +73,7 @@ func TestLoadingState(t *testing.T) {
 			"invalid yaml fails",
 			"fixtures/invalid.yaml",
 			"failed to unmarshal state file fixtures/invalid.yaml: yaml: unmarshal errors:\n" +
-				"  line 6: field dvlprs not found in type internal.Acls",
+				"  line 7: field dvlprs not found in type internal.Acls",
 			nil,
 			nil,
 			nil,
@@ -182,8 +182,8 @@ func TestLoadingState(t *testing.T) {
 						"other_group": internal.Developer,
 					},
 					Members: map[string]internal.Level{
-						"admin": internal.Owner,
-						"user2": internal.Maintainer,
+						"admin": internal.Maintainer,
+						"user2": internal.Developer,
 					},
 					Variables: map[string]string{},
 				},

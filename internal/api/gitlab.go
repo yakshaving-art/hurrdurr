@@ -20,6 +20,41 @@ var (
 	BlockedUserRole = "BLOCKED"
 )
 
+// GitlabAPIClient is a client for proving high level behaviors when talking to
+// a GitLab instance
+type GitlabAPIClient struct {
+	client    *gitlab.Client
+	PerPage   int
+	ghostUser string
+
+	Querier internal.Querier
+}
+
+// GitlabAPIClientArgs gitlab api client
+type GitlabAPIClientArgs struct {
+	GitlabToken     string
+	GitlabBaseURL   string
+	GitlabGhostUser string
+}
+
+// ErrForbiddenAction is used to indicate that an error is triggered due to the
+// user performing an action it's not allowed to
+var ErrForbiddenAction = fmt.Errorf("The user is not allowed to run this command")
+
+// NewGitlabAPIClient create a new Gitlab API Client
+func NewGitlabAPIClient(args GitlabAPIClientArgs) GitlabAPIClient {
+	gitlabClient := gitlab.NewClient(newBackoffTransport(), args.GitlabToken)
+	if err := gitlabClient.SetBaseURL(args.GitlabBaseURL); err != nil {
+		logrus.Fatalf("Could not set base URL '%s' to GitLab Client: '%s'", args.GitlabBaseURL, err)
+	}
+
+	return GitlabAPIClient{
+		client:    gitlabClient,
+		PerPage:   100,
+		ghostUser: args.GitlabGhostUser,
+	}
+}
+
 // CreatePreloadedQuerier creates a Querier with all the data preloaded
 func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	logrus.Debugf("building querier...")

@@ -76,7 +76,7 @@ func TestLoadingInvalidConfig(t *testing.T) {
 	_, err := util.LoadConfig("fixtures/invalid-config-sample.yml", false)
 
 	a.EqualError(err, "failed to unmarshal state file fixtures/invalid-config-sample.yml: yaml: unmarshal errors:\n"+
-		"  line 4: field not-valid-key not found in type internal.Config")
+		"  line 3: field not-valid-key not found in type internal.Config")
 }
 
 func TestLoadingNonExistingConfig(t *testing.T) {
@@ -107,8 +107,8 @@ func TestLoadingInvalidMD5Check(t *testing.T) {
 	a := assert.New(t)
 	_, err := util.LoadConfig("fixtures/config-wrong-md5.yml", true)
 
-	a.EqualError(err, "configuration file calculated md5 'dbc6d0334ddedc38552cdd19cdbd83a3' "+
-		"does not match the provided md5 ' dbc6d0334ddedc38552cdd19cdbd83aa'")
+	a.EqualError(err, "configuration file calculated md5 '671cc46a43b1632047ba2677a51f8b58' "+
+		"does not match the provided md5 ' 671cc46a43b1632047ba2677a51f8b5a'")
 }
 
 func TestToStringSlice(t *testing.T) {

@@ -4,11 +4,11 @@ groups:
     owners:
     - user1
   skrrty:
-    owners:
-    - admin
     developers:
     - user1
     - user2
+    owners:
+    - admin
 projects:
   root_group/myawesomeproject:
     developers:

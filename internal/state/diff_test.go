@@ -163,8 +163,8 @@ func TestDiffingStates(t *testing.T) {
 			"fixtures/plain-with-project.yaml",
 			[]string{
 				"share project 'root_group/a_project' with group 'other_group' at level 'Developer'",
-				"add 'admin' to 'root_group/a_project' at level 'Owner'",
-				"add 'user2' to 'root_group/a_project' at level 'Maintainer'",
+				"add 'admin' to 'root_group/a_project' at level 'Maintainer'",
+				"add 'user2' to 'root_group/a_project' at level 'Developer'",
 			},
 			false,
 		},
@@ -174,7 +174,7 @@ func TestDiffingStates(t *testing.T) {
 			"fixtures/plain-with-other-levels-project.yaml",
 			[]string{
 				"add 'user1' to 'root_group/a_project' at level 'Developer'",
-				"change 'user2' in 'root_group/a_project' to level 'Developer'",
+				"change 'user2' in 'root_group/a_project' to level 'Maintainer'",
 				"add 'user3' to 'root_group/a_project' at level 'Reporter'",
 				"remove project sharing from 'root_group/a_project' with group 'other_group'",
 			},
@@ -186,7 +186,7 @@ func TestDiffingStates(t *testing.T) {
 			"fixtures/plain-with-project.yaml",
 			[]string{
 				"share project 'root_group/a_project' with group 'other_group' at level 'Developer'",
-				"change 'user2' in 'root_group/a_project' to level 'Maintainer'",
+				"change 'user2' in 'root_group/a_project' to level 'Developer'",
 				"remove 'user1' from 'root_group/a_project'",
 				"remove 'user3' from 'root_group/a_project'",
 			},
@@ -337,7 +337,7 @@ func TestDiffingVariablesWorksAsExpected(t *testing.T) {
 			[]string{
 				"create group variable 'mygroupkey' in 'other_group'",
 				"create project variable 'mykey' in 'root_group/a_project'",
-				"add 'admin' to 'root_group/a_project' at level 'Owner'",
+				"add 'admin' to 'root_group/a_project' at level 'Maintainer'",
 				"add 'user2' to 'other_group' at level 'Owner'",
 			},
 			map[string]string{

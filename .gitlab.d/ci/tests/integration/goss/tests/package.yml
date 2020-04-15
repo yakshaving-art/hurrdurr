@@ -1,0 +1,7 @@
+---
+package:
+  bash:               { installed: true }
+  ca-certificates:    { installed: true }
+  curl:               { installed: true }
+  jq:                 { installed: true }
+  openssh-client:     { installed: true }

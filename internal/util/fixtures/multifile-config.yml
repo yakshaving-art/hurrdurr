@@ -1,8 +1,8 @@
 ---
+files:
+- fixtures/config-sample.yml
 groups:
 projects:
   myproject:
     owners:
     - me
-files:
-- fixtures/config-sample.yml

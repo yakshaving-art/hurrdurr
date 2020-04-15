@@ -1,14 +1,14 @@
 ---
 groups:
-  root_group:
-    owners:
-    - admin
-    developers:
-    - user1
-    - bad_actor_1
   other_group:
     owners:
     - user2
+  root_group:
+    developers:
+    - bad_actor_1
+    - user1
+    owners:
+    - admin
 users:
   blocked:
-    - bad_actor_1
+  - bad_actor_1
