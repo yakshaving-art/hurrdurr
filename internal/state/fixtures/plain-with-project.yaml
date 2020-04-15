@@ -1,17 +1,18 @@
 ---
 groups:
-  root_group:
-    owners:
-      - admin
-    developers:
-      - user1
   other_group:
     owners:
-      - user2
+    - user2
+  root_group:
+    developers:
+    - user1
+    owners:
+    - admin
+
 projects:
   root_group/a_project:
     developers:
-      - "share_with: other_group"
-      - user2
+    - 'share_with: other_group'
+    - user2
     maintainers:
-      - "query: admins"
+    - "query: admins"

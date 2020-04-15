@@ -1,9 +1,8 @@
 ---
 groups:
-  root_group:
-    owners:
-    - non_existing
   non_existing_group:
     owners:
     - admin
-
+  root_group:
+    owners:
+    - non_existing

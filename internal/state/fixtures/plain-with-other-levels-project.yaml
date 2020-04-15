@@ -1,13 +1,14 @@
 ---
 groups:
-  root_group:
-    owners:
-      - admin
-    developers:
-      - user1
   other_group:
     owners:
-      - user2
+    - user2
+  root_group:
+    owners:
+    - admin
+    developers:
+    - user1
+
 projects:
   root_group/a_project:
     developers:

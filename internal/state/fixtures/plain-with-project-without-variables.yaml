@@ -1,12 +1,12 @@
 ---
 groups:
-  root_group:
-    owners:
-      - admin
   other_group:
     owners:
-      - user2
+    - user2
+  root_group:
+    owners:
+    - admin
 projects:
   root_group/a_project:
     maintainers:
-      - admin
+    - admin

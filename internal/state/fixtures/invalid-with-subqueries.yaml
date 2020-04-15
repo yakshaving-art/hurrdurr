@@ -4,7 +4,7 @@ groups:
     owners:
     - "query: admins"
   skrrty:
-    owners:
-    - admin
     guests:
     - "query: owners from root_group"
+    owners:
+    - admin
