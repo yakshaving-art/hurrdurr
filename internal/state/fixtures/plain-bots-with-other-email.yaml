@@ -1,0 +1,9 @@
+---
+bots:
+- email: bot@my-own-domain-with-blackjack-and-hookers.com
+  username: bot1
+
+groups:
+  root_group:
+    owners:
+    - admin

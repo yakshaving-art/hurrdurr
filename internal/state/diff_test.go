@@ -242,7 +242,17 @@ func TestDiffingStates(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"changing a bot email",
+			"fixtures/plain-bots.yaml",
+			"fixtures/plain-bots-with-other-email.yaml",
+			[]string{
+				"update bot 'bot1' email to 'bot@my-own-domain-with-blackjack-and-hookers.com'",
+			},
+			true,
+		},
 	}
+	// logrus.SetLevel(logrus.DebugLevel)
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {

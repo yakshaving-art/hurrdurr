@@ -210,6 +210,11 @@ func (s localState) IsUser(username string) bool {
 	return s.IsAdmin(username)
 }
 
+func (s localState) IsBot(username string) bool {
+	_, ok := s.bots[username]
+	return ok
+}
+
 func (s localState) CurrentUser() string {
 	return s.currentUser
 }
@@ -226,6 +231,11 @@ func (s localState) Blocked() []string {
 
 func (s localState) BotUsers() map[string]string {
 	return s.bots
+}
+
+func (s localState) GetUserEmail(username string) (string, bool) {
+	u, ok := s.bots[username]
+	return u, ok
 }
 
 func configToLocalState(c internal.Config, q internal.Querier) (localState, error) {

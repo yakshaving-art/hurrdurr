@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"sort"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
@@ -14,7 +15,7 @@ import (
 // GitlabLazyQuerier is a querier that is just too lazy to do things up front
 type GitlabLazyQuerier struct {
 	api      *GitlabAPIClient
-	users    map[string]int
+	users    map[string]GitlabUser
 	groups   map[string]int
 	projects map[string]int // not yet implemented
 }
@@ -109,7 +110,7 @@ func CreateLazyQuerier(client *GitlabAPIClient) error {
 
 	querier := GitlabLazyQuerier{
 		api:      client,
-		users:    make(map[string]int, 0),
+		users:    make(map[string]GitlabUser, 0),
 		groups:   make(map[string]int, 0),
 		projects: make(map[string]int, 0),
 	}
@@ -129,18 +130,24 @@ func CreateLazyQuerier(client *GitlabAPIClient) error {
 
 // GetUserID implements the internal Querier interface
 func (g GitlabLazyQuerier) GetUserID(username string) int {
-	id, ok := g.users[username]
+	u, ok := g.users[username]
 	if !ok {
 		user := g.api.fetchUser(username)
 		if user == nil {
-			id = -1
+			u = GitlabUser{
+				ID: -1,
+			}
 		} else {
-			id = user.ID
+			u = GitlabUser{
+				ID:             user.ID,
+				PrincipalEmail: user.Email,
+				Role:           UserUserRole,
+			}
 		}
-		g.users[username] = id
+		g.users[username] = u
 	}
 
-	return id
+	return u.ID
 }
 
 // GetGroupID implements the internal Querier interface
@@ -204,7 +211,12 @@ func (g GitlabLazyQuerier) Groups() []string {
 
 // Users returns the list of users that are regular users and are not blocked
 func (g GitlabLazyQuerier) Users() []string {
-	return util.ToStringSlice(g.users)
+	users := make([]string, 0)
+	for u := range g.users {
+		users = append(users, u)
+	}
+	sort.Strings(users)
+	return users
 }
 
 // Admins returns the list of users that are admins and are not blocked
@@ -225,4 +237,9 @@ func (GitlabLazyQuerier) Blocked() []string {
 // CurrentUser returns the current user talking to the API
 func (g GitlabLazyQuerier) CurrentUser() string {
 	return g.api.CurrentUser()
+}
+
+// GetUserEmail returns an empty string and false
+func (g GitlabLazyQuerier) GetUserEmail(username string) (string, bool) {
+	return "", false
 }
