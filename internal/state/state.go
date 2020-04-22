@@ -202,6 +202,7 @@ func (s localState) IsAdmin(username string) bool {
 }
 
 func (s localState) IsBlocked(username string) bool {
+	fmt.Printf("checking '%s' from '%+v'\n", username, s)
 	_, ok := s.blocked[username]
 	return ok
 }
