@@ -241,29 +241,34 @@ func (m GitlabQuerier) GetGroupID(group string) int {
 func (m GitlabQuerier) IsUser(username string) bool {
 	u, ok := m.getUser(username)
 	logrus.Debugf("checking user '%s' being a user, role '%s', exists '%t'", username, u.Role, ok)
-	return ok || u.Role == UserUserRole
+	return ok && u.Role == UserUserRole
 }
 
 // IsAdmin implements Querier interface
 func (m GitlabQuerier) IsAdmin(username string) bool {
 	u, ok := m.getUser(username)
 	logrus.Debugf("checking user '%s' for being admin, role '%s', exists '%t'", username, u.Role, ok)
-	return ok || u.Role == AdminUserRole
+	return ok && u.Role == AdminUserRole
 }
 
 // IsBlocked implements Querier interface
 func (m GitlabQuerier) IsBlocked(username string) bool {
 	logrus.Debugf("Checking if user '%s' is blocked in '%+v'\n", username, m)
 	u, ok := m.getUser(username)
+
 	logrus.Debugf("checking user '%s' for being blocked, role '%s', exists '%t'", username, u.Role, ok)
-	return ok || u.Role == BlockedUserRole
+	if !ok {
+		return true // a non existing user can be considered as blocked
+	}
+
+	return u.Role == BlockedUserRole
 }
 
 // IsBot implements Querier interface
 func (m GitlabQuerier) IsBot(username string) bool {
 	u, ok := m.getUser(username)
 	logrus.Debugf("checking user '%s' being a bot, role '%s', exists '%t'", username, u.Role, ok)
-	return ok || u.Role == BotUserRole
+	return ok && u.Role == BotUserRole
 }
 
 // GetUserEmail implements Querier interface
