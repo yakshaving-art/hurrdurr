@@ -202,7 +202,7 @@ func (s localState) IsAdmin(username string) bool {
 }
 
 func (s localState) IsBlocked(username string) bool {
-        logrus.Debugf("checking '%s' is blocked in map '%+v'", username, s.blocked)
+	logrus.Debugf("checking '%s' is blocked in map '%+v'", username, s.blocked)
 	_, ok := s.blocked[username]
 	return ok
 }

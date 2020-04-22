@@ -251,6 +251,7 @@ func (m GitlabQuerier) IsAdmin(username string) bool {
 
 // IsBlocked implements Querier interface
 func (m GitlabQuerier) IsBlocked(username string) bool {
+	logrus.Debugf("Checking if user '%s' is blocked in '%+v'\n", username, m)
 	u, ok := m.getUser(username)
 	return ok || u.Role == BlockedUserRole
 }
