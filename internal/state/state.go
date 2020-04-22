@@ -202,6 +202,7 @@ func (s localState) IsAdmin(username string) bool {
 }
 
 func (s localState) IsBlocked(username string) bool {
+	logrus.Debugf("checking '%s' is blocked in map '%+v'", username, s.blocked)
 	_, ok := s.blocked[username]
 	return ok
 }
@@ -239,6 +240,7 @@ func (s localState) GetUserEmail(username string) (string, bool) {
 }
 
 func configToLocalState(c internal.Config, q internal.Querier) (localState, error) {
+	logrus.Debugf("Loading local state from configuration, current user: %s, with Config %+v", q.CurrentUser(), c)
 	l := localState{
 		currentUser: q.CurrentUser(),
 		groups:      make(map[string]*LocalGroup),
