@@ -325,6 +325,19 @@ func (m GitlabAPIClient) UpdateBotEmail(username, email string) error {
 	}
 	logrus.Debugf("  bot user '%s' email change to '%s' returned status code %d", username, email, response.StatusCode)
 
+	emails, _, err := m.client.Users.ListEmailsForUser(botUserID, &gitlab.ListEmailsForUserOptions{})
+	if err != nil {
+		logrus.Warnf(" wtf gitlab? can't find the user email list that I just added an email to: %s", err)
+	}
+	for _, e := range emails {
+		if e.Email == email {
+			continue
+		}
+		if _, err := m.client.Users.DeleteEmailForUser(botUserID, e.ID); err != nil {
+			logrus.Warnf(" wtff gitlab? can't delete the secondary user email %s I just added an email to: %s", e.Email, err)
+		}
+	}
+
 	logrus.Printf("[apply] bot user '%s' email changed to '%s'", username, email)
 	return nil
 }
