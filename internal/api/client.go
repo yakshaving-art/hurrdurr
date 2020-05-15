@@ -314,7 +314,7 @@ func (m GitlabAPIClient) CreateBotUser(username, email string) error {
 func (m GitlabAPIClient) UpdateBotEmail(username, email string) error {
 	logrus.Debugf("finding bot user ID '%s' to update email to '%s'", username, email)
 	botUserID := m.Querier.GetUserID(username)
-	_, _, err := m.client.Users.ModifyUser(
+	_, response, err := m.client.Users.ModifyUser(
 		botUserID,
 		&gitlab.ModifyUserOptions{
 			Email: &email,
@@ -322,6 +322,10 @@ func (m GitlabAPIClient) UpdateBotEmail(username, email string) error {
 	if err != nil {
 		return fmt.Errorf("failed to update bot user '%s' email to '%s': %s", username, email, err)
 	}
+	if response.StatusCode != 200 {
+		logrus.Debugf("  bot user '%s' email change to '%s' returned status code %d", username, email, response.StatusCode)
+	}
+
 	logrus.Printf("[apply] bot user '%s' email changed to '%s'", username, email)
 	return nil
 }
