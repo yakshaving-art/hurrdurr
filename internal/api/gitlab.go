@@ -222,19 +222,22 @@ func (m GitlabQuerier) getUser(username string) (GitlabUser, bool) {
 // GetUserID implements the internal querier interface
 func (m GitlabQuerier) GetUserID(username string) int {
 	u, ok := m.getUser(username)
-	if !ok {
-		logrus.Fatalf("could not find user '%s' in the lists of normal, admins, bots or blocked users", username)
+	if ok {
+		return u.ID
 	}
-	return u.ID
+
+	logrus.Debugf("could not find user '%s' in the lists of normal, admins, bots or blocked users", username)
+	return -1 //signals that the user does not exists
 }
 
 // GetGroupID implements the internal querier interface
 func (m GitlabQuerier) GetGroupID(group string) int {
 	id, ok := m.groups[group]
-	if !ok {
-		logrus.Fatalf("could not find group '%s' in the list of groups", group)
+	if ok {
+		return id
 	}
-	return id
+	logrus.Debugf("could not find group '%s' in the list of groups", group)
+	return -1 //signals that the group does not exists
 }
 
 // IsUser implements Querier interface
@@ -393,9 +396,10 @@ func (GitlabState) BotUsers() map[string]string {
 
 // IsBot implements Querier interface
 func (s GitlabState) IsBot(u string) bool {
-	return s.GetUserID(u) != -1 // may be a bot
+	return s.Querier.GetUserID(u) != -1
 }
 
+// GetUserEmail implements the querier interface
 func (s GitlabState) GetUserEmail(username string) (string, bool) {
 	return s.Querier.GetUserEmail(username)
 }
