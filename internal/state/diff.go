@@ -409,15 +409,17 @@ func (d *differ) diffUsers() {
 
 func (d *differ) diffBots() {
 	for desiredBotUser, desiredEmail := range d.desired.BotUsers() {
+		logrus.Debugf("  check bot user '%s' state", desiredBotUser)
+
 		if !d.current.IsBot(desiredBotUser) {
-			logrus.Debugf("  can't find bot user '%s' in the current remote state, thus creating", desiredBotUser)
+			logrus.Debugf("    can't find bot user '%s' in the current remote state, thus creating", desiredBotUser)
 			d.Action(createBotUser{
 				Username: desiredBotUser,
 				Email:    desiredEmail,
 			})
 			return
 		}
-		logrus.Debugf("  bot user '%s' found in the current remote state, thus checking email", desiredBotUser)
+		logrus.Debugf("    bot user '%s' found in the current remote state, thus checking email", desiredBotUser)
 
 		currentEmail, ok := d.current.GetUserEmail(desiredBotUser)
 		if !ok {
