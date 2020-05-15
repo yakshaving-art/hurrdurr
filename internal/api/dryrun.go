@@ -115,7 +115,7 @@ func (m DryRunAPIClient) CreateBotUser(username, email string) error {
 }
 
 // UpdateBotEmail implements APIClient interface
-func (m DryRunAPIClient) UpdateBotEmail(username, email string) error {
-	m.Append(fmt.Sprintf("update bot '%s' email to '%s'", username, email))
+func (m DryRunAPIClient) UpdateBotEmail(username, desiredEmail string) error {
+	m.Append(fmt.Sprintf("update bot '%s' email to '%s'", username, desiredEmail))
 	return nil
 }

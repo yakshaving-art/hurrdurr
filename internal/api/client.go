@@ -312,14 +312,32 @@ func (m GitlabAPIClient) CreateBotUser(username, email string) error {
 
 // UpdateBotEmail implements APIClient interface
 func (m GitlabAPIClient) UpdateBotEmail(username, email string) error {
-	_, _, err := m.client.Users.ModifyUser(
-		m.Querier.GetUserID(username),
+	logrus.Debugf("finding bot user ID '%s' to update email to '%s'", username, email)
+	botUserID := m.Querier.GetUserID(username)
+	_, response, err := m.client.Users.ModifyUser(
+		botUserID,
 		&gitlab.ModifyUserOptions{
-			Email: &email,
+			Email:              &email,
+			SkipReconfirmation: b(true),
 		})
 	if err != nil {
 		return fmt.Errorf("failed to update bot user '%s' email to '%s': %s", username, email, err)
 	}
+	logrus.Debugf("  bot user '%s' email change to '%s' returned status code %d", username, email, response.StatusCode)
+
+	emails, _, err := m.client.Users.ListEmailsForUser(botUserID, &gitlab.ListEmailsForUserOptions{})
+	if err != nil {
+		logrus.Warnf(" wtf gitlab? can't find the user email list that I just added an email to: %s", err)
+	}
+	for _, e := range emails {
+		if e.Email == email {
+			continue
+		}
+		if _, err := m.client.Users.DeleteEmailForUser(botUserID, e.ID); err != nil {
+			logrus.Warnf(" wtff gitlab? can't delete the secondary user email %s I just added an email to: %s", e.Email, err)
+		}
+	}
+
 	logrus.Printf("[apply] bot user '%s' email changed to '%s'", username, email)
 	return nil
 }
