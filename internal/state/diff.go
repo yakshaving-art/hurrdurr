@@ -424,10 +424,10 @@ func (d *differ) diffBots() {
 
 		logrus.Debugf("email before %s, after %s", currentEmail, desiredEmail)
 		if currentEmail != desiredEmail {
-			logrus.Debugf("appending email change for bot from %s, to %s", currentEmail, desiredEmail)
+			logrus.Debugf("appending email change for bot '%s' from '%s', to '%s'", botUser, currentEmail, desiredEmail)
 			d.Action(updateBotEmail{
-				Username: botUser,
-				Email:    desiredEmail,
+				Username:     botUser,
+				DesiredEmail: desiredEmail,
 			})
 		}
 	}
@@ -660,12 +660,12 @@ func (r createBotUser) Priority() internal.ActionPriority {
 }
 
 type updateBotEmail struct {
-	Username string
-	Email    string
+	Username     string
+	DesiredEmail string
 }
 
 func (r updateBotEmail) Execute(c internal.APIClient) error {
-	return c.UpdateBotEmail(r.Username, r.Email)
+	return c.UpdateBotEmail(r.Username, r.DesiredEmail)
 }
 
 func (r updateBotEmail) Priority() internal.ActionPriority {

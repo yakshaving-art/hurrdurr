@@ -312,8 +312,10 @@ func (m GitlabAPIClient) CreateBotUser(username, email string) error {
 
 // UpdateBotEmail implements APIClient interface
 func (m GitlabAPIClient) UpdateBotEmail(username, email string) error {
+	logrus.Debugf("finding bot user ID '%s' to update email to '%s'", username, email)
+	botUserID := m.Querier.GetUserID(username)
 	_, _, err := m.client.Users.ModifyUser(
-		m.Querier.GetUserID(username),
+		botUserID,
 		&gitlab.ModifyUserOptions{
 			Email: &email,
 		})

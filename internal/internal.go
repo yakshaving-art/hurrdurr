@@ -146,7 +146,7 @@ type APIClient interface {
 	UnsetAdminUser(username string) error
 
 	CreateBotUser(username, email string) error
-	UpdateBotEmail(username, email string) error
+	UpdateBotEmail(currentEmail, desiredEmail string) error
 }
 
 // Config represents the configuration structure supporter by hurrdurr
