@@ -317,14 +317,13 @@ func (m GitlabAPIClient) UpdateBotEmail(username, email string) error {
 	_, response, err := m.client.Users.ModifyUser(
 		botUserID,
 		&gitlab.ModifyUserOptions{
-			Email: &email,
+			Email:              &email,
+			SkipReconfirmation: b(true),
 		})
 	if err != nil {
 		return fmt.Errorf("failed to update bot user '%s' email to '%s': %s", username, email, err)
 	}
-	if response.StatusCode != 200 {
-		logrus.Debugf("  bot user '%s' email change to '%s' returned status code %d", username, email, response.StatusCode)
-	}
+	logrus.Debugf("  bot user '%s' email change to '%s' returned status code %d", username, email, response.StatusCode)
 
 	logrus.Printf("[apply] bot user '%s' email changed to '%s'", username, email)
 	return nil
