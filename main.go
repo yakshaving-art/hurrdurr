@@ -106,7 +106,7 @@ func main() {
 	}
 	for _, action := range actions {
 		if err := action.Execute(actionClient); err != nil {
-			logrus.Fatalf("Faile to run action: %s", err)
+			logrus.Fatalf("Failed to run action: %s", err)
 		}
 	}
 
