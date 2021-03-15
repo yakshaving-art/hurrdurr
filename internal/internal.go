@@ -31,6 +31,7 @@ type Group interface {
 	GetFullpath() string
 	GetMembers() map[string]Level
 
+	GetSharedGroups() map[string]Level
 	GetVariables() map[string]string
 	HasVariable(key string) bool
 	VariableEquals(key, value string) bool
@@ -125,6 +126,9 @@ type APIClient interface {
 	AddGroupMembership(username, group string, level Level) error
 	ChangeGroupMembership(username, group string, level Level) error
 	RemoveGroupMembership(username, group string) error
+
+	AddGroupSharing(group, shared_group string, level Level) error
+	RemoveGroupSharing(group, shared_group string) error
 
 	AddProjectSharing(project, group string, level Level) error
 	RemoveProjectSharing(project, group string) error

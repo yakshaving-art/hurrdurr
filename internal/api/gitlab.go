@@ -113,6 +113,17 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		go m.fetchGroups(true, groupsCh, &errs)
 
 		for group := range groupsCh {
+			sharedGroups := make(map[string]internal.Level, 0)
+
+			for _, sg := range group.SharedWithGroups {
+				g, _, err := m.client.Groups.GetGroup(sg.GroupID)
+				if err != nil {
+					errs.Append(fmt.Errorf("failed to fetch group %s: %s", sg.GroupName, err))
+					continue
+				}
+				sharedGroups[g.FullPath] = internal.Level(sg.GroupAccessLevel)
+			}
+
 			members, err := m.fetchGroupMembers(group.FullPath)
 			if err != nil {
 				errs.Append(err)
@@ -127,9 +138,10 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 
 			logrus.Debugf("  appending group '%s' with it's members", group.FullPath)
 			groups[group.FullPath] = GitlabGroup{
-				fullpath:  group.FullPath,
-				members:   members,
-				variables: variables,
+				fullpath:   group.FullPath,
+				sharedWith: sharedGroups,
+				members:    members,
+				variables:  variables,
 			}
 		}
 	}()
@@ -409,14 +421,26 @@ func (s GitlabState) GetUserEmail(username string) (string, bool) {
 // This is a helper object that is used to preload the members of a group with
 // the state, without leaking gitlab's api structure.
 type GitlabGroup struct {
-	fullpath  string
-	members   map[string]internal.Level
-	variables map[string]string
+	fullpath   string
+	sharedWith map[string]internal.Level
+	members    map[string]internal.Level
+	variables  map[string]string
 }
 
 // GetFullpath implements the internal.Group interface
 func (g GitlabGroup) GetFullpath() string {
 	return g.fullpath
+}
+
+// GetSharedGroups implements internal.Group interface
+func (g GitlabGroup) GetSharedGroups() map[string]internal.Level {
+	return g.sharedWith
+}
+
+// GetGroupLevel implements internal.Group interface
+func (g GitlabGroup) GetGroupLevel(group string) (internal.Level, bool) {
+	level, ok := g.sharedWith[group]
+	return level, ok
 }
 
 // GetMembers implements the internal.Group interface

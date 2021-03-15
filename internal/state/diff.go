@@ -116,17 +116,53 @@ func (d *differ) diffGroups() {
 	})
 
 	for _, desiredGroup := range desiredGroups {
-		logrus.Debugf("Processing desired group %s", desiredGroup.GetFullpath())
+		logrus.Debugf("Processing desired group state: %#v", desiredGroup.GetFullpath())
 
 		currentGroup, currentGroupPresent := d.current.Group(desiredGroup.GetFullpath())
 		desiredMembers := desiredGroup.GetMembers()
 
 		if currentGroupPresent {
-			currentMembers := currentGroup.GetMembers()
 			logrus.Debugf("  Diffing desired group %s members because the current group is present",
 				desiredGroup.GetFullpath())
 
+			sharedGroups := desiredGroup.GetSharedGroups()
+			if sharedGroups != nil {
+				logrus.Debugf("    Comparing shared groups")
+				for sharedGroup, sharedLevel := range sharedGroups {
+					currentLevel, currentLevelPresent := currentGroup.GetSharedGroups()[sharedGroup]
+					if !currentLevelPresent {
+						logrus.Debugf("      Adding group %s sharing because current level is not currently present",
+							sharedGroup)
+						d.Action(shareGroupWithGroup{
+							Group:       desiredGroup.GetFullpath(),
+							SharedGroup: sharedGroup,
+							Level:       sharedLevel,
+						})
+					} else if currentLevel != sharedLevel {
+						logrus.Debugf("      Changing group %s sharing as %s because current level is %s",
+							sharedGroup, sharedLevel, currentLevel)
+
+						d.Action(removeGroupSharing{
+							Group:       desiredGroup.GetFullpath(),
+							SharedGroup: sharedGroup,
+						})
+
+						d.Action(shareGroupWithGroup{
+							Group:       desiredGroup.GetFullpath(),
+							SharedGroup: sharedGroup,
+							Level:       sharedLevel,
+						})
+					} else {
+						logrus.Debugf("      Keeping group %s sharing as is", sharedGroup)
+					}
+				}
+			}
+
+			logrus.Debugf("    Comparing group members")
+			currentMembers := currentGroup.GetMembers()
+
 			for _, m := range sortedMembers(desiredMembers) {
+				logrus.Debugf("    Member: %s", m.name)
 				desiredName := m.name
 				desiredLevel := m.level
 
@@ -435,6 +471,33 @@ func (d *differ) diffBots() {
 			})
 		}
 	}
+}
+
+type shareGroupWithGroup struct {
+	Group       string
+	SharedGroup string
+	Level       internal.Level
+}
+
+func (r shareGroupWithGroup) Execute(c internal.APIClient) error {
+	return c.AddGroupSharing(r.Group, r.SharedGroup, r.Level)
+}
+
+func (shareGroupWithGroup) Priority() internal.ActionPriority {
+	return internal.ChangeInGroup
+}
+
+type removeGroupSharing struct {
+	Group       string
+	SharedGroup string
+}
+
+func (r removeGroupSharing) Execute(c internal.APIClient) error {
+	return c.RemoveGroupSharing(r.Group, r.SharedGroup)
+}
+
+func (removeGroupSharing) Priority() internal.ActionPriority {
+	return internal.ChangeInGroup
 }
 
 type changeGroupMembership struct {

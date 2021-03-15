@@ -8,6 +8,7 @@ import (
 	"gitlab.com/yakshaving.art/hurrdurr/internal/state"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -158,6 +159,15 @@ func TestDiffingStates(t *testing.T) {
 			false,
 		},
 		{
+			"share other_group group with root_group group as developers",
+			"fixtures/plain.yaml",
+			"fixtures/diff-share-other_group-group-with-root_group-group-as-developer.yaml",
+			[]string{
+				"share group 'root_group' with group 'other_group' at level 'Developer'",
+			},
+			false,
+		},
+		{
 			"add project permissions",
 			"fixtures/plain.yaml",
 			"fixtures/plain-with-project.yaml",
@@ -252,11 +262,16 @@ func TestDiffingStates(t *testing.T) {
 			true,
 		},
 	}
-	// logrus.SetLevel(logrus.DebugLevel)
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
+
+			// if tc.desiredState == "fixtures/diff-share-other_group-group-with-root_group-group-as-developer.yaml" {
+			//     logrus.SetLevel(logrus.DebugLevel)
+			// } else {
+			//     logrus.SetLevel(logrus.InfoLevel)
+			// }
 
 			sourceConfig, err := util.LoadConfig(tc.sourceState, false)
 			a.NoError(err, "source config")
@@ -293,6 +308,8 @@ func TestDiffingStates(t *testing.T) {
 			// a.Equal(len(tc.actions), len(executedActions), "actions length is not as expected")
 			// a.Equal(tc.desiredActions, executedActions, "actions are not as expected")
 
+			logrus.Debugf("Executed: %v", executedActions)
+			logrus.Debugf("Desired %v", tc.desiredActions)
 			if tc.inOrder {
 				a.EqualValues(tc.desiredActions, executedActions, "actions")
 			} else {
