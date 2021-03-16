@@ -34,9 +34,9 @@ var ErrForbiddenAction = fmt.Errorf("The user is not allowed to run this command
 
 // NewGitlabAPIClient create a new Gitlab API Client
 func NewGitlabAPIClient(args GitlabAPIClientArgs) GitlabAPIClient {
-	gitlabClient := gitlab.NewClient(nil, args.GitlabToken)
-	if err := gitlabClient.SetBaseURL(args.GitlabBaseURL); err != nil {
-		logrus.Fatalf("Could not set base URL '%s' to GitLab Client: '%s'", args.GitlabBaseURL, err)
+	gitlabClient, err := gitlab.NewClient(args.GitlabToken, gitlab.WithBaseURL(args.GitlabBaseURL))
+	if err != nil {
+		logrus.Fatalf("Could initialize gitlab client with base URL '%s': '%s'", args.GitlabBaseURL, err)
 	}
 
 	return GitlabAPIClient{
@@ -241,7 +241,7 @@ func (m GitlabAPIClient) UnsetAdminUser(username string) error {
 // CreateGroupVariable implements APIClient interface
 func (m GitlabAPIClient) CreateGroupVariable(group, key, value string) error {
 	_, _, err := m.client.GroupVariables.CreateVariable(group,
-		&gitlab.CreateVariableOptions{
+		&gitlab.CreateGroupVariableOptions{
 			Key:   &key,
 			Value: &value,
 		})
@@ -255,7 +255,7 @@ func (m GitlabAPIClient) CreateGroupVariable(group, key, value string) error {
 // UpdateGroupVariable implements APIClient interface
 func (m GitlabAPIClient) UpdateGroupVariable(group, key, value string) error {
 	_, _, err := m.client.GroupVariables.UpdateVariable(group, key,
-		&gitlab.UpdateVariableOptions{
+		&gitlab.UpdateGroupVariableOptions{
 			Value: &value,
 		})
 	if err != nil {
@@ -268,7 +268,7 @@ func (m GitlabAPIClient) UpdateGroupVariable(group, key, value string) error {
 // CreateProjectVariable implements APIClient interface
 func (m GitlabAPIClient) CreateProjectVariable(fullpath, key, value string) error {
 	_, _, err := m.client.ProjectVariables.CreateVariable(fullpath,
-		&gitlab.CreateVariableOptions{
+		&gitlab.CreateProjectVariableOptions{
 			Key:   &key,
 			Value: &value,
 		})
@@ -282,7 +282,7 @@ func (m GitlabAPIClient) CreateProjectVariable(fullpath, key, value string) erro
 // UpdateProjectVariable implements APIClient interface
 func (m GitlabAPIClient) UpdateProjectVariable(fullpath, key, value string) error {
 	_, _, err := m.client.ProjectVariables.UpdateVariable(fullpath, key,
-		&gitlab.UpdateVariableOptions{
+		&gitlab.UpdateProjectVariableOptions{
 			Value: &value,
 		})
 	if err != nil {
@@ -462,8 +462,12 @@ func (m GitlabAPIClient) fetchGroupMembers(fullpath string) (map[string]internal
 
 func (m GitlabAPIClient) fetchGroupVariables(fullpath string) (map[string]string, error) {
 	variables := make(map[string]string)
+	_, _, err := m.client.Groups.GetGroup(fullpath)
+	if err != nil {
+		logrus.Fatalf("failed to fetch group '%s': %s", fullpath, err)
+	}
 
-	vars, resp, err := m.client.GroupVariables.ListVariables(fullpath)
+	vars, resp, err := m.client.GroupVariables.ListVariables(fullpath, &gitlab.ListGroupVariablesOptions{})
 	if err != nil {
 		if resp.StatusCode == http.StatusForbidden {
 			return nil, ErrForbiddenAction
@@ -538,8 +542,12 @@ func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]intern
 
 func (m GitlabAPIClient) fetchProjectVariables(fullpath string) (map[string]string, error) {
 	projectVariables := make(map[string]string)
+	_, _, err := m.client.Projects.GetProject(fullpath, nil)
+	if err != nil {
+		logrus.Fatalf("failed to fetch project '%s': %s", fullpath, err)
+	}
 
-	vars, resp, err := m.client.ProjectVariables.ListVariables(fullpath)
+	vars, resp, err := m.client.ProjectVariables.ListVariables(fullpath, nil)
 	if err != nil {
 		if resp.StatusCode == http.StatusForbidden {
 			return nil, ErrForbiddenAction
