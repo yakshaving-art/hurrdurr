@@ -8,7 +8,6 @@ import (
 	"gitlab.com/yakshaving.art/hurrdurr/internal/state"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -305,11 +304,9 @@ func TestDiffingStates(t *testing.T) {
 				a.NoError(action.Execute(c))
 			}
 
-			// a.Equal(len(tc.actions), len(executedActions), "actions length is not as expected")
+			a.Equal(len(tc.desiredActions), len(executedActions), "actions length is not as expected")
 			// a.Equal(tc.desiredActions, executedActions, "actions are not as expected")
 
-			logrus.Debugf("Executed: %v", executedActions)
-			logrus.Debugf("Desired %v", tc.desiredActions)
 			if tc.inOrder {
 				a.EqualValues(tc.desiredActions, executedActions, "actions")
 			} else {
