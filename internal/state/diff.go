@@ -127,7 +127,7 @@ func (d *differ) diffGroups() {
 
 			desiredSharedGroups := desiredGroup.GetSharedGroups()
 			if desiredSharedGroups != nil {
-				logrus.Debugf("    Comparing desired and current shared groups")
+				logrus.Debug("    Comparing desired and current shared groups")
 				for desiredSharedGroup, desiredSharedLevel := range desiredSharedGroups {
 					currentLevel, currentLevelPresent := currentGroup.GetSharedGroups()[desiredSharedGroup]
 					if !currentLevelPresent {
