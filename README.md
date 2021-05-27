@@ -124,6 +124,11 @@ groups:
     reporters:
     - "query: users"
     - "query: owners from backend"
+  runbook:
+    owners:
+    - "share_with: handbook"
+    reporters:
+    - "share_with: handbook"
 projects:
   infrastructure/myproject:
     guests:
@@ -202,14 +207,14 @@ groups:
     reporters:
     - rrhh_demon
     owners:
-      - pointy_haired_boss
+    - pointy_haired_boss
   handbook:
     developers:
     - "query: users"
     maintainers:
     - "query: users in managers"
     owners:
-    - "query: owners in managers"
+    - "share_with: managers"
   rrhh:
     owners:
     - rrhh_demon
