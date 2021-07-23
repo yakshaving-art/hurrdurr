@@ -113,36 +113,38 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		go m.fetchGroups(true, groupsCh, &errs)
 
 		for group := range groupsCh {
-			sharedGroups := make(map[string]internal.Level, 0)
+			go func(group gitlab.Group) {
+				sharedGroups := make(map[string]internal.Level, 0)
 
-			for _, sg := range group.SharedWithGroups {
-				g, _, err := m.client.Groups.GetGroup(sg.GroupID)
-				if err != nil {
-					errs.Append(fmt.Errorf("failed to fetch group %s: %s", sg.GroupName, err))
-					continue
+				for _, sg := range group.SharedWithGroups {
+					g, _, err := m.client.Groups.GetGroup(sg.GroupID)
+					if err != nil {
+						errs.Append(fmt.Errorf("failed to fetch group %s: %s", sg.GroupName, err))
+						return
+					}
+					sharedGroups[g.FullPath] = internal.Level(sg.GroupAccessLevel)
 				}
-				sharedGroups[g.FullPath] = internal.Level(sg.GroupAccessLevel)
-			}
 
-			members, err := m.fetchGroupMembers(group.FullPath)
-			if err != nil {
-				errs.Append(err)
-				continue
-			}
+				members, err := m.fetchGroupMembers(group.FullPath)
+				if err != nil {
+					errs.Append(err)
+					return
+				}
 
-			variables, err := m.fetchGroupVariables(group.FullPath)
-			if err != nil {
-				errs.Append(err)
-				continue
-			}
+				variables, err := m.fetchGroupVariables(group.FullPath)
+				if err != nil {
+					errs.Append(err)
+					return
+				}
 
-			logrus.Debugf("  appending group '%s' with it's members", group.FullPath)
-			groups[group.FullPath] = GitlabGroup{
-				fullpath:   group.FullPath,
-				sharedWith: sharedGroups,
-				members:    members,
-				variables:  variables,
-			}
+				logrus.Debugf("  appending group '%s' with it's members", group.FullPath)
+				groups[group.FullPath] = GitlabGroup{
+					fullpath:   group.FullPath,
+					sharedWith: sharedGroups,
+					members:    members,
+					variables:  variables,
+				}
+			}(group)
 		}
 	}()
 
@@ -154,47 +156,49 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		go m.fetchAllProjects(projectsCh, &errs)
 
 		for project := range projectsCh {
-			groups := make(map[string]internal.Level, 0)
+			go func(project gitlab.Project) {
+				groups := make(map[string]internal.Level, 0)
 
-			for _, g := range project.SharedWithGroups {
-				group, _, err := m.client.Groups.GetGroup(g.GroupID)
-				if err != nil {
-					errs.Append(fmt.Errorf("failed to fetch group %s: %s", g.GroupName, err))
-					continue
+				for _, g := range project.SharedWithGroups {
+					group, _, err := m.client.Groups.GetGroup(g.GroupID)
+					if err != nil {
+						errs.Append(fmt.Errorf("failed to fetch group %s: %s", g.GroupName, err))
+						continue
+					}
+					groups[group.FullPath] = internal.Level(g.GroupAccessLevel)
 				}
-				groups[group.FullPath] = internal.Level(g.GroupAccessLevel)
-			}
 
-			members, err := m.fetchProjectMembers(project.PathWithNamespace)
-			if err != nil {
-				errs.Append(fmt.Errorf("failed to fetch project members for '%s': %s", project.PathWithNamespace, err))
-				continue
-			}
-
-			// Skip archived projects (they are read-only by definition)
-			if project.Archived {
-				logrus.Debugf("  skipping variables for project '%s' because it's archived", project.PathWithNamespace)
-				continue
-			}
-
-			variables := make(map[string]string)
-
-			// Only try to fetch variables from projects with enabled pipelines
-			if project.JobsEnabled {
-				variables, err = m.fetchProjectVariables(project.PathWithNamespace)
+				members, err := m.fetchProjectMembers(project.PathWithNamespace)
 				if err != nil {
-					errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
-					continue
+					errs.Append(fmt.Errorf("failed to fetch project members for '%s': %s", project.PathWithNamespace, err))
+					return
 				}
-			}
 
-			logrus.Debugf("  appending project '%s' with it's members", project.PathWithNamespace)
-			projects[project.PathWithNamespace] = GitlabProject{
-				fullpath:   project.PathWithNamespace,
-				sharedWith: groups,
-				members:    members,
-				variables:  variables,
-			}
+				// Skip archived projects (they are read-only by definition)
+				if project.Archived {
+					logrus.Debugf("  skipping variables for project '%s' because it's archived", project.PathWithNamespace)
+					return
+				}
+
+				variables := make(map[string]string)
+
+				// Only try to fetch variables from projects with enabled pipelines
+				if project.JobsEnabled {
+					variables, err = m.fetchProjectVariables(project.PathWithNamespace)
+					if err != nil {
+						errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
+						return
+					}
+				}
+
+				logrus.Debugf("  appending project '%s' with its members", project.PathWithNamespace)
+				projects[project.PathWithNamespace] = GitlabProject{
+					fullpath:   project.PathWithNamespace,
+					sharedWith: groups,
+					members:    members,
+					variables:  variables,
+				}
+			}(project)
 		}
 	}()
 
