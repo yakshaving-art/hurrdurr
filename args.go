@@ -32,7 +32,8 @@ type Args struct {
 	AutoDevOpsMode bool
 	YoloMode       bool
 
-	SnoopDepth int
+	RequestsPerSecond int
+	SnoopDepth        int
 }
 
 func parseArgs() Args {
