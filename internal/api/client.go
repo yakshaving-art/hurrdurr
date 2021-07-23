@@ -3,12 +3,14 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	gitlab "github.com/xanzy/go-gitlab"
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 	"gitlab.com/yakshaving.art/hurrdurr/pkg/random"
+	"golang.org/x/time/rate"
 )
 
 // GitlabAPIClient is a client for proving high level behaviors when talking to
@@ -23,9 +25,10 @@ type GitlabAPIClient struct {
 
 // GitlabAPIClientArgs gitlab api client
 type GitlabAPIClientArgs struct {
-	GitlabToken     string
-	GitlabBaseURL   string
-	GitlabGhostUser string
+	GitlabToken       string
+	GitlabBaseURL     string
+	GitlabGhostUser   string
+	RequestsPerSecond int
 }
 
 // ErrForbiddenAction is used to indicate that an error is triggered due to the
@@ -34,7 +37,11 @@ var ErrForbiddenAction = fmt.Errorf("The user is not allowed to run this command
 
 // NewGitlabAPIClient create a new Gitlab API Client
 func NewGitlabAPIClient(args GitlabAPIClientArgs) GitlabAPIClient {
-	gitlabClient, err := gitlab.NewClient(args.GitlabToken, gitlab.WithBaseURL(args.GitlabBaseURL))
+	rateLimiter := rate.NewLimiter(rate.Every(time.Second), args.RequestsPerSecond)
+	clientLimiter := gitlab.WithCustomLimiter(rateLimiter)
+	clientBaseURL := gitlab.WithBaseURL(args.GitlabBaseURL)
+
+	gitlabClient, err := gitlab.NewClient(args.GitlabToken, clientLimiter, clientBaseURL)
 	if err != nil {
 		logrus.Fatalf("Could initialize gitlab client with base URL '%s': '%s'", args.GitlabBaseURL, err)
 	}
@@ -301,7 +308,7 @@ func (m GitlabAPIClient) CreateBotUser(username, email string) error {
 		Password:         &p,
 		Name:             &name,
 		Email:            &email,
-		SkipConfirmation: b(true),
+		SkipConfirmation: boolPointer(true),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create bot user '%s': %s", username, err)
@@ -318,7 +325,7 @@ func (m GitlabAPIClient) UpdateBotEmail(username, email string) error {
 		botUserID,
 		&gitlab.ModifyUserOptions{
 			Email:              &email,
-			SkipReconfirmation: b(true),
+			SkipReconfirmation: boolPointer(true),
 		})
 	if err != nil {
 		return fmt.Errorf("failed to update bot user '%s' email to '%s': %s", username, email, err)
@@ -566,4 +573,8 @@ func (m GitlabAPIClient) fetchProject(fullpath string) (*gitlab.Project, error) 
 		return nil, fmt.Errorf("failed to fetch project '%s': %s", fullpath, err)
 	}
 	return p, nil
+}
+
+func boolPointer(b bool) *bool {
+	return &b
 }

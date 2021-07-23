@@ -20,6 +20,7 @@ ineffectively, yet does the jerb.
 - **-ghost-user** system wide GitLab ghost user. (default "ghost")
 - **-manage-acl** manage groups, projects permissions and sharing.
 - **-manage-users** manage user properties, like adminness and blockedness.
+- **-requests-per-second** how many requests per second to perform against Gitlab
 - **-snoopdepth** do not report unmanaged groups located deeper than this.
 - **-version** prints the version and exits without error.
 - **-yolo-force-secrets-overwrite** life is too short to not overwrite group
