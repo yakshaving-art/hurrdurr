@@ -34,9 +34,10 @@ func main() {
 
 	client := api.NewGitlabAPIClient(
 		api.GitlabAPIClientArgs{
-			GitlabToken:     args.GitlabToken,
-			GitlabBaseURL:   args.GitlabBaseURL,
-			GitlabGhostUser: args.GhostUser,
+			GitlabToken:       args.GitlabToken,
+			GitlabBaseURL:     args.GitlabBaseURL,
+			GitlabGhostUser:   args.GhostUser,
+			RequestsPerSecond: args.RequestsPerSecond,
 		})
 
 	var currentState internal.State
