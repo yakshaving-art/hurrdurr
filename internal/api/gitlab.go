@@ -112,6 +112,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		groupsCh := make(chan gitlab.Group)
 		go m.fetchGroups(true, groupsCh, &errs)
 		groupsWg := sync.WaitGroup{}
+		defer groupsWg.Done()
 
 		for group := range groupsCh {
 			groupsWg.Add(1)
@@ -139,7 +140,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 					return
 				}
 
-				logrus.Debugf("  appending group '%s' with it's members", group.FullPath)
+				logrus.Debugf("appending group '%s' with it's members", group.FullPath)
 				groups[group.FullPath] = GitlabGroup{
 					fullpath:   group.FullPath,
 					sharedWith: sharedGroups,
@@ -148,7 +149,6 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				}
 			}(group)
 		}
-		groupsWg.Done()
 	}()
 
 	go func() {
@@ -158,6 +158,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		projectsCh := make(chan gitlab.Project)
 		go m.fetchAllProjects(projectsCh, &errs)
 		projectsWg := sync.WaitGroup{}
+		defer projectsWg.Done()
 
 		for project := range projectsCh {
 			projectsWg.Add(1)
@@ -205,7 +206,6 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				}
 			}(project)
 		}
-		projectsWg.Done()
 	}()
 
 	wg.Wait()
