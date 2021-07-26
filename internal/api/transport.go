@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 func newBackoffTransport() *http.Client {
@@ -35,6 +37,7 @@ func (b backoffTransport) RoundTrip(req *http.Request) (r *http.Response, err er
 
 		switch r.StatusCode {
 		case http.StatusTooManyRequests:
+			logrus.Debugf("we are sending too many requests. backing off for %d milliseconds", b.backoffDuration.Milliseconds())
 			continue
 		default:
 			break
