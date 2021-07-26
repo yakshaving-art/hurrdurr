@@ -111,8 +111,10 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		logrus.Debugf("loading group members...")
 		groupsCh := make(chan gitlab.Group)
 		go m.fetchGroups(true, groupsCh, &errs)
+		groupsWg := sync.WaitGroup{}
 
 		for group := range groupsCh {
+			groupsWg.Add(1)
 			go func(group gitlab.Group) {
 				members, err := m.fetchGroupMembers(group.FullPath)
 				if err != nil {
@@ -134,6 +136,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				}
 			}(group)
 		}
+		groupsWg.Done()
 	}()
 
 	go func() {
@@ -142,8 +145,10 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		logrus.Debugf("loading projects...")
 		projectsCh := make(chan gitlab.Project)
 		go m.fetchAllProjects(projectsCh, &errs)
+		projectsWg := sync.WaitGroup{}
 
 		for project := range projectsCh {
+			projectsWg.Add(1)
 			go func(project gitlab.Project) {
 				groups := make(map[string]internal.Level, 0)
 
@@ -164,7 +169,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 
 				// Skip archived projects (they are read-only by definition)
 				if project.Archived {
-					logrus.Debugf("  skipping variables for project '%s' because it's archived", project.PathWithNamespace)
+					logrus.Debugf("skipping variables for project '%s' because it's archived", project.PathWithNamespace)
 					return
 				}
 
@@ -179,7 +184,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 					}
 				}
 
-				logrus.Debugf("  appending project '%s' with its members", project.PathWithNamespace)
+				logrus.Debugf("appending project '%s' with its members", project.PathWithNamespace)
 				projects[project.PathWithNamespace] = GitlabProject{
 					fullpath:   project.PathWithNamespace,
 					sharedWith: groups,
@@ -188,6 +193,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				}
 			}(project)
 		}
+		projectsWg.Done()
 	}()
 
 	wg.Wait()
