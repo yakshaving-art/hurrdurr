@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
@@ -105,10 +106,9 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
+	logrus.Debugf("loading group members...")
 	go func() {
 		defer wg.Done()
-
-		logrus.Debugf("loading group members...")
 		groupsCh := make(chan gitlab.Group)
 		go m.fetchGroups(true, groupsCh, &errs)
 		groupsWg := sync.WaitGroup{}
@@ -117,8 +117,8 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		for group := range groupsCh {
 			groupsWg.Add(1)
 			go func(group gitlab.Group) {
+				startTime := time.Now()
 				sharedGroups := make(map[string]internal.Level, 0)
-
 				for _, sg := range group.SharedWithGroups {
 					g, _, err := m.client.Groups.GetGroup(sg.GroupID)
 					if err != nil {
@@ -140,7 +140,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 					return
 				}
 
-				logrus.Debugf("appending group '%s' with it's members", group.FullPath)
+				logrus.Debugf("appending group '%s' with it's members (took %d milliseconds)", group.FullPath, time.Since(startTime).Milliseconds())
 				groups[group.FullPath] = GitlabGroup{
 					fullpath:   group.FullPath,
 					sharedWith: sharedGroups,
@@ -151,10 +151,9 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		}
 	}()
 
+	logrus.Debugf("loading projects...")
 	go func() {
 		defer wg.Done()
-
-		logrus.Debugf("loading projects...")
 		projectsCh := make(chan gitlab.Project)
 		go m.fetchAllProjects(projectsCh, &errs)
 		projectsWg := sync.WaitGroup{}
@@ -163,12 +162,13 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		for project := range projectsCh {
 			projectsWg.Add(1)
 			go func(project gitlab.Project) {
+				startTime := time.Now()
 				groups := make(map[string]internal.Level, 0)
 
 				for _, g := range project.SharedWithGroups {
 					group, _, err := m.client.Groups.GetGroup(g.GroupID)
 					if err != nil {
-						errs.Append(fmt.Errorf("failed to fetch group %s: %s", g.GroupName, err))
+						errs.Append(fmt.Errorf("failed to fetch group %s: %s (took %d milliseconds)", g.GroupName, err, time.Since(startTime).Milliseconds()))
 						continue
 					}
 					groups[group.FullPath] = internal.Level(g.GroupAccessLevel)
@@ -176,13 +176,13 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 
 				members, err := m.fetchProjectMembers(project.PathWithNamespace)
 				if err != nil {
-					errs.Append(fmt.Errorf("failed to fetch project members for '%s': %s", project.PathWithNamespace, err))
+					errs.Append(fmt.Errorf("failed to fetch project members for '%s': %s (took %d milliseconds)", project.PathWithNamespace, err, time.Since(startTime).Milliseconds()))
 					return
 				}
 
 				// Skip archived projects (they are read-only by definition)
 				if project.Archived {
-					logrus.Debugf("skipping variables for project '%s' because it's archived", project.PathWithNamespace)
+					logrus.Debugf("skipping variables for project '%s' because it's archived (took %d milliseconds)", project.PathWithNamespace, time.Since(startTime).Milliseconds())
 					return
 				}
 
@@ -192,12 +192,12 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				if project.JobsEnabled {
 					variables, err = m.fetchProjectVariables(project.PathWithNamespace)
 					if err != nil {
-						errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
+						errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s (took %d milliseconds)", project.PathWithNamespace, err, time.Since(startTime).Milliseconds()))
 						return
 					}
 				}
 
-				logrus.Debugf("appending project '%s' with its members", project.PathWithNamespace)
+				logrus.Debugf("appending project '%s' with its members (took %d milliseconds)", project.PathWithNamespace, time.Since(startTime).Milliseconds())
 				projects[project.PathWithNamespace] = GitlabProject{
 					fullpath:   project.PathWithNamespace,
 					sharedWith: groups,
