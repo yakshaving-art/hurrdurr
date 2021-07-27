@@ -38,7 +38,7 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	projects := make(map[string]int, 0)
 
 	usersCh := make(chan gitlab.User)
-	m.fetchAllUsers(usersCh, &errs)
+	go m.fetchAllUsers(usersCh, &errs)
 	adminCount := 0
 	for u := range usersCh {
 		startTime := time.Now()
@@ -71,13 +71,13 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	}
 
 	groupsCh := make(chan gitlab.Group)
-	m.fetchGroups(true, groupsCh, &errs)
+	go m.fetchGroups(true, groupsCh, &errs)
 	for group := range groupsCh {
 		groups[group.FullPath] = group.ID
 	}
 
 	projectsCh := make(chan gitlab.Project)
-	m.fetchAllProjects(projectsCh, &errs)
+	go m.fetchAllProjects(projectsCh, &errs)
 	for project := range projectsCh {
 		startTime := time.Now()
 		projects[project.PathWithNamespace] = project.ID
@@ -115,11 +115,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 	go func() {
 		defer wg.Done()
 		groupsCh := make(chan gitlab.Group)
-		go func() {
-			startTime := time.Now()
-			m.fetchGroups(true, groupsCh, &errs)
-			logrus.Debugf("done fetching all groups as part of the full gitlab state (took %s)", time.Since(startTime))
-		}()
+		go m.fetchGroups(true, groupsCh, &errs)
 
 		groupsWg := sync.WaitGroup{}
 		for i := 0; i < concurrency; i++ {
@@ -166,11 +162,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 	go func() {
 		defer wg.Done()
 		projectsCh := make(chan gitlab.Project)
-		go func() {
-			startTime := time.Now()
-			go m.fetchAllProjects(projectsCh, &errs)
-			logrus.Debugf("done fetching all projects as part of the full gitlab state (took %s)", time.Since(startTime))
-		}()
+		go m.fetchAllProjects(projectsCh, &errs)
 
 		projectsWg := sync.WaitGroup{}
 		for i := 0; i < concurrency; i++ {
