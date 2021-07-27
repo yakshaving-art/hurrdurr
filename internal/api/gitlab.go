@@ -38,16 +38,22 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	projects := make(map[string]int, 0)
 
 	usersCh := make(chan gitlab.User)
-	m.fetchAllUsers(usersCh, &errs)
+	go func() {
+		startTime := time.Now()
+		m.fetchAllUsers(usersCh, &errs)
+		logrus.Debugf("done fetching all users (took %s)", time.Since(startTime))
+	}()
 
 	adminCount := 0
 	for u := range usersCh {
+		startTime := time.Now()
 		if u.State == "blocked" {
 			users[u.Username] = GitlabUser{
 				ID:             u.ID,
 				PrincipalEmail: u.Email,
 				Role:           BlockedUserRole,
 			}
+			logrus.Debugf("appending blocked user %s (took %s)", u.Username, time.Since(startTime))
 
 		} else if u.IsAdmin {
 			users[u.Username] = GitlabUser{
@@ -56,6 +62,7 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 				Role:           AdminUserRole,
 			}
 			adminCount++
+			logrus.Debugf("appending admin %s (took %s)", u.Username, time.Since(startTime))
 
 		} else {
 			// TODO - identify bots
@@ -64,6 +71,7 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 				PrincipalEmail: u.Email,
 				Role:           UserUserRole,
 			}
+			logrus.Debugf("appending user %s (took %s)", u.Username, time.Since(startTime))
 		}
 	}
 
@@ -76,7 +84,9 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	projectsCh := make(chan gitlab.Project)
 	m.fetchAllProjects(projectsCh, &errs)
 	for project := range projectsCh {
+		startTime := time.Now()
 		projects[project.PathWithNamespace] = project.ID
+		logrus.Debugf("appending project %s (took %s)", project.PathWithNamespace, time.Since(startTime))
 	}
 
 	if adminCount == 0 {
