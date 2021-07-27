@@ -425,7 +425,7 @@ func (m GitlabAPIClient) fetchUser(username string) *gitlab.User {
 	if err != nil {
 		logrus.Fatalf("failed to fetch user '%s': %s (took %s)", username, err, time.Since(startTime))
 	}
-	logrus.Debugf("done fetching user '%s' (took %s)", time.Since(startTime))
+	logrus.Debugf("done fetching user '%s' (took %s)", username, time.Since(startTime))
 
 	if len(users) == 0 {
 		return nil
@@ -579,7 +579,7 @@ func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]intern
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch project members for '%s': %s (took %s)", fullpath, err, time.Since(startTime))
 		}
-		logrus.Debugf("done fetching page %d of projects members for '%s' (took %s)", fullpath, page, time.Since(startTime))
+		logrus.Debugf("done fetching page %d of projects members for '%s' (took %s)", page, fullpath, time.Since(startTime))
 
 		for _, member := range members {
 			projectMembers[member.Username] = internal.Level(member.AccessLevel)
