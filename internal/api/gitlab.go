@@ -130,7 +130,6 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		groupsWg := sync.WaitGroup{}
 
 		for i := 0; i < concurrency; i++ {
-			logrus.Debugf("spawning %d")
 			for group := range groupsCh {
 				groupsWg.Add(1)
 				go func(group gitlab.Group) {
@@ -167,6 +166,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				}(group)
 			}
 		}
+		groupsWg.Wait()
 	}()
 
 	logrus.Debugf("loading projects...")
@@ -229,6 +229,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				}(project)
 			}
 		}
+		projectsWg.Wait()
 	}()
 
 	wg.Wait()
