@@ -356,6 +356,7 @@ func (m GitlabAPIClient) UpdateBotEmail(username, email string) error {
 
 func (m GitlabAPIClient) fetchAllUsers(ch chan gitlab.User, errs *errors.Errors) {
 	defer close(ch)
+	logrus.Info("fetching all users")
 
 	startTime := time.Now()
 	page := 1
@@ -383,10 +384,12 @@ func (m GitlabAPIClient) fetchAllUsers(ch chan gitlab.User, errs *errors.Errors)
 		}
 		page++
 	}
-	logrus.Infof("done fetching users (took %s)", time.Since(startTime))
+	logrus.Infof("done fetching all users (took %s)", time.Since(startTime))
 }
 
 func (m GitlabAPIClient) fetchUser(username string) *gitlab.User {
+	logrus.Debugf("fetching user '%s'", username)
+
 	startTime := time.Now()
 	users, _, err := m.client.Users.ListUsers(&gitlab.ListUsersOptions{
 		ListOptions: gitlab.ListOptions{
@@ -407,6 +410,8 @@ func (m GitlabAPIClient) fetchUser(username string) *gitlab.User {
 }
 
 func (m GitlabAPIClient) fetchGroup(fullpath string) *gitlab.Group {
+	logrus.Debugf("fetching group '%s'", fullpath)
+
 	startTime := time.Now()
 	group, _, err := m.client.Groups.GetGroup(fullpath)
 	if err != nil {
@@ -418,6 +423,8 @@ func (m GitlabAPIClient) fetchGroup(fullpath string) *gitlab.Group {
 }
 
 func (m GitlabAPIClient) fetchGroups(allAvailable bool, ch chan gitlab.Group, errs *errors.Errors) {
+	logrus.Info("fetching all groups")
+
 	defer close(ch)
 
 	startTime := time.Now()
@@ -453,6 +460,7 @@ func (m GitlabAPIClient) fetchGroups(allAvailable bool, ch chan gitlab.Group, er
 
 func (m GitlabAPIClient) fetchGroupMembers(fullpath string) (map[string]internal.Level, error) {
 	groupMembers := make(map[string]internal.Level)
+	logrus.Debugf("fetching all group members for '%s'", fullpath)
 
 	startTime := time.Now()
 	page := 1
@@ -485,6 +493,8 @@ func (m GitlabAPIClient) fetchGroupMembers(fullpath string) (map[string]internal
 }
 
 func (m GitlabAPIClient) fetchGroupVariables(fullpath string) (map[string]string, error) {
+	logrus.Debugf("fetching group variables for '%s'", fullpath)
+
 	variables := make(map[string]string)
 	_, _, err := m.client.Groups.GetGroup(fullpath)
 	if err != nil {
@@ -509,6 +519,7 @@ func (m GitlabAPIClient) fetchGroupVariables(fullpath string) (map[string]string
 }
 
 func (m GitlabAPIClient) fetchAllProjects(ch chan gitlab.Project, errs *errors.Errors) {
+	logrus.Debugf("fetching all projects")
 	defer close(ch)
 
 	startTime := time.Now()
@@ -539,10 +550,10 @@ func (m GitlabAPIClient) fetchAllProjects(ch chan gitlab.Project, errs *errors.E
 		page++
 	}
 	logrus.Infof("done fetching all projects (took %s)", time.Since(startTime))
-
 }
 
 func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]internal.Level, error) {
+	logrus.Debugf("fetching project members for '%s'", fullpath)
 	projectMembers := make(map[string]internal.Level)
 
 	startTime := time.Now()
@@ -571,18 +582,20 @@ func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]intern
 		}
 		page++
 	}
-	logrus.Debugf("done fetching all project members (took %s)", time.Since(startTime))
+	logrus.Debugf("done fetching project members for %s (took %s)", fullpath, time.Since(startTime))
 	return projectMembers, nil
 }
 
 func (m GitlabAPIClient) fetchProjectVariables(fullpath string) (map[string]string, error) {
+	logrus.Debugf("fetching project variables for '%s'", fullpath)
 	projectVariables := make(map[string]string)
+
+	startTime := time.Now()
 	_, _, err := m.client.Projects.GetProject(fullpath, nil)
 	if err != nil {
 		logrus.Fatalf("failed to fetch project '%s': %s", fullpath, err)
 	}
 
-	startTime := time.Now()
 	vars, resp, err := m.client.ProjectVariables.ListVariables(fullpath, nil)
 	if err != nil {
 		if resp.StatusCode == http.StatusForbidden {
@@ -590,15 +603,18 @@ func (m GitlabAPIClient) fetchProjectVariables(fullpath string) (map[string]stri
 		}
 		return nil, fmt.Errorf("failed to list project variables for '%s': %s (took %s)", fullpath, err, time.Since(startTime))
 	}
-	logrus.Debugf("done fetching variables for project '%s' (took %s)", fullpath, time.Since(startTime))
 
 	for _, v := range vars {
 		projectVariables[v.Key] = v.Value
 	}
+
+	logrus.Debugf("done fetching variables for project '%s' (took %s)", fullpath, time.Since(startTime))
 	return projectVariables, nil
 }
 
 func (m GitlabAPIClient) fetchProject(fullpath string) (*gitlab.Project, error) {
+	logrus.Debugf("fetching project '%s'", fullpath)
+
 	startTime := time.Now()
 	p, _, err := m.client.Projects.GetProject(fullpath, nil)
 	if err != nil {
