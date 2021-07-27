@@ -96,7 +96,7 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	for project := range projectsCh {
 		startTime := time.Now()
 		projects[project.PathWithNamespace] = project.ID
-		logrus.Debugf("appending project %s", project.PathWithNamespace, time.Since(startTime))
+		logrus.Debugf("appending project %s (took %s)", project.PathWithNamespace, time.Since(startTime))
 	}
 
 	if adminCount == 0 {
