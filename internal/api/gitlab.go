@@ -38,12 +38,7 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	projects := make(map[string]int, 0)
 
 	usersCh := make(chan gitlab.User)
-	go func() {
-		startTime := time.Now()
-		m.fetchAllUsers(usersCh, &errs)
-		logrus.Debugf("done fetching all users (took %s)", time.Since(startTime))
-	}()
-
+	m.fetchAllUsers(usersCh, &errs)
 	adminCount := 0
 	for u := range usersCh {
 		startTime := time.Now()
@@ -162,7 +157,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 						return
 					}
 
-					logrus.Debugf("appending group '%s' with it's members (took %s)", group.FullPath, time.Since(startTime))
+					logrus.Debugf("appending group '%s' with its members (took %s)", group.FullPath, time.Since(startTime))
 					groups[group.FullPath] = GitlabGroup{
 						fullpath:   group.FullPath,
 						sharedWith: sharedGroups,
