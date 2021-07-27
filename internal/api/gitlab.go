@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	batchSize int = 25
+	concurrency int = 5
 )
 
 // Roles
@@ -129,7 +129,8 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		go m.fetchGroups(true, groupsCh, &errs)
 		groupsWg := sync.WaitGroup{}
 
-		for i := 0; i < batchSize; i++ {
+		for i := 0; i < concurrency; i++ {
+			logrus.Debugf("spawning %d")
 			for group := range groupsCh {
 				groupsWg.Add(1)
 				go func(group gitlab.Group) {
@@ -165,7 +166,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		go m.fetchAllProjects(projectsCh, &errs)
 		projectsWg := sync.WaitGroup{}
 
-		for i := 0; i < batchSize; i++ {
+		for i := 0; i < concurrency; i++ {
 			for project := range projectsCh {
 				projectsWg.Add(1)
 				go func(project gitlab.Project) {
