@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -28,7 +29,8 @@ var (
 // CreatePreloadedQuerier creates a Querier with all the data preloaded
 func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	logrus.Debugf("building querier...")
-
+	// TODO: Remove this
+	howManyGoroutines()
 	errs := errors.New()
 
 	users := make(map[string]GitlabUser, 0)
@@ -125,6 +127,8 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 	wg.Add(2)
 
 	logrus.Debugf("loading group members...")
+	// TODO: Remove this
+	howManyGoroutines()
 	go func() {
 		defer wg.Done()
 		groupsCh := make(chan gitlab.Group)
@@ -137,6 +141,14 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		groupsWg := sync.WaitGroup{}
 		for i := 0; i < concurrency; i++ {
 			for group := range groupsCh {
+				// TODO: Remove this
+				counter := 0
+				if counter%25 == 0 {
+					logrus.Debugf("groupsWG = %d\n", groupsWg)
+					howManyGoroutines()
+				}
+				counter++
+
 				groupsWg.Add(1)
 				go func(group gitlab.Group) {
 					defer groupsWg.Done()
@@ -166,6 +178,8 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 	}()
 
 	logrus.Debugf("loading projects...")
+	// TODO: Remove this
+	howManyGoroutines()
 	go func() {
 		defer wg.Done()
 		projectsCh := make(chan gitlab.Project)
@@ -178,6 +192,14 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		projectsWg := sync.WaitGroup{}
 		for i := 0; i < concurrency; i++ {
 			for project := range projectsCh {
+				// TODO: Remove this
+				counter := 0
+				if counter%25 == 0 {
+					logrus.Debugf("projectsWg = %d\n", projectsWg)
+					howManyGoroutines()
+				}
+				counter++
+
 				projectsWg.Add(1)
 				go func(project gitlab.Project) {
 					defer projectsWg.Done()
@@ -543,4 +565,9 @@ func (g GitlabProject) GetVariables() map[string]string {
 
 func b(bb bool) *bool {
 	return &bb
+}
+
+func howManyGoroutines() {
+	logrus.Debugf("there are currently %d goroutines", runtime.NumGoroutine())
+	return
 }
