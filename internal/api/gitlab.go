@@ -13,6 +13,10 @@ import (
 	gitlab "github.com/xanzy/go-gitlab"
 )
 
+const (
+	batchSize int = 25
+)
+
 // Roles
 var (
 	AdminUserRole   = "ADMIN"
@@ -112,42 +116,43 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		groupsCh := make(chan gitlab.Group)
 		go m.fetchGroups(true, groupsCh, &errs)
 		groupsWg := sync.WaitGroup{}
-		defer groupsWg.Done()
 
-		for group := range groupsCh {
-			groupsWg.Add(1)
-			go func(group gitlab.Group) {
-				startTime := time.Now()
-				sharedGroups := make(map[string]internal.Level, 0)
-				for _, sg := range group.SharedWithGroups {
-					g, _, err := m.client.Groups.GetGroup(sg.GroupID)
+		for i := 0; i < batchSize; i++ {
+			for group := range groupsCh {
+				groupsWg.Add(1)
+				go func(group gitlab.Group) {
+					startTime := time.Now()
+					sharedGroups := make(map[string]internal.Level, 0)
+					for _, sg := range group.SharedWithGroups {
+						g, _, err := m.client.Groups.GetGroup(sg.GroupID)
+						if err != nil {
+							errs.Append(fmt.Errorf("failed to fetch group %s: %s", sg.GroupName, err))
+							return
+						}
+						sharedGroups[g.FullPath] = internal.Level(sg.GroupAccessLevel)
+					}
+
+					members, err := m.fetchGroupMembers(group.FullPath)
 					if err != nil {
-						errs.Append(fmt.Errorf("failed to fetch group %s: %s", sg.GroupName, err))
+						errs.Append(err)
 						return
 					}
-					sharedGroups[g.FullPath] = internal.Level(sg.GroupAccessLevel)
-				}
 
-				members, err := m.fetchGroupMembers(group.FullPath)
-				if err != nil {
-					errs.Append(err)
-					return
-				}
+					variables, err := m.fetchGroupVariables(group.FullPath)
+					if err != nil {
+						errs.Append(err)
+						return
+					}
 
-				variables, err := m.fetchGroupVariables(group.FullPath)
-				if err != nil {
-					errs.Append(err)
-					return
-				}
-
-				logrus.Debugf("appending group '%s' with it's members (took %s)", group.FullPath, time.Since(startTime))
-				groups[group.FullPath] = GitlabGroup{
-					fullpath:   group.FullPath,
-					sharedWith: sharedGroups,
-					members:    members,
-					variables:  variables,
-				}
-			}(group)
+					logrus.Debugf("appending group '%s' with it's members (took %s)", group.FullPath, time.Since(startTime))
+					groups[group.FullPath] = GitlabGroup{
+						fullpath:   group.FullPath,
+						sharedWith: sharedGroups,
+						members:    members,
+						variables:  variables,
+					}
+				}(group)
+			}
 		}
 	}()
 
@@ -157,56 +162,59 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		projectsCh := make(chan gitlab.Project)
 		go m.fetchAllProjects(projectsCh, &errs)
 		projectsWg := sync.WaitGroup{}
-		defer projectsWg.Done()
 
-		for project := range projectsCh {
+		for i := 0; i < batchSize; i++ {
 			projectsWg.Add(1)
-			go func(project gitlab.Project) {
-				// Skip archived projects (they are read-only by definition)
-				startTime := time.Now()
-				if project.Archived {
-					logrus.Debugf("skipping variables for project '%s' because it's archived (took %s)", project.PathWithNamespace, time.Since(startTime))
-					return
-				}
+			for project := range projectsCh {
+				go func(project gitlab.Project) {
+					defer projectsWg.Done()
 
-				groups := make(map[string]internal.Level, 0)
-				for _, g := range project.SharedWithGroups {
+					// Skip archived projects (they are read-only by definition)
 					startTime := time.Now()
-					group, _, err := m.client.Groups.GetGroup(g.GroupID)
-					if err != nil {
-						errs.Append(fmt.Errorf("failed to fetch group %s: %s (took %s)", g.GroupName, err, time.Since(startTime)))
+					if project.Archived {
+						logrus.Debugf("skipping variables for project '%s' because it's archived (took %s)", project.PathWithNamespace, time.Since(startTime))
 						return
 					}
-					groups[group.FullPath] = internal.Level(g.GroupAccessLevel)
-				}
 
-				startTime = time.Now()
-				members, err := m.fetchProjectMembers(project.PathWithNamespace)
-				if err != nil {
-					errs.Append(fmt.Errorf("failed to fetch project members for '%s': %s (took %s)", project.PathWithNamespace, err, time.Since(startTime)))
-					return
-				}
+					groups := make(map[string]internal.Level, 0)
+					for _, g := range project.SharedWithGroups {
+						startTime := time.Now()
+						group, _, err := m.client.Groups.GetGroup(g.GroupID)
+						if err != nil {
+							errs.Append(fmt.Errorf("failed to fetch group %s: %s (took %s)", g.GroupName, err, time.Since(startTime)))
+							return
+						}
+						groups[group.FullPath] = internal.Level(g.GroupAccessLevel)
+					}
 
-				variables := make(map[string]string)
-
-				// Only try to fetch variables from projects with enabled pipelines
-				if project.JobsEnabled {
-					startTime := time.Now()
-					variables, err = m.fetchProjectVariables(project.PathWithNamespace)
+					startTime = time.Now()
+					members, err := m.fetchProjectMembers(project.PathWithNamespace)
 					if err != nil {
-						errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s (took %s)", project.PathWithNamespace, err, time.Since(startTime)))
+						errs.Append(fmt.Errorf("failed to fetch project members for '%s': %s (took %s)", project.PathWithNamespace, err, time.Since(startTime)))
 						return
 					}
-				}
 
-				logrus.Debugf("appending project '%s' with its members (took %s)", project.PathWithNamespace, time.Since(startTime))
-				projects[project.PathWithNamespace] = GitlabProject{
-					fullpath:   project.PathWithNamespace,
-					sharedWith: groups,
-					members:    members,
-					variables:  variables,
-				}
-			}(project)
+					variables := make(map[string]string)
+
+					// Only try to fetch variables from projects with enabled pipelines
+					if project.JobsEnabled {
+						startTime := time.Now()
+						variables, err = m.fetchProjectVariables(project.PathWithNamespace)
+						if err != nil {
+							errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s (took %s)", project.PathWithNamespace, err, time.Since(startTime)))
+							return
+						}
+					}
+
+					logrus.Debugf("appending project '%s' with its members (took %s)", project.PathWithNamespace, time.Since(startTime))
+					projects[project.PathWithNamespace] = GitlabProject{
+						fullpath:   project.PathWithNamespace,
+						sharedWith: groups,
+						members:    members,
+						variables:  variables,
+					}
+				}(project)
+			}
 		}
 	}()
 
