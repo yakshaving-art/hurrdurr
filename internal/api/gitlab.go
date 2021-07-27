@@ -38,22 +38,16 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	projects := make(map[string]int, 0)
 
 	usersCh := make(chan gitlab.User)
-	go func() {
-		startTime := time.Now()
-		m.fetchAllUsers(usersCh, &errs)
-		logrus.Debugf("done fetching all users (took %s)", time.Since(startTime))
-	}()
+	m.fetchAllUsers(usersCh, &errs)
 
 	adminCount := 0
 	for u := range usersCh {
-		startTime := time.Now()
 		if u.State == "blocked" {
 			users[u.Username] = GitlabUser{
 				ID:             u.ID,
 				PrincipalEmail: u.Email,
 				Role:           BlockedUserRole,
 			}
-			logrus.Debugf("appending blocked user %s (took %s)", u.Username, time.Since(startTime))
 
 		} else if u.IsAdmin {
 			users[u.Username] = GitlabUser{
@@ -62,7 +56,6 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 				Role:           AdminUserRole,
 			}
 			adminCount++
-			logrus.Debugf("appending admin %s (took %s)", u.Username, time.Since(startTime))
 
 		} else {
 			// TODO - identify bots
@@ -71,34 +64,19 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 				PrincipalEmail: u.Email,
 				Role:           UserUserRole,
 			}
-			logrus.Debugf("appending user %s (took %s)", u.Username, time.Since(startTime))
 		}
 	}
 
 	groupsCh := make(chan gitlab.Group)
-	go func() {
-		startTime := time.Now()
-		m.fetchGroups(true, groupsCh, &errs)
-		logrus.Debugf("done fetching all groups (took %s)", time.Since(startTime))
-	}()
-
+	m.fetchGroups(true, groupsCh, &errs)
 	for group := range groupsCh {
-		startTime := time.Now()
 		groups[group.FullPath] = group.ID
-		logrus.Debugf("appending group %s (took %s)", group.FullPath, time.Since(startTime))
 	}
 
 	projectsCh := make(chan gitlab.Project)
-	go func() {
-		startTime := time.Now()
-		m.fetchAllProjects(projectsCh, &errs)
-		logrus.Debugf("done fetching all projects (took %s)", time.Since(startTime))
-	}()
-
+	m.fetchAllProjects(projectsCh, &errs)
 	for project := range projectsCh {
-		startTime := time.Now()
 		projects[project.PathWithNamespace] = project.ID
-		logrus.Debugf("appending project %s (took %s)", project.PathWithNamespace, time.Since(startTime))
 	}
 
 	if adminCount == 0 {
