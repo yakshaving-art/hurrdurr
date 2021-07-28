@@ -41,9 +41,8 @@ func NewGitlabAPIClient(args GitlabAPIClientArgs) GitlabAPIClient {
 	rateLimiter := rate.NewLimiter(rate.Every(time.Second), args.RequestsPerSecond)
 	clientLimiter := gitlab.WithCustomLimiter(rateLimiter)
 	clientBaseURL := gitlab.WithBaseURL(args.GitlabBaseURL)
-	clientBackoffTransport := gitlab.WithHTTPClient(newBackoffTransport())
 
-	gitlabClient, err := gitlab.NewClient(args.GitlabToken, clientLimiter, clientBaseURL, clientBackoffTransport)
+	gitlabClient, err := gitlab.NewClient(args.GitlabToken, clientLimiter, clientBaseURL)
 	if err != nil {
 		logrus.Fatalf("Could initialize gitlab client with base URL '%s': '%s'", args.GitlabBaseURL, err)
 	}
