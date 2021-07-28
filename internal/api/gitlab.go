@@ -118,123 +118,81 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 	wg.Add(2)
 
 	logrus.Debugf("loading group members...")
-	// TODO: Remove this
-	howManyGoroutines()
 	go func() {
 		defer wg.Done()
 		groupsCh := make(chan gitlab.Group)
 		go m.fetchGroups(true, groupsCh, &errs)
 
-		groupsWg := sync.WaitGroup{}
-		for i := 0; i < concurrency; i++ {
-			for group := range groupsCh {
-				// TODO: Remove this
-				counter := 0
-				if counter%25 == 0 {
-					logrus.Debugf("groupsWG = %d\n", groupsWg)
-					howManyGoroutines()
-				}
-				counter++
+		for group := range groupsCh {
+			members, err := m.fetchGroupMembers(group.FullPath)
+			if err != nil {
+				errs.Append(err)
+				continue
+			}
 
-				groupsWg.Add(1)
-				go func(group gitlab.Group) {
-					defer groupsWg.Done()
-					startTime := time.Now()
-					members, err := m.fetchGroupMembers(group.FullPath)
-					if err != nil {
-						errs.Append(err)
-						return
-					}
+			variables, err := m.fetchGroupVariables(group.FullPath)
+			if err != nil {
+				errs.Append(err)
+				continue
+			}
 
-					variables, err := m.fetchGroupVariables(group.FullPath)
-					if err != nil {
-						errs.Append(err)
-						return
-					}
-
-					logrus.Debugf("appending group '%s' with its members (took %s)", group.FullPath, time.Since(startTime))
-					groups[group.FullPath] = GitlabGroup{
-						fullpath:  group.FullPath,
-						members:   members,
-						variables: variables,
-					}
-				}(group)
+			groups[group.FullPath] = GitlabGroup{
+				fullpath:  group.FullPath,
+				members:   members,
+				variables: variables,
 			}
 		}
-		groupsWg.Wait()
 	}()
 
 	logrus.Debugf("loading projects...")
-	// TODO: Remove this
-	howManyGoroutines()
 	go func() {
 		defer wg.Done()
 		projectsCh := make(chan gitlab.Project)
 		go m.fetchAllProjects(projectsCh, &errs)
 
-		projectsWg := sync.WaitGroup{}
-		for i := 0; i < concurrency; i++ {
-			for project := range projectsCh {
-				// TODO: Remove this
-				counter := 0
-				if counter%25 == 0 {
-					logrus.Debugf("projectsWg = %d\n", projectsWg)
-					howManyGoroutines()
+		for project := range projectsCh {
+			startTime := time.Now()
+			// Skip archived projects (they are read-only by definition)
+			if project.Archived {
+				logrus.Debugf("skipping variables for project '%s' because it's archived", project.PathWithNamespace)
+				continue
+			}
+
+			groups := make(map[string]internal.Level, 0)
+			for _, g := range project.SharedWithGroups {
+				group, _, err := m.client.Groups.GetGroup(g.GroupID)
+				if err != nil {
+					errs.Append(fmt.Errorf("failed to fetch group %s: %s", g.GroupName, err))
+					continue
 				}
-				counter++
+				groups[group.FullPath] = internal.Level(g.GroupAccessLevel)
+			}
 
-				projectsWg.Add(1)
-				go func(project gitlab.Project) {
-					defer projectsWg.Done()
+			members, err := m.fetchProjectMembers(project.PathWithNamespace)
+			if err != nil {
+				errs.Append(fmt.Errorf("failed to fetch project members for '%s': %s", project.PathWithNamespace, err))
+				continue
+			}
 
-					// Skip archived projects (they are read-only by definition)
-					startTime := time.Now()
-					if project.Archived {
-						logrus.Debugf("skipping variables for project '%s' because it's archived (took %s)", project.PathWithNamespace, time.Since(startTime))
-						return
-					}
+			variables := make(map[string]string)
 
-					groups := make(map[string]internal.Level, 0)
-					for _, g := range project.SharedWithGroups {
-						startTime := time.Now()
-						group, _, err := m.client.Groups.GetGroup(g.GroupID)
-						if err != nil {
-							errs.Append(fmt.Errorf("failed to fetch group %s: %s (took %s)", g.GroupName, err, time.Since(startTime)))
-							return
-						}
-						groups[group.FullPath] = internal.Level(g.GroupAccessLevel)
-					}
+			// Only try to fetch variables from projects with enabled pipelines
+			if project.JobsEnabled {
+				variables, err = m.fetchProjectVariables(project.PathWithNamespace)
+				if err != nil {
+					errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
+					continue
+				}
+			}
 
-					startTime = time.Now()
-					members, err := m.fetchProjectMembers(project.PathWithNamespace)
-					if err != nil {
-						errs.Append(fmt.Errorf("failed to fetch project members for '%s': %s (took %s)", project.PathWithNamespace, err, time.Since(startTime)))
-						return
-					}
-
-					variables := make(map[string]string)
-
-					// Only try to fetch variables from projects with enabled pipelines
-					if project.JobsEnabled {
-						startTime := time.Now()
-						variables, err = m.fetchProjectVariables(project.PathWithNamespace)
-						if err != nil {
-							errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s (took %s)", project.PathWithNamespace, err, time.Since(startTime)))
-							return
-						}
-					}
-
-					logrus.Debugf("appending project '%s' with its members (took %s)", project.PathWithNamespace, time.Since(startTime))
-					projects[project.PathWithNamespace] = GitlabProject{
-						fullpath:   project.PathWithNamespace,
-						sharedWith: groups,
-						members:    members,
-						variables:  variables,
-					}
-				}(project)
+			logrus.Debugf("appending project '%s' with its members (took %s)", project.PathWithNamespace, time.Since(startTime))
+			projects[project.PathWithNamespace] = GitlabProject{
+				fullpath:   project.PathWithNamespace,
+				sharedWith: groups,
+				members:    members,
+				variables:  variables,
 			}
 		}
-		projectsWg.Wait()
 	}()
 
 	wg.Wait()
