@@ -9,10 +9,13 @@ import (
 
 // SetupLogger enables logging at debug level, and adds timestamps to the
 // log for this debugging
-func SetupLogger(debug bool) {
+func SetupLogger(debug bool, trace bool) {
 	logFormatter := plainFormatter{debug: debug}
 	if debug {
 		log.SetLevel(log.DebugLevel)
+	}
+	if trace {
+		log.SetLevel(log.TraceLevel)
 	}
 	log.SetFormatter(&logFormatter)
 }
