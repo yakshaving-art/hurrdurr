@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"runtime"
 	"sync"
 	"time"
 
@@ -506,9 +505,4 @@ func (g GitlabProject) GetVariables() map[string]string {
 
 func b(bb bool) *bool {
 	return &bb
-}
-
-func howManyGoroutines() {
-	logrus.Debugf("there are currently %d goroutines", runtime.NumGoroutine())
-	return
 }
