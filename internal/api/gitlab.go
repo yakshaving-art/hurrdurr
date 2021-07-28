@@ -112,7 +112,8 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
-	logrus.Debugf("loading group members...")
+	logrus.Infoln("loading group members and project details...")
+	startTime := time.Now()
 	go func() {
 		defer wg.Done()
 		groupsCh := make(chan gitlab.Group)
@@ -166,7 +167,6 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 		}
 	}()
 
-	logrus.Debugf("loading projects...")
 	go func() {
 		defer wg.Done()
 		projectsCh := make(chan gitlab.Project)
@@ -218,6 +218,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 	}()
 
 	wg.Wait()
+	logrus.Infoln("done loading group members and project details (took %s)", time.Since(startTime))
 
 	return GitlabState{
 		Querier:  m.Querier,
