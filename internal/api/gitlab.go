@@ -13,10 +13,6 @@ import (
 	gitlab "github.com/xanzy/go-gitlab"
 )
 
-const (
-	concurrency int = 5
-)
-
 // Roles
 var (
 	AdminUserRole   = "ADMIN"
