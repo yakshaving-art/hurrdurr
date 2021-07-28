@@ -34,6 +34,8 @@ type Args struct {
 
 	RequestsPerSecond int
 	SnoopDepth        int
+
+	Concurrency int
 }
 
 func parseArgs() Args {
@@ -58,6 +60,8 @@ func parseArgs() Args {
 		"life is too short to not overwrite group and project environment variables")
 	flag.IntVar(&args.RequestsPerSecond, "requests-per-second", 5, "how many requests per second the Gitlab client can perform")
 	flag.IntVar(&args.SnoopDepth, "snoopdepth", 0, "max depth to report unhandled groups. 0 means all")
+
+	flag.IntVar(&args.Concurrency, "concurrency", 50, "how many concurrent jobs we allow when pre-loading from Gitlab")
 
 	flag.Parse()
 
