@@ -388,7 +388,7 @@ func (m GitlabAPIClient) fetchAllUsers(ch chan gitlab.User, errs *errors.Errors)
 	if err != nil {
 		return
 	}
-	wg.Add(totalPages)
+	wg.Add(totalPages - 1)
 
 	for i := 2; i <= totalPages; i++ {
 		go fff(i)
@@ -468,7 +468,7 @@ func (m GitlabAPIClient) fetchGroups(allAvailable bool, ch chan gitlab.Group, er
 	if err != nil {
 		return
 	}
-	wg.Add(totalPages)
+	wg.Add(totalPages - 1)
 
 	for i := 2; i <= totalPages; i++ {
 		go fff(i)
@@ -511,7 +511,7 @@ func (m GitlabAPIClient) fetchGroupMembers(fullpath string) (map[string]internal
 	if err != nil {
 		return nil, err
 	}
-	wg.Add(totalPages)
+	wg.Add(totalPages - 1)
 
 	for i := 2; i <= totalPages; i++ {
 		go fff(i)
@@ -582,7 +582,7 @@ func (m GitlabAPIClient) fetchAllProjects(ch chan gitlab.Project, errs *errors.E
 	if err != nil {
 		return
 	}
-	wg.Add(totalPages)
+	wg.Add(totalPages - 1)
 
 	for i := 2; i <= totalPages; i++ {
 		go fff(i)
@@ -625,7 +625,7 @@ func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]intern
 	if err != nil {
 		return nil, err
 	}
-	wg.Add(totalPages)
+	wg.Add(totalPages - 1)
 
 	for i := 2; i <= totalPages; i++ {
 		go fff(i)
