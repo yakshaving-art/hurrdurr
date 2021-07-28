@@ -29,8 +29,7 @@ var (
 // CreatePreloadedQuerier creates a Querier with all the data preloaded
 func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	logrus.Debugf("building querier...")
-	// TODO: Remove this
-	howManyGoroutines()
+	querierStartTime := time.Now()
 	errs := errors.New()
 
 	users := make(map[string]GitlabUser, 0)
@@ -39,16 +38,17 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 
 	usersCh := make(chan gitlab.User)
 	go m.fetchAllUsers(usersCh, &errs)
+	logrus.Debugf("populating users map...")
+	startTime := time.Now()
 	adminCount := 0
 	for u := range usersCh {
-		startTime := time.Now()
 		if u.State == "blocked" {
 			users[u.Username] = GitlabUser{
 				ID:             u.ID,
 				PrincipalEmail: u.Email,
 				Role:           BlockedUserRole,
 			}
-			logrus.Debugf("appending blocked user %s (took %s)", u.Username, time.Since(startTime))
+			// logrus.Debugf("appending blocked user %s (took %s)", u.Username, time.Since(startTime))
 
 		} else if u.IsAdmin {
 			users[u.Username] = GitlabUser{
@@ -57,7 +57,7 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 				Role:           AdminUserRole,
 			}
 			adminCount++
-			logrus.Debugf("appending admin %s (took %s)", u.Username, time.Since(startTime))
+			// logrus.Debugf("appending admin %s (took %s)", u.Username, time.Since(startTime))
 
 		} else {
 			// TODO - identify bots
@@ -66,23 +66,30 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 				PrincipalEmail: u.Email,
 				Role:           UserUserRole,
 			}
-			logrus.Debugf("appending user %s (took %s)", u.Username, time.Since(startTime))
+			// logrus.Debugf("appending user %s (took %s)", u.Username, time.Since(startTime))
 		}
 	}
+	logrus.Debugf("done populating users map (took %s)", time.Since(startTime))
 
 	groupsCh := make(chan gitlab.Group)
 	go m.fetchGroups(true, groupsCh, &errs)
+	logrus.Debugf("populating groups map...")
+	startTime = time.Now()
 	for group := range groupsCh {
 		groups[group.FullPath] = group.ID
 	}
+	logrus.Debugf("done populating groups map (took %s)", time.Since(startTime))
 
 	projectsCh := make(chan gitlab.Project)
 	go m.fetchAllProjects(projectsCh, &errs)
+	logrus.Debugf("populating projects map...")
+	startTime = time.Now()
 	for project := range projectsCh {
-		startTime := time.Now()
+		// startTime := time.Now()
 		projects[project.PathWithNamespace] = project.ID
-		logrus.Debugf("appending project %s (took %s)", project.PathWithNamespace, time.Since(startTime))
+		// logrus.Debugf("appending project '%s' (took %s)", project.PathWithNamespace, time.Since(startTime))
 	}
+	logrus.Debugf("done populating projects map (took %s)", time.Since(startTime))
 
 	if adminCount == 0 {
 		errs.Append(fmt.Errorf("no admin was detected, are you using an admin token?"))
@@ -96,6 +103,7 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 		projects:    projects,
 	}
 
+	logrus.Debugf("done building querier (took %s)", time.Since(querierStartTime))
 	return errs.ErrorOrNil()
 }
 
