@@ -112,7 +112,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
-	logrus.Infoln("loading group members and project details...")
+	logrus.Infof("loading group members and project details...")
 	startTime := time.Now()
 	go func() {
 		defer wg.Done()
@@ -191,7 +191,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 	}()
 
 	wg.Wait()
-	logrus.Infoln("done loading group members and project details (took %s)", time.Since(startTime))
+	logrus.Infof("done loading group members and project details (took %s)", time.Since(startTime))
 
 	return GitlabState{
 		Querier:  m.Querier,
