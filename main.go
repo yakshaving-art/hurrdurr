@@ -18,7 +18,7 @@ func main() {
 
 	args := parseArgs()
 
-	SetupLogger(args.Debug)
+	SetupLogger(args.Debug, args.Trace)
 
 	conf, err := util.LoadConfig(args.ConfigFile, args.ChecksumCheck)
 	if err != nil {

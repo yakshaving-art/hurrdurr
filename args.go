@@ -21,6 +21,7 @@ type Args struct {
 	DryRun        bool
 	ShowVersion   bool
 	Debug         bool
+	Trace         bool
 	ChecksumCheck bool
 
 	ManageACLs  bool
@@ -44,6 +45,7 @@ func parseArgs() Args {
 	flag.BoolVar(&args.ShowVersion, "version", false, "show version and exit")
 	flag.BoolVar(&args.DryRun, "dryrun", false, "executes in dryrun mode. Avoids making any change")
 	flag.BoolVar(&args.Debug, "debug", false, "executes with logging in debug mode")
+	flag.BoolVar(&args.Trace, "trace", false, "executes with logging in trace mode (more verbose than debug)")
 	flag.BoolVar(&args.ChecksumCheck, "checksum-check", false, "validates the configuration checksum "+
 		"reading it from a file called as the configuratio file ended in .md5")
 
