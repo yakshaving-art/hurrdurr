@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -355,12 +356,13 @@ func (m GitlabAPIClient) UpdateBotEmail(username, email string) error {
 // ########################
 
 func (m GitlabAPIClient) fetchAllUsers(ch chan gitlab.User, errs *errors.Errors) {
-	defer close(ch)
 	logrus.Info("fetching all users")
-
 	startTime := time.Now()
-	page := 1
-	for {
+
+	defer close(ch)
+	wg := &sync.WaitGroup{}
+	fff := func(page int) (int, error) {
+		defer wg.Done()
 		opt := &gitlab.ListUsersOptions{
 			ListOptions: gitlab.ListOptions{
 				PerPage: m.PerPage,
@@ -371,26 +373,35 @@ func (m GitlabAPIClient) fetchAllUsers(ch chan gitlab.User, errs *errors.Errors)
 		users, resp, err := m.client.Users.ListUsers(opt)
 		if err != nil {
 			errs.Append(fmt.Errorf("failed to fetch all users: %s (took %s)", err, time.Since(pageStartTime)))
-			break
+			return 0, err
 		}
 		logrus.Debugf("done fetching page %d of all users (took %s)", page, time.Since(pageStartTime))
 
 		for _, user := range users {
 			ch <- *user
 		}
-
-		if page == resp.TotalPages {
-			break
-		}
-		page++
+		return resp.TotalPages, nil
 	}
+
+	wg.Add(1)
+	totalPages, err := fff(1)
+	if err != nil {
+		return
+	}
+	wg.Add(totalPages - 1)
+
+	for i := 2; i <= totalPages; i++ {
+		go fff(i)
+	}
+
+	wg.Wait()
 	logrus.Infof("done fetching all users (took %s)", time.Since(startTime))
 }
 
 func (m GitlabAPIClient) fetchUser(username string) *gitlab.User {
 	logrus.Debugf("fetching user '%s'", username)
-
 	startTime := time.Now()
+
 	users, _, err := m.client.Users.ListUsers(&gitlab.ListUsersOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: 1,
@@ -411,8 +422,8 @@ func (m GitlabAPIClient) fetchUser(username string) *gitlab.User {
 
 func (m GitlabAPIClient) fetchGroup(fullpath string) *gitlab.Group {
 	logrus.Debugf("fetching group '%s'", fullpath)
-
 	startTime := time.Now()
+
 	group, _, err := m.client.Groups.GetGroup(fullpath)
 	if err != nil {
 		logrus.Fatalf("failed to fetch group '%s': %s (took %s)", fullpath, err, time.Since(startTime))
@@ -424,12 +435,12 @@ func (m GitlabAPIClient) fetchGroup(fullpath string) *gitlab.Group {
 
 func (m GitlabAPIClient) fetchGroups(allAvailable bool, ch chan gitlab.Group, errs *errors.Errors) {
 	logrus.Info("fetching all groups")
+	startTime := time.Now()
 
 	defer close(ch)
-
-	startTime := time.Now()
-	page := 1
-	for {
+	wg := &sync.WaitGroup{}
+	fff := func(page int) (int, error) {
+		defer wg.Done()
 		opt := &gitlab.ListGroupsOptions{
 			AllAvailable: &allAvailable,
 			ListOptions: gitlab.ListOptions{
@@ -442,40 +453,49 @@ func (m GitlabAPIClient) fetchGroups(allAvailable bool, ch chan gitlab.Group, er
 		groups, resp, err := m.client.Groups.ListGroups(opt)
 		if err != nil {
 			errs.Append(fmt.Errorf("failed to fetch all groups: %s (took %s)", err, time.Since(pageStartTime)))
-			break
+			return 0, err
 		}
 		logrus.Debugf("done fetching page %d of all groups (took %s)", page, time.Since(pageStartTime))
 
 		for _, group := range groups {
 			ch <- *group
 		}
-
-		if page == resp.TotalPages {
-			break
-		}
-		page++
+		return resp.TotalPages, nil
 	}
+
+	wg.Add(1)
+	totalPages, err := fff(1)
+	if err != nil {
+		return
+	}
+	wg.Add(totalPages - 1)
+
+	for i := 2; i <= totalPages; i++ {
+		go fff(i)
+	}
+
+	wg.Wait()
 	logrus.Infof("done fetching all groups (took %s)", time.Since(startTime))
 }
 
 func (m GitlabAPIClient) fetchGroupMembers(fullpath string) (map[string]internal.Level, error) {
-	groupMembers := make(map[string]internal.Level)
 	logrus.Debugf("fetching all group members for '%s'", fullpath)
-
 	startTime := time.Now()
-	page := 1
-	for {
+
+	groupMembers := make(map[string]internal.Level)
+	wg := &sync.WaitGroup{}
+	fff := func(page int) (int, error) {
+		defer wg.Done()
 		opt := &gitlab.ListGroupMembersOptions{
 			ListOptions: gitlab.ListOptions{
 				PerPage: m.PerPage,
 				Page:    page,
 			},
 		}
-
 		pageStartTime := time.Now()
 		members, resp, err := m.client.Groups.ListGroupMembers(fullpath, opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch group members for '%s': %s (took %s)", fullpath, err, time.Since(pageStartTime))
+			return 0, fmt.Errorf("failed to fetch group members for '%s': %s (took %s)", fullpath, err, time.Since(pageStartTime))
 		}
 		logrus.Debugf("done fetching page %d of group members for '%s' (took %s)", page, fullpath, time.Since(pageStartTime))
 
@@ -483,11 +503,21 @@ func (m GitlabAPIClient) fetchGroupMembers(fullpath string) (map[string]internal
 			groupMembers[member.Username] = internal.Level(member.AccessLevel)
 		}
 
-		if page == resp.TotalPages {
-			break
-		}
-		page++
+		return resp.TotalPages, nil
 	}
+
+	wg.Add(1)
+	totalPages, err := fff(1)
+	if err != nil {
+		return nil, err
+	}
+	wg.Add(totalPages - 1)
+
+	for i := 2; i <= totalPages; i++ {
+		go fff(i)
+	}
+
+	wg.Wait()
 	logrus.Debugf("done fetching all group members for '%s' (took %s)", fullpath, time.Since(startTime))
 	return groupMembers, nil
 }
@@ -519,12 +549,13 @@ func (m GitlabAPIClient) fetchGroupVariables(fullpath string) (map[string]string
 }
 
 func (m GitlabAPIClient) fetchAllProjects(ch chan gitlab.Project, errs *errors.Errors) {
-	logrus.Debugf("fetching all projects")
-	defer close(ch)
-
+	logrus.Infof("fetching all projects")
 	startTime := time.Now()
-	page := 1
-	for {
+
+	defer close(ch)
+	wg := &sync.WaitGroup{}
+	fff := func(page int) (int, error) {
+		defer wg.Done()
 		opt := &gitlab.ListProjectsOptions{
 			ListOptions: gitlab.ListOptions{
 				PerPage: m.PerPage,
@@ -536,29 +567,39 @@ func (m GitlabAPIClient) fetchAllProjects(ch chan gitlab.Project, errs *errors.E
 		prjs, resp, err := m.client.Projects.ListProjects(opt)
 		if err != nil {
 			errs.Append(fmt.Errorf("failed to fetch the list of projects: %s (took %s)", err, time.Since(pageStartTime)))
-			return
+			return 0, err
 		}
 		logrus.Debugf("done fetching page %d of projects (took %s)", page, time.Since(pageStartTime))
 
 		for _, p := range prjs {
 			ch <- *p
 		}
-
-		if page == resp.TotalPages {
-			break
-		}
-		page++
+		return resp.TotalPages, nil
 	}
+
+	wg.Add(1)
+	totalPages, err := fff(1)
+	if err != nil {
+		return
+	}
+	wg.Add(totalPages - 1)
+
+	for i := 2; i <= totalPages; i++ {
+		go fff(i)
+	}
+
+	wg.Wait()
 	logrus.Infof("done fetching all projects (took %s)", time.Since(startTime))
 }
 
 func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]internal.Level, error) {
 	logrus.Debugf("fetching project members for '%s'", fullpath)
-	projectMembers := make(map[string]internal.Level)
-
 	startTime := time.Now()
-	page := 1
-	for {
+
+	projectMembers := make(map[string]internal.Level)
+	wg := &sync.WaitGroup{}
+	fff := func(page int) (int, error) {
+		defer wg.Done()
 		opt := &gitlab.ListProjectMembersOptions{
 			ListOptions: gitlab.ListOptions{
 				PerPage: m.PerPage,
@@ -569,19 +610,28 @@ func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]intern
 		pageStartTime := time.Now()
 		members, resp, err := m.client.ProjectMembers.ListProjectMembers(fullpath, opt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch project members for '%s': %s (took %s)", fullpath, err, time.Since(pageStartTime))
+			return 0, fmt.Errorf("failed to fetch project members for '%s': %s (took %s)", fullpath, err, time.Since(pageStartTime))
 		}
 		logrus.Debugf("done fetching page %d of projects members for '%s' (took %s)", page, fullpath, time.Since(pageStartTime))
 
 		for _, member := range members {
 			projectMembers[member.Username] = internal.Level(member.AccessLevel)
 		}
-
-		if page == resp.TotalPages {
-			break
-		}
-		page++
+		return resp.TotalPages, nil
 	}
+
+	wg.Add(1)
+	totalPages, err := fff(1)
+	if err != nil {
+		return nil, err
+	}
+	wg.Add(totalPages - 1)
+
+	for i := 2; i <= totalPages; i++ {
+		go fff(i)
+	}
+
+	wg.Wait()
 	logrus.Debugf("done fetching project members for %s (took %s)", fullpath, time.Since(startTime))
 	return projectMembers, nil
 }
