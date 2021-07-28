@@ -38,6 +38,7 @@ func main() {
 			GitlabBaseURL:     args.GitlabBaseURL,
 			GitlabGhostUser:   args.GhostUser,
 			RequestsPerSecond: args.RequestsPerSecond,
+			Concurrency:       args.Concurrency,
 		})
 
 	var currentState internal.State
