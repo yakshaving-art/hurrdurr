@@ -144,18 +144,23 @@ func LoadStateFromFile(c internal.Config, q internal.Querier) (internal.State, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to build local state: %s", err)
 	}
-
+	logrus.Tracef("admin users: %+v\n", l.admins)
+	logrus.Tracef("blocked users: %+v\n", l.blocked)
+	logrus.Tracef("bots: %+v\n", l.bots)
+	logrus.Tracef("groups: %+v\n", l.groups)
+	logrus.Tracef("projects: %+v\n", l.projects)
+	logrus.Tracef("unhandled groups: %+v\n", l.unhandledGroups)
 	return l, nil
 }
 
 type localState struct {
+	admins          map[string]int
+	blocked         map[string]int
+	bots            map[string]string
 	currentUser     string
 	groups          map[string]*LocalGroup
 	projects        map[string]*LocalProject
-	admins          map[string]int
-	blocked         map[string]int
 	unhandledGroups []string
-	bots            map[string]string
 }
 
 func (s localState) addGroup(g *LocalGroup) {
@@ -202,9 +207,7 @@ func (s localState) IsAdmin(username string) bool {
 }
 
 func (s localState) IsBlocked(username string) bool {
-	logrus.Debugf("checking '%s' is blocked in map", username)
-	logrus.Tracef("Blocing map being %#v", s.blocked)
-
+	logrus.Debugf("checking if '%s' is blocked", username)
 	_, ok := s.blocked[username]
 	return ok
 }
