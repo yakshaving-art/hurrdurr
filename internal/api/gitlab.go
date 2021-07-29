@@ -189,11 +189,6 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 				return func() {
 					defer wg.Done()
 
-					// Skip archived projects (they are read-only by definition)
-					if project.Archived {
-						logrus.Tracef("skipping variables for project '%s' because it's archived", project.PathWithNamespace)
-					}
-
 					jobTime := time.Now()
 					groups := make(map[string]internal.Level)
 					for _, g := range project.SharedWithGroups {
@@ -214,7 +209,8 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 					variables := make(map[string]string)
 
 					// Only try to fetch variables from projects with enabled pipelines
-					if project.JobsEnabled {
+					// Skip archived projects (they are read-only by definition)
+					if project.JobsEnabled && !project.Archived {
 						variables, err = m.fetchProjectVariables(project.PathWithNamespace)
 						if err != nil {
 							errs.Append(fmt.Errorf("failed to fetch project variables for '%s' (took %s): %s", project.PathWithNamespace, time.Since(jobTime), err))
