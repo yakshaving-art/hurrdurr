@@ -26,11 +26,10 @@ type GitlabAPIClient struct {
 
 // GitlabAPIClientArgs gitlab api client
 type GitlabAPIClientArgs struct {
-	GitlabToken       string
-	GitlabBaseURL     string
-	GitlabGhostUser   string
-	RequestsPerSecond int
-	Concurrency       int
+	GitlabToken     string
+	GitlabBaseURL   string
+	GitlabGhostUser string
+	Concurrency     int
 }
 
 // ErrForbiddenAction is used to indicate that an error is triggered due to the
