@@ -21,6 +21,7 @@ type Args struct {
 	DryRun        bool
 	ShowVersion   bool
 	Debug         bool
+	Trace         bool
 	ChecksumCheck bool
 
 	ManageACLs  bool
@@ -34,6 +35,8 @@ type Args struct {
 
 	RequestsPerSecond int
 	SnoopDepth        int
+
+	Concurrency int
 }
 
 func parseArgs() Args {
@@ -42,6 +45,7 @@ func parseArgs() Args {
 	flag.BoolVar(&args.ShowVersion, "version", false, "show version and exit")
 	flag.BoolVar(&args.DryRun, "dryrun", false, "executes in dryrun mode. Avoids making any change")
 	flag.BoolVar(&args.Debug, "debug", false, "executes with logging in debug mode")
+	flag.BoolVar(&args.Trace, "trace", false, "executes with logging in trace mode (more verbose than debug)")
 	flag.BoolVar(&args.ChecksumCheck, "checksum-check", false, "validates the configuration checksum "+
 		"reading it from a file called as the configuratio file ended in .md5")
 
@@ -58,6 +62,8 @@ func parseArgs() Args {
 		"life is too short to not overwrite group and project environment variables")
 	flag.IntVar(&args.RequestsPerSecond, "requests-per-second", 5, "how many requests per second the Gitlab client can perform")
 	flag.IntVar(&args.SnoopDepth, "snoopdepth", 0, "max depth to report unhandled groups. 0 means all")
+
+	flag.IntVar(&args.Concurrency, "concurrency", 50, "how many concurrent jobs we allow when pre-loading from Gitlab")
 
 	flag.Parse()
 

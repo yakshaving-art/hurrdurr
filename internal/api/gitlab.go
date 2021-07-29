@@ -8,6 +8,7 @@ import (
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/util"
+	"gitlab.com/yakshaving.art/hurrdurr/pkg/workerpool"
 
 	"github.com/sirupsen/logrus"
 	gitlab "github.com/xanzy/go-gitlab"
@@ -27,12 +28,13 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	querierStartTime := time.Now()
 	errs := errors.New()
 
-	users := make(map[string]GitlabUser, 0)
-	groups := make(map[string]int, 0)
-	projects := make(map[string]int, 0)
-
+	users := make(map[string]GitlabUser)
+	groups := make(map[string]int)
+	projects := make(map[string]int)
 	usersCh := make(chan gitlab.User)
+
 	go m.fetchAllUsers(usersCh, &errs)
+
 	logrus.Debugf("populating users map...")
 	startTime := time.Now()
 	adminCount := 0
@@ -43,7 +45,6 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 				PrincipalEmail: u.Email,
 				Role:           BlockedUserRole,
 			}
-			// logrus.Debugf("appending blocked user %s (took %s)", u.Username, time.Since(startTime))
 
 		} else if u.IsAdmin {
 			users[u.Username] = GitlabUser{
@@ -52,7 +53,6 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 				Role:           AdminUserRole,
 			}
 			adminCount++
-			// logrus.Debugf("appending admin %s (took %s)", u.Username, time.Since(startTime))
 
 		} else {
 			// TODO - identify bots
@@ -67,7 +67,9 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	logrus.Debugf("done populating users map (took %s)", time.Since(startTime))
 
 	groupsCh := make(chan gitlab.Group)
+
 	go m.fetchGroups(true, groupsCh, &errs)
+
 	logrus.Debugf("populating groups map...")
 	startTime = time.Now()
 	for group := range groupsCh {
@@ -80,9 +82,7 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 	logrus.Debugf("populating projects map...")
 	startTime = time.Now()
 	for project := range projectsCh {
-		// startTime := time.Now()
 		projects[project.PathWithNamespace] = project.ID
-		// logrus.Debugf("appending project '%s' (took %s)", project.PathWithNamespace, time.Since(startTime))
 	}
 	logrus.Debugf("done populating projects map (took %s)", time.Since(startTime))
 
@@ -105,93 +105,135 @@ func CreatePreloadedQuerier(m *GitlabAPIClient) error {
 // LoadFullGitlabState loads all the state from a remote gitlab instance and returns
 // both a querier and a state so they can be used for diffing operations
 func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
-	groups := make(map[string]internal.Group, 0)
-	projects := make(map[string]internal.Project, 0)
+	groups := make(map[string]internal.Group, m.Concurrency)
+	projects := make(map[string]internal.Project, m.Concurrency)
+
 	errs := errors.New()
 
-	wg := sync.WaitGroup{}
-	wg.Add(2)
+	wg := &sync.WaitGroup{}
+
+	// Create a worker pool that controls concurrency tightly, with as many slots are concurrency is enabled
+	workers := workerpool.New(m.Concurrency)
 
 	logrus.Infof("loading group members and project details...")
-	startTime := time.Now()
+
+	globalTime := time.Now()
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
+
+		logrus.Debugf("loading group members with a concurrency of %d...", m.Concurrency)
+
 		groupsCh := make(chan gitlab.Group)
+
 		go m.fetchGroups(true, groupsCh, &errs)
 
 		for group := range groupsCh {
-			members, err := m.fetchGroupMembers(group.FullPath)
-			if err != nil {
-				errs.Append(err)
-				continue
-			}
 
-			variables, err := m.fetchGroupVariables(group.FullPath)
-			if err != nil {
-				errs.Append(err)
-				continue
-			}
+			wg.Add(1) // for every group, wait for it to complete
+			workers.Do(func(group gitlab.Group) func() {
+				return func() {
+					defer wg.Done()
 
-			groups[group.FullPath] = GitlabGroup{
-				fullpath:  group.FullPath,
-				members:   members,
-				variables: variables,
-			}
+					jobTime := time.Now()
+
+					members, err := m.fetchGroupMembers(group.FullPath)
+					if err != nil {
+						errs.Append(fmt.Errorf("Failed fetching group members (took %s): %s", time.Since(jobTime), err))
+						return
+					}
+
+					variables, err := m.fetchGroupVariables(group.FullPath)
+					if err != nil {
+						errs.Append(fmt.Errorf("Failed fetching group variables (took %s): %s", time.Since(jobTime), err))
+						return
+					}
+
+					groups[group.FullPath] = GitlabGroup{
+						fullpath:  group.FullPath,
+						members:   members,
+						variables: variables,
+					}
+					logrus.Debugf("Done fetching group %q variables and members (took %s)", group.FullPath, time.Since(jobTime))
+				}
+			}(group))
 		}
 	}()
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
+
+		logrus.Debugf("loading projects with a concurrency of %d...", m.Concurrency)
+
 		projectsCh := make(chan gitlab.Project)
+
 		go m.fetchAllProjects(projectsCh, &errs)
 
 		for project := range projectsCh {
-			startTime := time.Now()
-			// Skip archived projects (they are read-only by definition)
-			if project.Archived {
-				logrus.Debugf("skipping variables for project '%s' because it's archived", project.PathWithNamespace)
-				continue
-			}
 
-			groups := make(map[string]internal.Level, 0)
-			for _, g := range project.SharedWithGroups {
-				group, _, err := m.client.Groups.GetGroup(g.GroupID)
-				if err != nil {
-					errs.Append(fmt.Errorf("failed to fetch group %s: %s", g.GroupName, err))
-					continue
+			wg.Add(1) // for every project, wait for it to complete
+			workers.Do(func(project gitlab.Project) func() {
+				return func() {
+					defer wg.Done()
+
+					// Skip archived projects (they are read-only by definition)
+					if project.Archived {
+						logrus.Tracef("skipping variables for project '%s' because it's archived", project.PathWithNamespace)
+					}
+
+					jobTime := time.Now()
+					groups := make(map[string]internal.Level)
+					for _, g := range project.SharedWithGroups {
+						group, _, err := m.client.Groups.GetGroup(g.GroupID)
+						if err != nil {
+							errs.Append(fmt.Errorf("failed to fetch group %s (took %s): %s", g.GroupName, time.Since(jobTime), err))
+							return
+						}
+						groups[group.FullPath] = internal.Level(g.GroupAccessLevel)
+					}
+
+					members, err := m.fetchProjectMembers(project.PathWithNamespace)
+					if err != nil {
+						errs.Append(fmt.Errorf("failed to fetch project members for '%s' (took %s): %s", project.PathWithNamespace, time.Since(jobTime), err))
+						return
+					}
+
+					variables := make(map[string]string)
+
+					// Only try to fetch variables from projects with enabled pipelines
+					if project.JobsEnabled {
+						variables, err = m.fetchProjectVariables(project.PathWithNamespace)
+						if err != nil {
+							errs.Append(fmt.Errorf("failed to fetch project variables for '%s' (took %s): %s", project.PathWithNamespace, time.Since(jobTime), err))
+							return
+						}
+					}
+
+					logrus.Tracef("appending project '%s' with its members (took %s)", project.PathWithNamespace, time.Since(jobTime))
+
+					projects[project.PathWithNamespace] = GitlabProject{
+						fullpath:   project.PathWithNamespace,
+						sharedWith: groups,
+						members:    members,
+						variables:  variables,
+					}
+
+					logrus.Debugf("Done loading project %q (took %s)", project.PathWithNamespace, time.Since(jobTime))
 				}
-				groups[group.FullPath] = internal.Level(g.GroupAccessLevel)
-			}
-
-			members, err := m.fetchProjectMembers(project.PathWithNamespace)
-			if err != nil {
-				errs.Append(fmt.Errorf("failed to fetch project members for '%s': %s", project.PathWithNamespace, err))
-				continue
-			}
-
-			variables := make(map[string]string)
-
-			// Only try to fetch variables from projects with enabled pipelines
-			if project.JobsEnabled {
-				variables, err = m.fetchProjectVariables(project.PathWithNamespace)
-				if err != nil {
-					errs.Append(fmt.Errorf("failed to fetch project variables for '%s': %s", project.PathWithNamespace, err))
-					continue
-				}
-			}
-
-			logrus.Debugf("appending project '%s' with its members (took %s)", project.PathWithNamespace, time.Since(startTime))
-			projects[project.PathWithNamespace] = GitlabProject{
-				fullpath:   project.PathWithNamespace,
-				sharedWith: groups,
-				members:    members,
-				variables:  variables,
-			}
+			}(project))
 		}
+
 	}()
 
+	logrus.Debugf("workpool initialized, waiting on executing all the jobs...")
+
 	wg.Wait()
-	logrus.Infof("done loading group members and project details (took %s)", time.Since(startTime))
+
+	workers.Wait() // We shouldn't be waiting for anything, but just to be safe
+
+	logrus.Infof("done loading group members and project details (took %s)", time.Since(globalTime))
 
 	return GitlabState{
 		Querier:  m.Querier,

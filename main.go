@@ -18,7 +18,7 @@ func main() {
 
 	args := parseArgs()
 
-	SetupLogger(args.Debug)
+	SetupLogger(args.Debug, args.Trace)
 
 	conf, err := util.LoadConfig(args.ConfigFile, args.ChecksumCheck)
 	if err != nil {
@@ -38,6 +38,7 @@ func main() {
 			GitlabBaseURL:     args.GitlabBaseURL,
 			GitlabGhostUser:   args.GhostUser,
 			RequestsPerSecond: args.RequestsPerSecond,
+			Concurrency:       args.Concurrency,
 		})
 
 	var currentState internal.State
