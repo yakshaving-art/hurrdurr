@@ -11,7 +11,6 @@ import (
 	"gitlab.com/yakshaving.art/hurrdurr/internal"
 	"gitlab.com/yakshaving.art/hurrdurr/internal/errors"
 	"gitlab.com/yakshaving.art/hurrdurr/pkg/random"
-	"golang.org/x/time/rate"
 )
 
 // GitlabAPIClient is a client for proving high level behaviors when talking to
@@ -40,11 +39,9 @@ var ErrForbiddenAction = fmt.Errorf("The user is not allowed to run this command
 
 // NewGitlabAPIClient create a new Gitlab API Client
 func NewGitlabAPIClient(args GitlabAPIClientArgs) GitlabAPIClient {
-	rateLimiter := rate.NewLimiter(rate.Every(time.Second), args.RequestsPerSecond)
-	clientLimiter := gitlab.WithCustomLimiter(rateLimiter)
 	clientBaseURL := gitlab.WithBaseURL(args.GitlabBaseURL)
 
-	gitlabClient, err := gitlab.NewClient(args.GitlabToken, clientLimiter, clientBaseURL)
+	gitlabClient, err := gitlab.NewClient(args.GitlabToken, clientBaseURL)
 	if err != nil {
 		logrus.Fatalf("Could initialize gitlab client with base URL '%s': '%s'", args.GitlabBaseURL, err)
 	}
