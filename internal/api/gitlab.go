@@ -155,7 +155,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 						members:   members,
 						variables: variables,
 					}
-					logrus.Debugf("Done fetching group %q variables (took %s)", group.FullPath, time.Since(jobTime))
+					logrus.Debugf("Done fetching group %q variables and members (took %s)", group.FullPath, time.Since(jobTime))
 				}
 			}(group))
 		}
