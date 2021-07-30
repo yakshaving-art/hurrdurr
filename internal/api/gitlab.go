@@ -143,13 +143,13 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 
 					members, err := m.fetchGroupMembers(group.FullPath)
 					if err != nil {
-						errs.Append(fmt.Errorf("Failed fetching group members (took %s): %s", time.Since(jobTime), err))
+						errs.Append(fmt.Errorf("failed fetching group members (took %s): %s", time.Since(jobTime), err))
 						return
 					}
 
 					variables, err := m.fetchGroupVariables(group.FullPath)
 					if err != nil {
-						errs.Append(fmt.Errorf("Failed fetching group variables (took %s): %s", time.Since(jobTime), err))
+						errs.Append(fmt.Errorf("failed fetching group variables (took %s): %s", time.Since(jobTime), err))
 						return
 					}
 
@@ -161,7 +161,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 						members:   members,
 						variables: variables,
 					}
-					logrus.Debugf("Done fetching group %q variables and members (took %s)", group.FullPath, time.Since(jobTime))
+					logrus.Debugf("done fetching group %q variables and members (took %s)", group.FullPath, time.Since(jobTime))
 				}
 			}(group))
 		}
@@ -225,7 +225,7 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 						variables:  variables,
 					}
 
-					logrus.Debugf("Done loading project %q (took %s)", project.PathWithNamespace, time.Since(jobTime))
+					logrus.Debugf("done loading project %q (took %s)", project.PathWithNamespace, time.Since(jobTime))
 				}
 			}(project))
 		}
