@@ -582,7 +582,7 @@ func (m GitlabAPIClient) fetchGroupVariables(fullpath string) (map[string]string
 func (m GitlabAPIClient) fetchAllProjects(ch chan gitlab.Project, errs *errors.Errors) {
 	defer close(ch)
 
-	logrus.Infof("fetching all projects")
+	logrus.Infof("fetching all projects...")
 	startTime := time.Now()
 
 	wg := &sync.WaitGroup{}
