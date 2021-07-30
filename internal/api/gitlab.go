@@ -110,6 +110,9 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 
 	errs := errors.New()
 
+	groupsLock := &sync.Mutex{}
+	projectsLock := &sync.Mutex{}
+
 	wg := &sync.WaitGroup{}
 
 	// Create a worker pool that controls concurrency tightly, with as many slots are concurrency is enabled
@@ -149,6 +152,9 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 						errs.Append(fmt.Errorf("Failed fetching group variables (took %s): %s", time.Since(jobTime), err))
 						return
 					}
+
+					groupsLock.Lock()
+					defer groupsLock.Unlock()
 
 					groups[group.FullPath] = GitlabGroup{
 						fullpath:  group.FullPath,
@@ -208,6 +214,9 @@ func LoadFullGitlabState(m GitlabAPIClient) (internal.State, error) {
 					}
 
 					logrus.Tracef("appending project '%s' with its members (took %s)", project.PathWithNamespace, time.Since(jobTime))
+
+					projectsLock.Lock()
+					defer projectsLock.Unlock()
 
 					projects[project.PathWithNamespace] = GitlabProject{
 						fullpath:   project.PathWithNamespace,
