@@ -125,35 +125,35 @@ func (d *differ) diffGroups() {
 			logrus.Debugf("  Diffing desired group %s members because the current group is present",
 				desiredGroup.GetFullpath())
 
-			desiredSharedGroups := desiredGroup.GetSharedGroups()
-			if desiredSharedGroups != nil {
-				logrus.Debug("    Comparing desired and current shared groups")
-				for desiredSharedGroup, desiredSharedLevel := range desiredSharedGroups {
-					currentLevel, currentLevelPresent := currentGroup.GetSharedGroups()[desiredSharedGroup]
+			sharedGroups := desiredGroup.GetSharedGroups()
+			if sharedGroups != nil {
+				logrus.Debugf("    Comparing shared groups")
+				for sharedGroup, sharedLevel := range sharedGroups {
+					currentLevel, currentLevelPresent := currentGroup.GetSharedGroups()[sharedGroup]
 					if !currentLevelPresent {
 						logrus.Debugf("      Adding group %s sharing because current level is not currently present",
-							desiredSharedGroup)
+							sharedGroup)
 						d.Action(shareGroupWithGroup{
 							Group:       desiredGroup.GetFullpath(),
-							SharedGroup: desiredSharedGroup,
-							Level:       desiredSharedLevel,
+							SharedGroup: sharedGroup,
+							Level:       sharedLevel,
 						})
-					} else if currentLevel != desiredSharedLevel {
+					} else if currentLevel != sharedLevel {
 						logrus.Debugf("      Changing group %s sharing as %s because current level is %s",
-							desiredSharedGroup, desiredSharedLevel, currentLevel)
+							sharedGroup, sharedLevel, currentLevel)
 
 						d.Action(removeGroupSharing{
 							Group:       desiredGroup.GetFullpath(),
-							SharedGroup: desiredSharedGroup,
+							SharedGroup: sharedGroup,
 						})
 
 						d.Action(shareGroupWithGroup{
 							Group:       desiredGroup.GetFullpath(),
-							SharedGroup: desiredSharedGroup,
-							Level:       desiredSharedLevel,
+							SharedGroup: sharedGroup,
+							Level:       sharedLevel,
 						})
 					} else {
-						logrus.Debugf("      Keeping group %s sharing as is", desiredGroup)
+						logrus.Debugf("      Keeping group %s sharing as is", sharedGroup)
 					}
 				}
 			}
