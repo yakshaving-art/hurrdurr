@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -73,6 +74,14 @@ func (m GitlabAPIClient) AddGroupSharing(group, shared_group string, level inter
 	}
 	g, _, err := m.client.GroupMembers.ShareWithGroup(group, &opt)
 	if err != nil {
+		// FIXME: This is just to stop the bleeding. Hurrdurr craps out if it
+		// finds a group that has already been shared with another. That is, it
+		// isn't idempotent.
+		// More in https://gitlab.com/yakshaving.art/hurrdurr/-/issues/31
+		if strings.Contains(err.Error(), "Shared group The group has already been shared with this group") {
+			logrus.Infof("I'm just an annoying message to poke your eyes until you fix the group sharing idempotency bug")
+			return nil
+		}
 		return fmt.Errorf("failed to share group '%s' with group '%s': %s", group, shared_group, err)
 	}
 	logrus.Printf("[apply] group '%s' shared with '%s' at level '%s'\n", g.FullPath, shared_group, level)
