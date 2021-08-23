@@ -32,6 +32,12 @@ func LoadPartialGitlabState(cnf internal.Config, client GitlabAPIClient) (intern
 	go client.fetchGroups(false, groupsCh, &errs)
 
 	for g := range groupsCh {
+
+		sharedWithGroups := make(map[string]internal.Level, 0)
+		for _, sg := range g.SharedWithGroups {
+			sharedWithGroups[sg.GroupName] = internal.Level(sg.GroupAccessLevel)
+		}
+
 		members, err := client.fetchGroupMembers(g.FullPath)
 		if err != nil {
 			errs.Append(fmt.Errorf("failed to fetch members for group '%s'", err))
@@ -49,9 +55,10 @@ func LoadPartialGitlabState(cnf internal.Config, client GitlabAPIClient) (intern
 		}
 
 		groups[g.FullPath] = GitlabGroup{
-			fullpath:  g.FullPath,
-			members:   members,
-			variables: vars,
+			fullpath:   g.FullPath,
+			sharedWith: sharedWithGroups,
+			members:    members,
+			variables:  vars,
 		}
 	}
 

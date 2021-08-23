@@ -30,6 +30,18 @@ func (m DryRunAPIClient) RemoveGroupMembership(username, group string) error {
 	return nil
 }
 
+// AddGroupSharing implements the APIClient interface
+func (m DryRunAPIClient) AddGroupSharing(group, shared_group string, level internal.Level) error {
+	m.Append(fmt.Sprintf("share group '%s' with group '%s' at level '%s'", group, shared_group, level))
+	return nil
+}
+
+// RemoveGroupSharing implements the APIClient interface
+func (m DryRunAPIClient) RemoveGroupSharing(group, shared_group string) error {
+	m.Append(fmt.Sprintf("remove group sharing from '%s' with group '%s'", group, shared_group))
+	return nil
+}
+
 // AddProjectSharing implements the APIClient interface
 func (m DryRunAPIClient) AddProjectSharing(project, group string, level internal.Level) error {
 	m.Append(fmt.Sprintf("share project '%s' with group '%s' at level '%s'", project, group, level))

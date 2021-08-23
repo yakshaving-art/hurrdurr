@@ -135,14 +135,16 @@ func TestLoadingState(t *testing.T) {
 			"",
 			[]hurrdurr.LocalGroup{
 				{
-					Fullpath: "other_group",
+					Fullpath:   "other_group",
+					SharedWith: map[string]internal.Level{},
 					Members: map[string]internal.Level{
 						"user2": internal.Owner,
 					},
 					Variables: map[string]string{},
 				},
 				{
-					Fullpath: "root_group",
+					Fullpath:   "root_group",
+					SharedWith: map[string]internal.Level{},
 					Members: map[string]internal.Level{
 						"admin": internal.Owner,
 						"user1": internal.Developer,
@@ -159,14 +161,16 @@ func TestLoadingState(t *testing.T) {
 			"",
 			[]hurrdurr.LocalGroup{
 				{
-					Fullpath: "other_group",
+					Fullpath:   "other_group",
+					SharedWith: map[string]internal.Level{},
 					Members: map[string]internal.Level{
 						"user2": internal.Owner,
 					},
 					Variables: map[string]string{},
 				},
 				{
-					Fullpath: "root_group",
+					Fullpath:   "root_group",
+					SharedWith: map[string]internal.Level{},
 					Members: map[string]internal.Level{
 						"admin": internal.Owner,
 						"user1": internal.Developer,
@@ -195,8 +199,9 @@ func TestLoadingState(t *testing.T) {
 			"",
 			[]hurrdurr.LocalGroup{
 				{
-					Fullpath: "other_group",
-					Subquery: true,
+					Fullpath:   "other_group",
+					SharedWith: map[string]internal.Level{},
+					Subquery:   true,
 					Members: map[string]internal.Level{
 						"admin": internal.Owner,
 						"user1": internal.Developer,
@@ -207,14 +212,16 @@ func TestLoadingState(t *testing.T) {
 					Variables: map[string]string{},
 				},
 				{
-					Fullpath: "root_group",
+					Fullpath:   "root_group",
+					SharedWith: map[string]internal.Level{},
 					Members: map[string]internal.Level{
 						"admin": internal.Owner,
 					},
 					Variables: map[string]string{},
 				},
 				{
-					Fullpath: "simple_group",
+					Fullpath:   "simple_group",
+					SharedWith: map[string]internal.Level{},
 					Members: map[string]internal.Level{
 						"admin": internal.Owner,
 						"user1": internal.Maintainer,
@@ -225,8 +232,9 @@ func TestLoadingState(t *testing.T) {
 					Variables: map[string]string{},
 				},
 				{
-					Fullpath: "skrrty",
-					Subquery: true,
+					Fullpath:   "skrrty",
+					SharedWith: map[string]internal.Level{},
+					Subquery:   true,
 					Members: map[string]internal.Level{
 						"admin": internal.Owner,
 						"user1": internal.Guest,
@@ -237,8 +245,9 @@ func TestLoadingState(t *testing.T) {
 					Variables: map[string]string{},
 				},
 				{
-					Fullpath: "yet_another_group",
-					Subquery: true,
+					Fullpath:   "yet_another_group",
+					SharedWith: map[string]internal.Level{},
+					Subquery:   true,
 					Members: map[string]internal.Level{
 						"admin": internal.Owner,
 						"user1": internal.Maintainer,
@@ -258,9 +267,38 @@ func TestLoadingState(t *testing.T) {
 			"",
 			[]hurrdurr.LocalGroup{
 				{
-					Fullpath: "root_group",
-					Subquery: true,
+					Fullpath:   "root_group",
+					SharedWith: map[string]internal.Level{},
+					Subquery:   true,
 					Members: map[string]internal.Level{
+						"admin": internal.Owner,
+					},
+					Variables: map[string]string{},
+				},
+			},
+			[]string{"other_group", "simple_group", "skrrty", "yet_another_group"},
+			[]hurrdurr.LocalProject{},
+		},
+		{
+			"group share with other group",
+			"fixtures/diff-share-other_group-group-with-root_group-group-as-developer.yaml",
+			"",
+			[]hurrdurr.LocalGroup{
+				{
+					Fullpath:   "other_group",
+					SharedWith: map[string]internal.Level{},
+					Members: map[string]internal.Level{
+						"user2": internal.Owner,
+					},
+					Variables: map[string]string{},
+				},
+				{
+					Fullpath: "root_group",
+					SharedWith: map[string]internal.Level{
+						"other_group": internal.Developer,
+					},
+					Members: map[string]internal.Level{
+						"user1": internal.Developer,
 						"admin": internal.Owner,
 					},
 					Variables: map[string]string{},

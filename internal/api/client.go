@@ -62,6 +62,35 @@ func (m GitlabAPIClient) CurrentUser() string {
 	return u.Username
 }
 
+// AddGroupSharing implements the APIClient interface
+func (m GitlabAPIClient) AddGroupSharing(group, shared_group string, level internal.Level) error {
+	id := m.Querier.GetGroupID(shared_group)
+	acl := gitlab.AccessLevelValue(level)
+
+	opt := gitlab.ShareWithGroupOptions{
+		GroupID:     &id,
+		GroupAccess: &acl,
+	}
+	g, _, err := m.client.GroupMembers.ShareWithGroup(group, &opt)
+	if err != nil {
+		return fmt.Errorf("failed to share group '%s' with group '%s': %s", group, shared_group, err)
+	}
+	logrus.Printf("[apply] group '%s' shared with '%s' at level '%s'\n", g.FullPath, shared_group, level)
+	return nil
+}
+
+// RemoveGroupSharing implements the APIClient interface
+func (m GitlabAPIClient) RemoveGroupSharing(group, shared_group string) error {
+	id := m.Querier.GetGroupID(shared_group)
+
+	_, err := m.client.GroupMembers.DeleteShareWithGroup(group, id)
+	if err != nil {
+		return fmt.Errorf("failed to remove group '%s' sharing with '%s': %s", group, shared_group, err)
+	}
+	logrus.Printf("[apply] group '%s' is not shared with '%s' anymore\n", group, shared_group)
+	return nil
+}
+
 // AddGroupMembership implements the APIClient interface
 func (m GitlabAPIClient) AddGroupMembership(username, group string, level internal.Level) error {
 	userID := m.Querier.GetUserID(username)

@@ -16,9 +16,10 @@ import (
 
 // LocalGroup represents a group with a fullpath and it's members that is loaded from a yaml file
 type LocalGroup struct {
-	Fullpath string
-	Members  map[string]internal.Level
-	Subquery bool
+	Fullpath   string
+	SharedWith map[string]internal.Level
+	Members    map[string]internal.Level
+	Subquery   bool
 
 	Variables map[string]string
 }
@@ -26,6 +27,11 @@ type LocalGroup struct {
 // GetFullpath implements Group interface
 func (g LocalGroup) GetFullpath() string {
 	return g.Fullpath
+}
+
+// GetSharedGroups implements Group interface
+func (g LocalGroup) GetSharedGroups() map[string]internal.Level {
+	return g.SharedWith
 }
 
 // GetMembers implements Group interface
@@ -55,6 +61,14 @@ func (g LocalGroup) VariableEquals(key, value string) bool {
 // GetVariables implements Group interface
 func (g LocalGroup) GetVariables() map[string]string {
 	return g.Variables
+}
+
+func (g LocalGroup) addSharedGroups(fullpath string, level internal.Level) {
+	l, ok := g.SharedWith[fullpath]
+	if ok && l > level {
+		return
+	}
+	g.SharedWith[fullpath] = level
 }
 
 func (g LocalGroup) addMember(username string, level internal.Level) {
@@ -265,10 +279,10 @@ func configToLocalState(c internal.Config, q internal.Querier) (localState, erro
 		}
 
 		group := &LocalGroup{
-			Fullpath: fullpath,
-			Members:  make(map[string]internal.Level, 0),
-
-			Variables: make(map[string]string, 0),
+			Fullpath:   fullpath,
+			SharedWith: make(map[string]internal.Level, 0),
+			Members:    make(map[string]internal.Level, 0),
+			Variables:  make(map[string]string, 0),
 		}
 
 		for k, envKey := range g.Variables {
@@ -282,6 +296,15 @@ func configToLocalState(c internal.Config, q internal.Querier) (localState, erro
 
 		addMembers := func(members []string, level internal.Level) {
 			for _, member := range members {
+				if strings.HasPrefix(member, "share_with:") {
+					member = strings.TrimSpace(member[11:])
+					if !q.GroupExists(member) {
+						errs.Append(fmt.Errorf("can't share group '%s' with non-existing group '%s'", fullpath, member))
+						continue
+					}
+					group.addSharedGroups(member, level)
+					continue
+				}
 				if strings.HasPrefix(member, "query:") {
 					queries = append(queries, query{
 						query:       strings.TrimSpace(member[6:]),

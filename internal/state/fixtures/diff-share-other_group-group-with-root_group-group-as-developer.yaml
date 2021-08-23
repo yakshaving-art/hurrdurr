@@ -1,0 +1,11 @@
+---
+groups:
+  other_group:
+    owners:
+    - user2
+  root_group:
+    developers:
+    - "share_with: other_group"
+    - user1
+    owners:
+    - admin
