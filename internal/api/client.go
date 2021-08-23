@@ -511,9 +511,10 @@ func (m GitlabAPIClient) fetchGroupMembers(fullpath string) (map[string]internal
 	logrus.Debugf("fetching all group members for '%s'", fullpath)
 	startTime := time.Now()
 
+	wg := &sync.WaitGroup{}
+	lock := &sync.Mutex{}
 	groupMembers := make(map[string]internal.Level)
 
-	wg := &sync.WaitGroup{}
 	fff := func(page int) (int, error) {
 		defer wg.Done()
 		opt := &gitlab.ListGroupMembersOptions{
@@ -529,6 +530,9 @@ func (m GitlabAPIClient) fetchGroupMembers(fullpath string) (map[string]internal
 			return 0, fmt.Errorf("failed to fetch group members for '%s': %s (took %s)", fullpath, err, time.Since(pageStartTime))
 		}
 		logrus.Debugf("done fetching page %d of group members for '%s' (took %s)", page, fullpath, time.Since(pageStartTime))
+
+		lock.Lock()
+		defer lock.Unlock()
 
 		for _, member := range members {
 			groupMembers[member.Username] = internal.Level(member.AccessLevel)
@@ -630,9 +634,10 @@ func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]intern
 	logrus.Debugf("fetching project members for '%s'", fullpath)
 	startTime := time.Now()
 
+	wg := &sync.WaitGroup{}
+	lock := &sync.Mutex{}
 	projectMembers := make(map[string]internal.Level)
 
-	wg := &sync.WaitGroup{}
 	fff := func(page int) (int, error) {
 		defer wg.Done()
 
@@ -649,6 +654,9 @@ func (m GitlabAPIClient) fetchProjectMembers(fullpath string) (map[string]intern
 			return 0, fmt.Errorf("failed to fetch project members for '%s': %s (took %s)", fullpath, err, time.Since(pageStartTime))
 		}
 		logrus.Debugf("done fetching page %d of projects members for '%s' (took %s)", page, fullpath, time.Since(pageStartTime))
+
+		lock.Lock()
+		defer lock.Unlock()
 
 		for _, member := range members {
 			projectMembers[member.Username] = internal.Level(member.AccessLevel)
